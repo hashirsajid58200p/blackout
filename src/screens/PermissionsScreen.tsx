@@ -102,23 +102,25 @@ export const PermissionsScreen: React.FC = () => {
                   key={item.id}
                   className="border-2 border-primary dark:border-white p-4 rounded-none flex-col bg-surface-container-lowest dark:bg-zinc-900"
                 >
-                  {/* 1. First: Icon Center-Aligned Vertically with Main Heading */}
+                  {/* 1. Top Row: Icon 100% Center-Aligned Vertically with Heading Text Line */}
                   <View className="flex-row items-center gap-2.5 mb-1.5">
-                    <IconComponent size={20} color={iconColor} />
+                    <View className="w-5 h-5 items-center justify-center">
+                      <IconComponent size={20} color={iconColor} />
+                    </View>
                     <Text
                       numberOfLines={1}
-                      className="font-bold text-xs uppercase tracking-wider text-primary dark:text-white flex-1"
+                      className="font-bold text-xs uppercase tracking-wider text-primary dark:text-white flex-1 leading-5"
                     >
                       {item.title}
                     </Text>
                   </View>
 
-                  {/* 2. Then: Paragraph / Description text below heading */}
-                  <Text className="text-xs text-secondary dark:text-zinc-400 pl-7 leading-4 mb-3">
+                  {/* 2. Description Paragraph: Left-aligned at exact 30px offset (icon 20px + gap 10px) */}
+                  <Text className="text-xs text-secondary dark:text-zinc-400 ml-[30px] leading-4 mb-3">
                     {item.description}
                   </Text>
 
-                  {/* 3. Then: Button below paragraph, aligned to the RIGHT side */}
+                  {/* 3. Action Button: Aligned on the Right Side */}
                   <View className="flex-row justify-end">
                     {item.isGranted ? (
                       <View className="bg-primary dark:bg-white px-3 py-1.5 flex-row items-center justify-center gap-1 border border-primary dark:border-white min-w-[80px]">
