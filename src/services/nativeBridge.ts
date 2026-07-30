@@ -104,6 +104,20 @@ export const NativeBridge = {
     return [];
   },
 
+  async getDayUsageStats(dayOffset: number): Promise<Array<{ packageName: string; appName: string; usedMs: number }>> {
+    if (Platform.OS === "android" && BlackoutModule?.getDayUsageStats) {
+      try {
+        const stats = await BlackoutModule.getDayUsageStats(dayOffset);
+        if (Array.isArray(stats) && stats.length > 0) {
+          return stats;
+        }
+      } catch {
+        // fallback
+      }
+    }
+    return [];
+  },
+
   async getInstalledApps(): Promise<Array<{ packageName: string; appName: string; category?: string; iconBase64?: string }>> {
     if (Platform.OS === "android" && BlackoutModule?.getInstalledApps) {
       try {

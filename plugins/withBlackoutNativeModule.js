@@ -345,6 +345,53 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
             promise.reject("WEEKLY_STATS_ERROR", e.message)
         }
     }
+
+    @ReactMethod
+    fun getDayUsageStats(dayOffset: Int, promise: Promise) {
+        try {
+            val usageStatsManager = reactApplicationContext.getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
+            val pm = reactApplicationContext.packageManager
+            val calendar = Calendar.getInstance()
+            calendar.add(Calendar.DAY_OF_YEAR, dayOffset)
+            calendar.set(Calendar.HOUR_OF_DAY, 0)
+            calendar.set(Calendar.MINUTE, 0)
+            calendar.set(Calendar.SECOND, 0)
+            calendar.set(Calendar.MILLISECOND, 0)
+            val startTime = calendar.timeInMillis
+            val endTime = startTime + (24 * 3600 * 1000) - 1
+
+            val stats = usageStatsManager.queryUsageStats(UsageStatsManager.INTERVAL_DAILY, startTime, endTime)
+            val array = WritableNativeArray()
+            val packageUsageMap = mutableMapOf<String, Long>()
+
+            if (stats != null) {
+                for (stat in stats) {
+                    if (stat.totalTimeInForeground > 0) {
+                        val current = packageUsageMap.getOrDefault(stat.packageName, 0L)
+                        packageUsageMap[stat.packageName] = Math.max(current, stat.totalTimeInForeground)
+                    }
+                }
+            }
+
+            for ((pkg, timeMs) in packageUsageMap.entries) {
+                try {
+                    val appInfo = pm.getApplicationInfo(pkg, 0)
+                    val appName = pm.getApplicationLabel(appInfo).toString()
+                    val map = WritableNativeMap().apply {
+                        putString("packageName", pkg)
+                        putString("appName", appName)
+                        putDouble("usedMs", timeMs.toDouble())
+                    }
+                    array.pushMap(map)
+                } catch (e: Exception) {
+                    // skip
+                }
+            }
+            promise.resolve(array)
+        } catch (e: Exception) {
+            promise.reject("DAY_STATS_ERROR", e.message)
+        }
+    }
 }
 `;
       fs.writeFileSync(

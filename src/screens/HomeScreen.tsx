@@ -1,12 +1,13 @@
 import React from "react";
-import { View, Text, ScrollView, TouchableOpacity, Image } from "react-native";
+import { View, Text, ScrollView, TouchableOpacity } from "react-native";
+import Svg, { Circle } from "react-native-svg";
 import { useApp } from "../context/AppContext";
 import { NavigationHeader } from "../components/NavigationHeader";
 import { BottomNavBar } from "../components/BottomNavBar";
 import { Card } from "../components/ui/Card";
 import { ProgressBar } from "../components/ui/ProgressBar";
 import { StatusPill } from "../components/ui/StatusPill";
-import { Plus, Camera, Video, MessageSquare, Globe, ShieldAlert } from "lucide-react-native";
+import { Plus, ShieldAlert } from "lucide-react-native";
 
 export const HomeScreen: React.FC = () => {
   const { trackedApps, setCurrentScreen, permissions, effectiveTheme } = useApp();
@@ -33,16 +34,16 @@ export const HomeScreen: React.FC = () => {
     return `${minsRem}m`;
   };
 
-  const getIcon = (appName: string) => {
-    const lower = appName.toLowerCase();
-    if (lower.includes("insta") || lower.includes("camera") || lower.includes("photo"))
-      return Camera;
-    if (lower.includes("you") || lower.includes("video") || lower.includes("netf"))
-      return Video;
-    if (lower.includes("chat") || lower.includes("whats") || lower.includes("mess"))
-      return MessageSquare;
-    return Globe;
-  };
+  // Compute Total Screen Time & Limits for Circular Chart
+  const totalUsedTodayMs = trackedApps.reduce((acc, curr) => acc + curr.usedTodayMs, 0);
+  const totalLimitTodayMs = trackedApps.reduce((acc, curr) => acc + curr.dailyLimitMs, 0);
+  const overallPercent = Math.min(
+    100,
+    Math.round((totalUsedTodayMs / Math.max(1, totalLimitTodayMs)) * 100)
+  );
+
+  const circleCircumference = 408.4;
+  const strokeOffset = circleCircumference * (1 - overallPercent / 100);
 
   return (
     <View className="flex-1 bg-background dark:bg-black">
@@ -74,10 +75,65 @@ export const HomeScreen: React.FC = () => {
                 PERMISSIONS REQUIRED
               </Text>
             </View>
-            <Text className="text-xs text-secondary dark:text-zinc-400 ml-[30px] leading-4">
+            <Text className="text-xs text-secondary dark:text-zinc-400 leading-4">
               Tap to grant accessibility & overlay permissions
             </Text>
           </TouchableOpacity>
+        )}
+
+        {/* Minimalist Circular Progress / Donut Chart */}
+        {trackedApps.length > 0 && (
+          <Card className="p-5 mb-6 items-center justify-center flex-col rounded-none">
+            <View className="w-full flex-row justify-between items-center mb-4">
+              <Text className="font-bold text-xs text-secondary dark:text-zinc-400 uppercase tracking-widest">
+                TODAY'S SCREEN TIME OVERVIEW
+              </Text>
+              <Text className="font-bold text-xs text-primary dark:text-white uppercase">
+                {overallPercent}%
+              </Text>
+            </View>
+
+            <View className="relative w-44 h-44 items-center justify-center mb-3">
+              <Svg width={176} height={176} viewBox="0 0 160 160">
+                {/* Background Track Circle */}
+                <Circle
+                  cx="80"
+                  cy="80"
+                  r="65"
+                  stroke={isDark ? "#27272a" : "#e4e4e7"}
+                  strokeWidth="12"
+                  fill="none"
+                />
+                {/* Active Progress Circle */}
+                <Circle
+                  cx="80"
+                  cy="80"
+                  r="65"
+                  stroke={isDark ? "#ffffff" : "#000000"}
+                  strokeWidth="12"
+                  fill="none"
+                  strokeDasharray="408.4"
+                  strokeDashoffset={strokeOffset}
+                  strokeLinecap="butt"
+                  transform="rotate(-90 80 80)"
+                />
+              </Svg>
+
+              {/* Center Text Label inside Circle */}
+              <View className="absolute items-center justify-center">
+                <Text className="font-bold text-2xl text-primary dark:text-white">
+                  {formatMs(totalUsedTodayMs)}
+                </Text>
+                <Text className="font-bold text-[10px] text-secondary dark:text-zinc-400 uppercase tracking-widest mt-0.5">
+                  SCREEN TIME
+                </Text>
+              </View>
+            </View>
+
+            <Text className="text-xs font-bold text-secondary dark:text-zinc-400 uppercase text-center tracking-wider">
+              {formatMs(totalUsedTodayMs)} / {formatMs(totalLimitTodayMs)} TOTAL ALLOWANCE
+            </Text>
+          </Card>
         )}
 
         {/* Tracked Apps List */}
@@ -92,8 +148,11 @@ export const HomeScreen: React.FC = () => {
           </Card>
         ) : (
           <View className="flex-col gap-3.5">
+            <Text className="font-bold text-xs text-secondary dark:text-zinc-400 uppercase tracking-widest">
+              LOCKED APPLICATIONS
+            </Text>
+
             {trackedApps.map((app) => {
-              const IconComp = getIcon(app.appName);
               const percent = Math.min(
                 100,
                 Math.round((app.usedTodayMs / app.dailyLimitMs) * 100)
