@@ -140,15 +140,7 @@ export const StatsScreen: React.FC = () => {
               <Card key={app.packageName} className="flex-row justify-between items-center py-3.5 px-4 rounded-none">
                 <View className="flex-row items-center gap-2.5 flex-1 pr-2">
                   <View className="w-5 h-5 items-center justify-center">
-                    {app.iconBase64 ? (
-                      <Image
-                        source={{ uri: `data:image/png;base64,${app.iconBase64}` }}
-                        className="w-5 h-5"
-                        resizeMode="contain"
-                      />
-                    ) : (
-                      <View className="w-4 h-4 bg-primary dark:bg-white rounded-none" />
-                    )}
+                    <View className="w-4 h-4 bg-primary dark:bg-white rounded-none" />
                   </View>
                   <Text numberOfLines={1} className="font-bold text-sm text-primary dark:text-white uppercase tracking-wider">
                     {app.appName}
