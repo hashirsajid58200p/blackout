@@ -94,28 +94,34 @@ export const PermissionsScreen: React.FC = () => {
           </Text>
 
           {/* Permission Cards */}
-          <View className="w-full flex-col gap-3 mb-6">
+          <View className="w-full flex-col gap-3.5 mb-6">
             {permissionItems.map((item) => {
               const IconComponent = item.icon;
               return (
                 <View
                   key={item.id}
-                  className="border-2 border-primary dark:border-white p-3.5 rounded-none flex-col gap-1.5 bg-surface-container-lowest dark:bg-zinc-900"
+                  className="border-2 border-primary dark:border-white p-4 rounded-none flex-col bg-surface-container-lowest dark:bg-zinc-900"
                 >
-                  {/* Top Row: Icon + Main Heading (Center Aligned Vertically) + Right Button */}
-                  <View className="flex-row items-center justify-between">
-                    <View className="flex-row items-center gap-2.5 flex-1 pr-2">
-                      <IconComponent size={18} color={iconColor} />
-                      <Text
-                        numberOfLines={1}
-                        className="font-bold text-xs uppercase tracking-wider text-primary dark:text-white flex-1"
-                      >
-                        {item.title}
-                      </Text>
-                    </View>
+                  {/* 1. First: Icon Center-Aligned Vertically with Main Heading */}
+                  <View className="flex-row items-center gap-2.5 mb-1.5">
+                    <IconComponent size={20} color={iconColor} />
+                    <Text
+                      numberOfLines={1}
+                      className="font-bold text-xs uppercase tracking-wider text-primary dark:text-white flex-1"
+                    >
+                      {item.title}
+                    </Text>
+                  </View>
 
+                  {/* 2. Then: Paragraph / Description text below heading */}
+                  <Text className="text-xs text-secondary dark:text-zinc-400 pl-7 leading-4 mb-3">
+                    {item.description}
+                  </Text>
+
+                  {/* 3. Then: Button below paragraph, aligned to the RIGHT side */}
+                  <View className="flex-row justify-end">
                     {item.isGranted ? (
-                      <View className="bg-primary dark:bg-white px-2.5 py-1 flex-row items-center justify-center gap-1 border border-primary dark:border-white min-w-[76px]">
+                      <View className="bg-primary dark:bg-white px-3 py-1.5 flex-row items-center justify-center gap-1 border border-primary dark:border-white min-w-[80px]">
                         <CheckCircle2 size={12} color={badgeIconColor} />
                         <Text className="text-xs font-bold text-white dark:text-black uppercase">
                           GRANTED
@@ -125,7 +131,7 @@ export const PermissionsScreen: React.FC = () => {
                       <TouchableOpacity
                         activeOpacity={0.8}
                         onPress={item.onGrant}
-                        className="bg-transparent border-2 border-primary dark:border-white px-2.5 py-1 items-center justify-center min-w-[76px] active:bg-primary/10 dark:active:bg-white/10"
+                        className="bg-transparent border-2 border-primary dark:border-white px-3 py-1.5 items-center justify-center min-w-[80px] active:bg-primary/10 dark:active:bg-white/10"
                       >
                         <Text className="text-xs font-bold text-primary dark:text-white uppercase">
                           GRANT
@@ -133,11 +139,6 @@ export const PermissionsScreen: React.FC = () => {
                       </TouchableOpacity>
                     )}
                   </View>
-
-                  {/* Bottom Row: Description Paragraph underneath */}
-                  <Text className="text-xs text-secondary dark:text-zinc-400 pl-7 leading-4">
-                    {item.description}
-                  </Text>
                 </View>
               );
             })}
