@@ -1,6 +1,7 @@
 import "./global.css";
 import React from "react";
 import { View, StatusBar } from "react-native";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 import { AppProvider, useApp } from "./src/context/AppContext";
 import { OnboardingScreen } from "./src/screens/OnboardingScreen";
 import { PermissionsScreen } from "./src/screens/PermissionsScreen";
@@ -38,7 +39,11 @@ const MainContent: React.FC = () => {
 
   return (
     <View className={`flex-1 ${isDark ? "dark bg-black" : "bg-background"}`}>
-      <StatusBar barStyle={isDark ? "light-content" : "dark-content"} />
+      <StatusBar
+        translucent
+        backgroundColor="transparent"
+        barStyle={isDark ? "light-content" : "dark-content"}
+      />
       {renderScreen()}
     </View>
   );
@@ -46,8 +51,10 @@ const MainContent: React.FC = () => {
 
 export default function App() {
   return (
-    <AppProvider>
-      <MainContent />
-    </AppProvider>
+    <SafeAreaProvider>
+      <AppProvider>
+        <MainContent />
+      </AppProvider>
+    </SafeAreaProvider>
   );
 }

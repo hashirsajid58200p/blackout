@@ -27,7 +27,7 @@ export const SettingsScreen: React.FC = () => {
   ];
 
   return (
-    <SafeAreaView className="flex-1 bg-background dark:bg-black">
+    <View className="flex-1 bg-background dark:bg-black">
       <NavigationHeader title="SETTINGS" showBack />
 
       <ScrollView contentContainerStyle={{ paddingBottom: 100 }} className="px-margin-page pt-4 flex-1">
@@ -156,6 +156,6 @@ export const SettingsScreen: React.FC = () => {
       </ScrollView>
 
       <BottomNavBar />
-    </SafeAreaView>
+    </View>
   );
 };

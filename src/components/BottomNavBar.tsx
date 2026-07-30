@@ -1,10 +1,12 @@
 import React from "react";
 import { View, TouchableOpacity } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useApp } from "../context/AppContext";
 import { LayoutGrid, BarChart2, ShieldAlert, Settings as SettingsIcon } from "lucide-react-native";
 
 export const BottomNavBar: React.FC = () => {
   const { currentScreen, setCurrentScreen, effectiveTheme } = useApp();
+  const insets = useSafeAreaInsets();
   const isDark = effectiveTheme === "dark";
 
   const navItems = [
@@ -15,7 +17,10 @@ export const BottomNavBar: React.FC = () => {
   ];
 
   return (
-    <View className="absolute bottom-0 left-0 right-0 h-16 bg-background dark:bg-black border-t-2 border-primary dark:border-white flex-row justify-around items-center z-50">
+    <View
+      style={{ paddingBottom: Math.max(insets.bottom, 8) }}
+      className="absolute bottom-0 left-0 right-0 bg-background dark:bg-black border-t-2 border-primary dark:border-white flex-row justify-around items-center pt-2 z-50"
+    >
       {navItems.map((item) => {
         const IconComponent = item.icon;
         const isActive = currentScreen === item.id;

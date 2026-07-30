@@ -45,7 +45,7 @@ export const HomeScreen: React.FC = () => {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-background dark:bg-black">
+    <View className="flex-1 bg-background dark:bg-black">
       <NavigationHeader title="TODAY" />
 
       <ScrollView contentContainerStyle={{ paddingBottom: 120 }} className="px-margin-page pt-4 flex-1">
@@ -144,6 +144,6 @@ export const HomeScreen: React.FC = () => {
       </TouchableOpacity>
 
       <BottomNavBar />
-    </SafeAreaView>
+    </View>
   );
 };
