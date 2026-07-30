@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Dark Mode Home &amp; Settings</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+  tailwind.config = {
+    darkMode: "class",
+    theme: {
+      extend: {
+        "colors": {
+                "secondary": "#5e5e5e",
+                "on-primary-container": "#848484",
+                "on-background": "#1a1c1c",
+                "secondary-container": "#e3e2e2",
+                "inverse-primary": "#c6c6c6",
+                "on-primary": "#ffffff",
+                "surface-tint": "#5e5e5e",
+                "outline": "#7e7576",
+                "outline-variant": "#cfc4c5",
+                "on-error": "#ffffff",
+                "surface-bright": "#f9f9f9",
+                "on-surface-variant": "#4c4546",
+                "on-secondary": "#ffffff",
+                "tertiary-fixed": "#e2e2e2",
+                "on-tertiary-container": "#838484",
+                "background": "#f9f9f9",
+                "error-container": "#ffdad6",
+                "primary-fixed": "#e2e2e2",
+                "on-secondary-fixed-variant": "#464747",
+                "surface-variant": "#e2e2e2",
+                "tertiary-fixed-dim": "#c6c6c7",
+                "on-tertiary-fixed-variant": "#454747",
+                "on-tertiary-fixed": "#1a1c1c",
+                "error": "#ba1a1a",
+                "primary-fixed-dim": "#c6c6c6",
+                "inverse-on-surface": "#f0f1f1",
+                "on-tertiary": "#ffffff",
+                "tertiary": "#000000",
+                "on-secondary-fixed": "#1b1c1c",
+                "secondary-fixed-dim": "#c7c6c6",
+                "primary": "#000000",
+                "surface-dim": "#dadada",
+                "surface-container-lowest": "#ffffff",
+                "on-error-container": "#93000a",
+                "surface-container-highest": "#e2e2e2",
+                "on-surface": "#1a1c1c",
+                "surface": "#f9f9f9",
+                "surface-container": "#eeeeee",
+                "on-primary-fixed-variant": "#474747",
+                "surface-container-low": "#f3f3f4",
+                "surface-container-high": "#e8e8e8",
+                "on-primary-fixed": "#1b1b1b",
+                "secondary-fixed": "#e3e2e2",
+                "on-secondary-container": "#646464",
+                "inverse-surface": "#2f3131",
+                "primary-container": "#1b1b1b",
+                "tertiary-container": "#1a1c1c"
+        },
+        "borderRadius": {
+                "DEFAULT": "0.125rem",
+                "lg": "0.25rem",
+                "xl": "0.5rem",
+                "full": "0.75rem"
+        },
+        "spacing": {
+                "stack-sm": "8px",
+                "stack-lg": "32px",
+                "margin-page": "24px",
+                "gutter-grid": "16px",
+                "stack-md": "16px",
+                "touch-target": "48px"
+        },
+        "fontFamily": {
+                "label-sm": ["Inter"],
+                "label-bold": ["Inter"],
+                "headline-md": ["Inter"],
+                "body-lg": ["Inter"],
+                "headline-lg": ["Inter"],
+                "body-md": ["Inter"]
+        },
+        "fontSize": {
+                "label-sm": ["12px", {"lineHeight": "16px", "letterSpacing": "0", "fontWeight": "400"}],
+                "label-bold": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "700"}],
+                "headline-md": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "700"}],
+                "body-lg": ["16px", {"lineHeight": "24px", "letterSpacing": "0", "fontWeight": "400"}],
+                "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                "body-md": ["14px", {"lineHeight": "20px", "letterSpacing": "0", "fontWeight": "400"}]
+        }
+      }
+    }
+  }
+</script>
+<style>
+  /* Enforce thin stroke icons */
+  .material-symbols-outlined {
+    font-variation-settings: 'FILL' 0, 'wght' 200, 'GRAD' 0, 'opsz' 24;
+  }
+  
+  /* Overrides for pure dark mode aesthetic per prompt */
+  .dark body { background-color: #000000; color: #ffffff; }
+  .dark .border-primary, .dark .border-outline, .dark .border-outline-variant { border-color: #ffffff; }
+  .dark .bg-surface-container, .dark .bg-secondary-container { background-color: #111111; }
+  .dark .text-secondary { color: #aaaaaa; }
+</style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-black text-white min-h-screen pb-[80px] md:pb-0 md:pt-[64px] font-label-sm">
+<!-- Screen 1: Home Dashboard -->
+<div class="max-w-[1200px] mx-auto w-full min-h-screen hidden md:block" id="screen-home">
+<!-- TopAppBar -->
+<header class="flex justify-between items-center w-full px-margin-page h-touch-target bg-black text-white docked full-width top-0 border-b border-white flat no shadows">
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-white cursor-pointer hover:bg-white hover:text-black transition-colors rounded-full p-2">calendar_today</span>
+<h1 class="font-headline-md text-headline-md font-bold tracking-tighter text-white">Today</h1>
+</div>
+<nav class="hidden md:flex gap-8 font-label-bold text-label-bold">
+<a class="text-white font-bold border-b-2 border-white pb-1" href="#" onclick="switchTab('home')">Home</a>
+<a class="text-[#aaaaaa] hover:text-white transition-colors pb-1" href="#" onclick="switchTab('settings')">Settings</a>
+</nav>
+<span class="material-symbols-outlined text-white cursor-pointer hover:bg-white hover:text-black transition-colors rounded-full p-2" onclick="switchTab('settings')">settings</span>
+</header>
+<main class="px-margin-page py-stack-lg flex flex-col gap-stack-lg">
+<!-- Hero Section / Status -->
+<section class="grid grid-cols-1 md:grid-cols-2 gap-gutter-grid">
+<div class="border border-white p-6 flex flex-col justify-between h-48 group hover:bg-white transition-colors cursor-pointer">
+<div>
+<h2 class="font-headline-md text-headline-md group-hover:text-black transition-colors">Project Alpha</h2>
+<p class="font-body-md text-body-md text-[#aaaaaa] group-hover:text-black mt-2 transition-colors">Phase 2 Execution</p>
+</div>
+<div class="flex items-center justify-between">
+<span class="bg-[#222222] text-white px-3 py-1 text-[10px] uppercase tracking-wider font-bold group-hover:bg-black group-hover:text-white transition-colors">Active</span>
+<span class="material-symbols-outlined group-hover:text-black transition-colors">arrow_forward</span>
+</div>
+</div>
+<div class="border border-white p-6 flex flex-col justify-between h-48 relative overflow-hidden group">
+<div class="relative z-10">
+<h2 class="font-headline-md text-headline-md opacity-50">Project Beta</h2>
+<p class="font-body-md text-body-md text-[#aaaaaa] mt-2 opacity-50">Awaiting Authorization</p>
+</div>
+<div class="flex items-center justify-between relative z-10">
+<span class="bg-white text-black px-3 py-1 text-[10px] uppercase tracking-wider font-bold">Locked</span>
+<span class="material-symbols-outlined opacity-50">lock</span>
+</div>
+<!-- Subtle diagonal lines for locked state -->
+<div class="absolute inset-0 opacity-10" style="background-image: repeating-linear-gradient(45deg, transparent, transparent 10px, #ffffff 10px, #ffffff 20px);"></div>
+</div>
+</section>
+<!-- Bento Grid Activity -->
+<section>
+<h3 class="font-label-bold text-label-bold mb-stack-md uppercase tracking-widest text-[#aaaaaa]">Recent Activity</h3>
+<div class="grid grid-cols-1 md:grid-cols-3 gap-gutter-grid">
+<div class="border border-white p-4 flex gap-4 items-start col-span-1 md:col-span-2">
+<div class="w-12 h-12 bg-white text-black flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined">analytics</span>
+</div>
+<div>
+<h4 class="font-body-lg text-body-lg font-bold">Data Model Compiled</h4>
+<p class="font-body-md text-body-md text-[#aaaaaa] mt-1">System processing completed successfully with 0 warnings.</p>
+<p class="font-label-sm text-label-sm text-[#aaaaaa] mt-2">10:42 AM</p>
+</div>
+</div>
+<div class="border border-white p-4 flex flex-col justify-between h-full">
+<div class="flex justify-between items-start">
+<span class="material-symbols-outlined">sync</span>
+<span class="text-xs font-mono">OK</span>
+</div>
+<div class="mt-4">
+<p class="font-headline-md text-headline-md font-bold">99.9%</p>
+<p class="font-label-sm text-label-sm text-[#aaaaaa] uppercase tracking-wider">Uptime</p>
+</div>
+</div>
+<div class="border border-white p-4">
+<p class="font-label-sm text-label-sm text-[#aaaaaa] uppercase tracking-wider mb-2">Network Load</p>
+<div class="h-1 w-full bg-[#222222] mb-1">
+<div class="h-full bg-white w-[45%]"></div>
+</div>
+<p class="font-mono text-xs text-right">45%</p>
+</div>
+<div class="border border-white p-4 flex items-center justify-between cursor-pointer hover:bg-white hover:text-black transition-colors group">
+<span class="font-body-md text-body-md font-bold uppercase tracking-wider">View Full Logs</span>
+<span class="material-symbols-outlined group-hover:translate-x-1 transition-transform">arrow_forward</span>
+</div>
+<div class="border border-white p-4" data-alt="A highly abstract, pure black and white digital visualization of data nodes. Thin, stark white lines connect glowing geometric dots over a deep, pure black void. High contrast, minimalist cyberpunk aesthetic, sharp and precise." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuCZ__HCuGcJiCP8hW0Dj2gIslIJJDTFV2XQwgZM2NpYJfiI3_HX9zcsV85VNNO2k9ShHTl4yLXqaEGM6n0hSqg6bvpsoIxSxbQqejkBzq91z3A69Q_9608Grh5KCVXwzZSilLAHWd57jXcSo3Upngy0zUKcmOEftOMNLZnXor5zM7RZAuCwprcQtEpH13RsVfnImJ2cOyCWxHsfBLtPKWOat79kq3HwY-JGv3mEkL6GXmi3sVbEnPKv')">
+<div class="h-full w-full bg-black/60 flex items-center justify-center">
+<span class="material-symbols-outlined text-white">map</span>
+</div>
+</div>
+</div>
+</section>
+</main>
+</div>
+<!-- Screen 2: Settings -->
+<div class="max-w-[1200px] mx-auto w-full min-h-screen hidden" id="screen-settings">
+<!-- TopAppBar -->
+<header class="flex justify-between items-center w-full px-margin-page h-touch-target bg-black text-white docked full-width top-0 border-b border-white flat no shadows">
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-white cursor-pointer hover:bg-white hover:text-black transition-colors rounded-full p-2" onclick="switchTab('home')">arrow_back</span>
+<h1 class="font-headline-md text-headline-md font-bold tracking-tighter text-white">Settings</h1>
+</div>
+<nav class="hidden md:flex gap-8 font-label-bold text-label-bold">
+<a class="text-[#aaaaaa] hover:text-white transition-colors pb-1" href="#" onclick="switchTab('home')">Home</a>
+<a class="text-white font-bold border-b-2 border-white pb-1" href="#" onclick="switchTab('settings')">Settings</a>
+</nav>
+<span class="material-symbols-outlined text-white opacity-0">settings</span>
+</header>
+<main class="px-margin-page py-stack-lg max-w-2xl mx-auto flex flex-col gap-stack-lg">
+<div class="border border-white p-6 flex items-center gap-6">
+<div class="w-16 h-16 bg-white text-black flex items-center justify-center rounded-full">
+<span class="material-symbols-outlined" style="font-size: 32px;">person</span>
+</div>
+<div>
+<h2 class="font-headline-md text-headline-md font-bold">Admin User</h2>
+<p class="font-body-md text-body-md text-[#aaaaaa]">SYS.OP.001</p>
+</div>
+</div>
+<section class="flex flex-col">
+<h3 class="font-label-bold text-label-bold mb-4 uppercase tracking-widest text-[#aaaaaa]">System Config</h3>
+<div class="border-t border-white py-4 flex items-center justify-between">
+<div>
+<p class="font-body-lg text-body-lg font-bold">Telemetry Data</p>
+<p class="font-body-md text-body-md text-[#aaaaaa]">Allow anonymous system metrics.</p>
+</div>
+<button class="w-12 h-6 rounded-full border border-white relative bg-white transition-colors duration-200 focus:outline-none" onclick="this.classList.toggle('bg-white'); this.classList.toggle('bg-black'); this.firstElementChild.classList.toggle('translate-x-6'); this.firstElementChild.classList.toggle('bg-black'); this.firstElementChild.classList.toggle('bg-white');">
+<span class="absolute left-1 top-1 w-4 h-4 rounded-full bg-black transition-transform duration-200 translate-x-6"></span>
+</button>
+</div>
+<div class="border-t border-white py-4 flex items-center justify-between">
+<div>
+<p class="font-body-lg text-body-lg font-bold">Strict Mode</p>
+<p class="font-body-md text-body-md text-[#aaaaaa]">Enforce maximum security protocols.</p>
+</div>
+<button class="w-12 h-6 rounded-full border border-white relative bg-black transition-colors duration-200 focus:outline-none" onclick="this.classList.toggle('bg-white'); this.classList.toggle('bg-black'); this.firstElementChild.classList.toggle('translate-x-6'); this.firstElementChild.classList.toggle('bg-black'); this.firstElementChild.classList.toggle('bg-white');">
+<span class="absolute left-1 top-1 w-4 h-4 rounded-full bg-white transition-transform duration-200"></span>
+</button>
+</div>
+<div class="border-t border-white py-4 flex items-center justify-between">
+<div>
+<p class="font-body-lg text-body-lg font-bold">Data Retention</p>
+</div>
+<select class="bg-black text-white border border-white rounded-none font-body-md text-body-md px-4 py-2 focus:ring-0 focus:border-white">
+<option>7 Days</option>
+<option>30 Days</option>
+<option>Forever</option>
+</select>
+</div>
+<div class="border-t border-white"></div>
+</section>
+<button class="w-full border border-white py-4 font-body-lg text-body-lg font-bold uppercase tracking-widest hover:bg-white hover:text-black transition-colors mt-8">
+            Purge Cache
+        </button>
+</main>
+</div>
+<!-- Mobile Nav -->
+<nav class="md:hidden fixed bottom-0 left-0 w-full z-50 flex justify-around items-center h-touch-target bg-black border-t border-white">
+<a class="nav-item flex items-center justify-center text-white bg-white/10 rounded-none h-12 w-12 hover:invert transition-all active:scale-98" data-tab="home" href="#" onclick="switchTab('home')">
+<span class="material-symbols-outlined" data-icon="grid_view">grid_view</span>
+</a>
+<a class="nav-item flex items-center justify-center text-[#aaaaaa] h-12 w-12 hover:invert transition-all active:scale-98" href="#">
+<span class="material-symbols-outlined" data-icon="history">history</span>
+</a>
+<a class="nav-item flex items-center justify-center text-[#aaaaaa] h-12 w-12 hover:invert transition-all active:scale-98" href="#">
+<span class="material-symbols-outlined" data-icon="analytics">analytics</span>
+</a>
+<a class="nav-item flex items-center justify-center text-[#aaaaaa] h-12 w-12 hover:invert transition-all active:scale-98" data-tab="settings" href="#" onclick="switchTab('settings')">
+<span class="material-symbols-outlined" data-icon="person">person</span>
+</a>
+</nav>
+<script>
+    // Initial display logic based on mobile/desktop testing purposes
+    // Defaulting to show Home for this demo
+    document.getElementById('screen-home').classList.remove('hidden');
+
+    function switchTab(tab) {
+        if(tab === 'home') {
+            document.getElementById('screen-home').classList.remove('hidden');
+            document.getElementById('screen-settings').classList.add('hidden');
+            document.getElementById('screen-home').classList.add('md:block');
+            
+            // Update mobile nav styling
+            document.querySelectorAll('.nav-item').forEach(el => {
+                el.classList.remove('text-white', 'bg-white/10');
+                el.classList.add('text-[#aaaaaa]');
+            });
+            const activeNav = document.querySelector('.nav-item[data-tab="home"]');
+            if(activeNav) {
+                activeNav.classList.remove('text-[#aaaaaa]');
+                activeNav.classList.add('text-white', 'bg-white/10');
+            }
+        } else if (tab === 'settings') {
+            document.getElementById('screen-home').classList.add('hidden');
+            document.getElementById('screen-settings').classList.remove('hidden');
+            document.getElementById('screen-home').classList.remove('md:block');
+
+            // Update mobile nav styling
+            document.querySelectorAll('.nav-item').forEach(el => {
+                el.classList.remove('text-white', 'bg-white/10');
+                el.classList.add('text-[#aaaaaa]');
+            });
+            const activeNav = document.querySelector('.nav-item[data-tab="settings"]');
+            if(activeNav) {
+                activeNav.classList.remove('text-[#aaaaaa]');
+                activeNav.classList.add('text-white', 'bg-white/10');
+            }
+        }
+    }
+</script>
+</body></html>

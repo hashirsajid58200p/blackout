@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Blackout Screen</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "secondary": "#5e5e5e",
+                    "on-primary-container": "#848484",
+                    "on-background": "#1a1c1c",
+                    "secondary-container": "#e3e2e2",
+                    "inverse-primary": "#c6c6c6",
+                    "on-primary": "#ffffff",
+                    "surface-tint": "#5e5e5e",
+                    "outline": "#7e7576",
+                    "outline-variant": "#cfc4c5",
+                    "on-error": "#ffffff",
+                    "surface-bright": "#f9f9f9",
+                    "on-surface-variant": "#4c4546",
+                    "on-secondary": "#ffffff",
+                    "tertiary-fixed": "#e2e2e2",
+                    "on-tertiary-container": "#838484",
+                    "background": "#f9f9f9",
+                    "error-container": "#ffdad6",
+                    "primary-fixed": "#e2e2e2",
+                    "on-secondary-fixed-variant": "#464747",
+                    "surface-variant": "#e2e2e2",
+                    "tertiary-fixed-dim": "#c6c6c7",
+                    "on-tertiary-fixed-variant": "#454747",
+                    "on-tertiary-fixed": "#1a1c1c",
+                    "error": "#ba1a1a",
+                    "primary-fixed-dim": "#c6c6c6",
+                    "inverse-on-surface": "#f0f1f1",
+                    "on-tertiary": "#ffffff",
+                    "tertiary": "#000000",
+                    "on-secondary-fixed": "#1b1c1c",
+                    "secondary-fixed-dim": "#c7c6c6",
+                    "primary": "#000000",
+                    "surface-dim": "#dadada",
+                    "surface-container-lowest": "#ffffff",
+                    "on-error-container": "#93000a",
+                    "surface-container-highest": "#e2e2e2",
+                    "on-surface": "#1a1c1c",
+                    "surface": "#f9f9f9",
+                    "surface-container": "#eeeeee",
+                    "on-primary-fixed-variant": "#474747",
+                    "surface-container-low": "#f3f3f4",
+                    "surface-container-high": "#e8e8e8",
+                    "on-primary-fixed": "#1b1b1b",
+                    "secondary-fixed": "#e3e2e2",
+                    "on-secondary-container": "#646464",
+                    "inverse-surface": "#2f3131",
+                    "primary-container": "#1b1b1b",
+                    "tertiary-container": "#1a1c1c"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.125rem",
+                    "lg": "0.25rem",
+                    "xl": "0.5rem",
+                    "full": "0.75rem"
+            },
+            "spacing": {
+                    "stack-sm": "8px",
+                    "stack-lg": "32px",
+                    "margin-page": "24px",
+                    "gutter-grid": "16px",
+                    "stack-md": "16px",
+                    "touch-target": "48px"
+            },
+            "fontFamily": {
+                    "label-sm": [
+                            "Inter"
+                    ],
+                    "label-bold": [
+                            "Inter"
+                    ],
+                    "headline-md": [
+                            "Inter"
+                    ],
+                    "body-lg": [
+                            "Inter"
+                    ],
+                    "headline-lg": [
+                            "Inter"
+                    ],
+                    "body-md": [
+                            "Inter"
+                    ]
+            },
+            "fontSize": {
+                    "label-sm": [
+                            "12px",
+                            {
+                                    "lineHeight": "16px",
+                                    "letterSpacing": "0",
+                                    "fontWeight": "400"
+                            }
+                    ],
+                    "label-bold": [
+                            "12px",
+                            {
+                                    "lineHeight": "16px",
+                                    "letterSpacing": "0.05em",
+                                    "fontWeight": "700"
+                            }
+                    ],
+                    "headline-md": [
+                            "24px",
+                            {
+                                    "lineHeight": "32px",
+                                    "letterSpacing": "-0.01em",
+                                    "fontWeight": "700"
+                            }
+                    ],
+                    "body-lg": [
+                            "16px",
+                            {
+                                    "lineHeight": "24px",
+                                    "letterSpacing": "0",
+                                    "fontWeight": "400"
+                            }
+                    ],
+                    "headline-lg": [
+                            "32px",
+                            {
+                                    "lineHeight": "40px",
+                                    "letterSpacing": "-0.02em",
+                                    "fontWeight": "700"
+                            }
+                    ],
+                    "body-md": [
+                            "14px",
+                            {
+                                    "lineHeight": "20px",
+                                    "letterSpacing": "0",
+                                    "fontWeight": "400"
+                            }
+                    ]
+            }
+    },
+        },
+      }
+    </script>
+<style>
+        body {
+            background-color: #000000;
+        }
+        .eclipse-icon {
+            border-width: 1.5px;
+            border-color: #ffffff;
+            box-shadow: none;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="antialiased min-h-screen bg-tertiary text-on-tertiary selection:bg-on-tertiary selection:text-tertiary">
+<main class="h-screen w-full flex flex-col px-margin-page py-stack-lg">
+<!-- Center Content -->
+<div class="flex-1 flex flex-col items-center justify-center text-center">
+<!-- Eclipse Icon -->
+<div class="w-24 h-24 sm:w-32 sm:h-32 rounded-full eclipse-icon bg-tertiary mb-stack-lg flex items-center justify-center transition-transform duration-200">
+<!-- Inner minimalist circle representation -->
+<div class="w-full h-full rounded-full bg-tertiary border-r border-tertiary-fixed-dim translate-x-[2px]"></div>
+</div>
+<h1 class="font-headline-lg text-headline-lg mb-stack-sm tracking-tight">Instagram is dark.</h1>
+<p class="font-body-lg text-body-lg text-tertiary-fixed-dim">Time's up for today. It unlocks at midnight.</p>
+</div>
+<!-- Bottom Controls -->
+<div class="flex flex-col items-center gap-stack-md mt-auto pb-8">
+<p class="font-body-md text-body-md text-tertiary-fixed-dim text-center max-w-[280px]">
+                The only way around this is deleting the app. That's the point.
+            </p>
+<button class="w-full h-touch-target bg-on-tertiary text-tertiary font-label-bold text-label-bold flex items-center justify-center active:scale-95 transition-transform duration-200 uppercase tracking-widest">
+                Close
+            </button>
+</div>
+</main>
+<script>
+        // Micro-interaction for tactile feedback on touch/click
+        document.querySelector('button').addEventListener('mousedown', function() {
+            this.style.transform = 'scale(0.98)';
+        });
+        document.querySelector('button').addEventListener('mouseup', function() {
+            this.style.transform = 'scale(1)';
+            this.style.backgroundColor = '#000000';
+            this.style.color = '#ffffff';
+            this.style.border = '1px solid #ffffff';
+            setTimeout(() => {
+                this.style.backgroundColor = '#ffffff';
+                this.style.color = '#000000';
+                this.style.border = 'none';
+            }, 200);
+        });
+        document.querySelector('button').addEventListener('mouseleave', function() {
+            this.style.transform = 'scale(1)';
+        });
+    </script>
+</body></html>

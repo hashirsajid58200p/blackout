@@ -1,0 +1,188 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Blackout - Onboarding</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "secondary": "#5e5e5e",
+                      "on-primary-container": "#848484",
+                      "on-background": "#1a1c1c",
+                      "secondary-container": "#e3e2e2",
+                      "inverse-primary": "#c6c6c6",
+                      "on-primary": "#ffffff",
+                      "surface-tint": "#5e5e5e",
+                      "outline": "#7e7576",
+                      "outline-variant": "#cfc4c5",
+                      "on-error": "#ffffff",
+                      "surface-bright": "#f9f9f9",
+                      "on-surface-variant": "#4c4546",
+                      "on-secondary": "#ffffff",
+                      "tertiary-fixed": "#e2e2e2",
+                      "on-tertiary-container": "#838484",
+                      "background": "#f9f9f9",
+                      "error-container": "#ffdad6",
+                      "primary-fixed": "#e2e2e2",
+                      "on-secondary-fixed-variant": "#464747",
+                      "surface-variant": "#e2e2e2",
+                      "tertiary-fixed-dim": "#c6c6c7",
+                      "on-tertiary-fixed-variant": "#454747",
+                      "on-tertiary-fixed": "#1a1c1c",
+                      "error": "#ba1a1a",
+                      "primary-fixed-dim": "#c6c6c6",
+                      "inverse-on-surface": "#f0f1f1",
+                      "on-tertiary": "#ffffff",
+                      "tertiary": "#000000",
+                      "on-secondary-fixed": "#1b1c1c",
+                      "secondary-fixed-dim": "#c7c6c6",
+                      "primary": "#000000",
+                      "surface-dim": "#dadada",
+                      "surface-container-lowest": "#ffffff",
+                      "on-error-container": "#93000a",
+                      "surface-container-highest": "#e2e2e2",
+                      "on-surface": "#1a1c1c",
+                      "surface": "#f9f9f9",
+                      "surface-container": "#eeeeee",
+                      "on-primary-fixed-variant": "#474747",
+                      "surface-container-low": "#f3f3f4",
+                      "surface-container-high": "#e8e8e8",
+                      "on-primary-fixed": "#1b1b1b",
+                      "secondary-fixed": "#e3e2e2",
+                      "on-secondary-container": "#646464",
+                      "inverse-surface": "#2f3131",
+                      "primary-container": "#1b1b1b",
+                      "tertiary-container": "#1a1c1c"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0px", 
+                      "lg": "0px",
+                      "xl": "0px",
+                      "full": "9999px" 
+              },
+              "spacing": {
+                      "stack-sm": "8px",
+                      "stack-lg": "32px",
+                      "margin-page": "24px",
+                      "gutter-grid": "16px",
+                      "stack-md": "16px",
+                      "touch-target": "48px"
+              },
+              "fontFamily": {
+                      "label-sm": ["Inter"],
+                      "label-bold": ["Inter"],
+                      "headline-md": ["Inter"],
+                      "body-lg": ["Inter"],
+                      "headline-lg": ["Inter"],
+                      "body-md": ["Inter"]
+              },
+              "fontSize": {
+                      "label-sm": ["12px", {"lineHeight": "16px", "letterSpacing": "0", "fontWeight": "400"}],
+                      "label-bold": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "700"}],
+                      "headline-md": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "700"}],
+                      "body-lg": ["16px", {"lineHeight": "24px", "letterSpacing": "0", "fontWeight": "400"}],
+                      "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                      "body-md": ["14px", {"lineHeight": "20px", "letterSpacing": "0", "fontWeight": "400"}]
+              }
+            },
+          },
+        }
+    </script>
+<style>
+        /* Hide scrollbar for cleaner onboarding look */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        
+        .eclipse-icon {
+            background: linear-gradient(90deg, #ffffff 50%, #000000 50%);
+        }
+    </style>
+</head>
+<body class="bg-surface-container-lowest text-on-surface h-screen w-full flex flex-col antialiased selection:bg-primary selection:text-on-primary">
+<!-- Scrollable Carousel Container -->
+<main class="flex-1 w-full flex overflow-x-auto snap-x snap-mandatory scroll-smooth no-scrollbar h-full" id="onboarding-carousel">
+<!-- Slide 1 -->
+<section class="w-full h-full flex-shrink-0 snap-center flex flex-col justify-center items-center px-margin-page relative" id="slide-1">
+<div class="max-w-md w-full flex flex-col items-center">
+<h1 class="font-headline-lg text-headline-lg text-primary text-center">
+                    Discipline, not negotiation.
+                </h1>
+<p class="font-body-lg text-body-lg text-secondary text-center mt-stack-md max-w-[280px]">
+                    Blackout locks apps for good once time's up.
+                </p>
+</div>
+</section>
+<!-- Slide 2 -->
+<section class="w-full h-full flex-shrink-0 snap-center flex flex-col justify-center items-center px-margin-page relative" id="slide-2">
+<div class="max-w-md w-full flex flex-col items-center justify-center">
+<!-- Minimalist Eclipse Icon -->
+<div class="w-32 h-32 rounded-full border-[2px] border-primary eclipse-icon flex items-center justify-center shadow-none transition-transform duration-700 hover:rotate-180">
+</div>
+</div>
+</section>
+<!-- Slide 3 -->
+<section class="w-full h-full flex-shrink-0 snap-center flex flex-col justify-between items-center px-margin-page py-12 relative" id="slide-3">
+<div class="flex-1 flex flex-col justify-center items-center max-w-md w-full">
+<span class="material-symbols-outlined text-[48px] text-primary mb-stack-lg" style="font-variation-settings: 'FILL' 1;">
+                    warning
+                </span>
+<p class="font-headline-md text-headline-md text-primary text-center">
+                    Once locked, an app stays locked until midnight. No pause. No extension. No settings bypass.
+                </p>
+</div>
+<div class="w-full max-w-md pb-8">
+<button class="w-full h-touch-target bg-primary text-on-primary font-label-bold text-label-bold uppercase border border-primary hover:bg-surface-container-lowest hover:text-primary transition-colors active:scale-98">
+                    I Understand — Continue
+                </button>
+</div>
+</section>
+</main>
+<!-- Fixed Progress Indicators -->
+<div class="fixed bottom-12 left-0 w-full flex justify-center gap-stack-sm z-10 pointer-events-none" id="progress-dots">
+<div class="w-2 h-2 bg-primary dot" data-target="slide-1"></div>
+<div class="w-2 h-2 bg-surface-container-high border border-primary dot" data-target="slide-2"></div>
+<div class="w-2 h-2 bg-surface-container-high border border-primary dot" data-target="slide-3"></div>
+</div>
+<script>
+        const carousel = document.getElementById('onboarding-carousel');
+        const dots = document.querySelectorAll('.dot');
+        const slides = document.querySelectorAll('section');
+
+        // Update dots based on scroll position
+        carousel.addEventListener('scroll', () => {
+            let index = Math.round(carousel.scrollLeft / carousel.clientWidth);
+            
+            dots.forEach((dot, i) => {
+                if (i === index) {
+                    dot.classList.replace('bg-surface-container-high', 'bg-primary');
+                    dot.classList.remove('border', 'border-primary');
+                } else {
+                    dot.classList.replace('bg-primary', 'bg-surface-container-high');
+                    dot.classList.add('border', 'border-primary');
+                }
+            });
+
+            // Hide dots on the last slide if there's a CTA taking over
+            const dotsContainer = document.getElementById('progress-dots');
+            if (index === 2) {
+                dotsContainer.style.opacity = '0';
+                dotsContainer.style.transition = 'opacity 0.2s ease-out';
+            } else {
+                dotsContainer.style.opacity = '1';
+            }
+        });
+    </script>
+</body></html>

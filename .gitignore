@@ -1,0 +1,14 @@
+node_modules/
+.expo/
+dist/
+web-build/
+*.log
+
+# Android build outputs
+android/app/build/
+android/.gradle/
+android/app/app.iml
+
+# OS
+.DS_Store
+Thumbs.db

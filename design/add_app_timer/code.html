@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Set Timer - Focused Task</title>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .icon-fill {
+            font-variation-settings: 'FILL' 1;
+        }
+        
+        /* Minimal custom scrollbar for hide */
+        ::-webkit-scrollbar {
+            display: none;
+        }
+    </style>
+<!-- Tailwind CSS with provided config -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "secondary": "#5e5e5e",
+                    "on-primary-container": "#848484",
+                    "on-background": "#1a1c1c",
+                    "secondary-container": "#e3e2e2",
+                    "inverse-primary": "#c6c6c6",
+                    "on-primary": "#ffffff",
+                    "surface-tint": "#5e5e5e",
+                    "outline": "#7e7576",
+                    "outline-variant": "#cfc4c5",
+                    "on-error": "#ffffff",
+                    "surface-bright": "#f9f9f9",
+                    "on-surface-variant": "#4c4546",
+                    "on-secondary": "#ffffff",
+                    "tertiary-fixed": "#e2e2e2",
+                    "on-tertiary-container": "#838484",
+                    "background": "#f9f9f9",
+                    "error-container": "#ffdad6",
+                    "primary-fixed": "#e2e2e2",
+                    "on-secondary-fixed-variant": "#464747",
+                    "surface-variant": "#e2e2e2",
+                    "tertiary-fixed-dim": "#c6c6c7",
+                    "on-tertiary-fixed-variant": "#454747",
+                    "on-tertiary-fixed": "#1a1c1c",
+                    "error": "#ba1a1a",
+                    "primary-fixed-dim": "#c6c6c6",
+                    "inverse-on-surface": "#f0f1f1",
+                    "on-tertiary": "#ffffff",
+                    "tertiary": "#000000",
+                    "on-secondary-fixed": "#1b1c1c",
+                    "secondary-fixed-dim": "#c7c6c6",
+                    "primary": "#000000",
+                    "surface-dim": "#dadada",
+                    "surface-container-lowest": "#ffffff",
+                    "on-error-container": "#93000a",
+                    "surface-container-highest": "#e2e2e2",
+                    "on-surface": "#1a1c1c",
+                    "surface": "#f9f9f9",
+                    "surface-container": "#eeeeee",
+                    "on-primary-fixed-variant": "#474747",
+                    "surface-container-low": "#f3f3f4",
+                    "surface-container-high": "#e8e8e8",
+                    "on-primary-fixed": "#1b1b1b",
+                    "secondary-fixed": "#e3e2e2",
+                    "on-secondary-container": "#646464",
+                    "inverse-surface": "#2f3131",
+                    "primary-container": "#1b1b1b",
+                    "tertiary-container": "#1a1c1c"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.125rem",
+                    "lg": "0.25rem",
+                    "xl": "0.5rem",
+                    "full": "0.75rem"
+            },
+            "spacing": {
+                    "stack-sm": "8px",
+                    "stack-lg": "32px",
+                    "margin-page": "24px",
+                    "gutter-grid": "16px",
+                    "stack-md": "16px",
+                    "touch-target": "48px"
+            },
+            "fontFamily": {
+                    "label-sm": ["Inter", "sans-serif"],
+                    "label-bold": ["Inter", "sans-serif"],
+                    "headline-md": ["Inter", "sans-serif"],
+                    "body-lg": ["Inter", "sans-serif"],
+                    "headline-lg": ["Inter", "sans-serif"],
+                    "body-md": ["Inter", "sans-serif"]
+            },
+            "fontSize": {
+                    "label-sm": ["12px", {"lineHeight": "16px", "letterSpacing": "0", "fontWeight": "400"}],
+                    "label-bold": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "700"}],
+                    "headline-md": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "700"}],
+                    "body-lg": ["16px", {"lineHeight": "24px", "letterSpacing": "0", "fontWeight": "400"}],
+                    "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "body-md": ["14px", {"lineHeight": "20px", "letterSpacing": "0", "fontWeight": "400"}]
+            }
+          },
+        }
+      }
+    </script>
+</head>
+<body class="bg-background text-on-background font-body-md min-h-screen flex flex-col selection:bg-primary selection:text-on-primary">
+<!-- Header / Task Navigation (Task-focused intent overrides global nav) -->
+<header class="flex items-center px-margin-page h-touch-target border-b border-surface-container mt-4">
+<button aria-label="Go back" class="h-touch-target w-touch-target flex items-center justify-start text-primary active:scale-95 transition-transform">
+<span class="material-symbols-outlined text-[24px]">arrow_back</span>
+</button>
+<div class="flex-1 ml-stack-sm relative">
+<span class="material-symbols-outlined absolute left-0 top-1/2 -translate-y-1/2 text-secondary text-[20px] pointer-events-none">search</span>
+<input class="w-full bg-transparent border-none border-b-2 border-transparent focus:border-primary focus:ring-0 pl-8 py-2 font-body-md text-primary placeholder:text-secondary transition-colors" placeholder="Search apps..." type="text" value="TikTok"/>
+</div>
+</header>
+<!-- Main Content Canvas -->
+<main class="flex-1 flex flex-col px-margin-page pt-stack-lg pb-margin-page gap-stack-lg max-w-md mx-auto w-full">
+<!-- Selected App Identity -->
+<section class="flex flex-col items-center justify-center gap-stack-sm text-center">
+<div class="w-16 h-16 rounded-xl border border-primary flex items-center justify-center bg-surface overflow-hidden relative">
+<!-- Using placeholder with explicit prompt for a minimal monochrome app icon -->
+<img class="w-full h-full object-cover grayscale" data-alt="A minimalist, stark black and white icon representing a social media video app, centered on a pure white background with no gradients or shadows." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDlKhitdXcscZNSe1xO4B-N4Xm_fk4UGD0MIZYcXunjt1nxHNrifRJORWzGWyRzcFgWzfLIdGbR1glWDyef6aHiuJ3UfuX-XeqEUcHeX0YWbEJyFC8qk6Fa1C59kSOZCc0q-e1TuWUr3aH_kWlCbgb5dviJqHHKrsUTm5BjEEsqVkXyJ-TFTS82iND3v8_a6zWg-RwucMKpqsfrJiwKAHP2f7ON8u0ylpUrs9vGB577qR-D5JsfYCoY"/>
+</div>
+<h1 class="font-headline-md text-headline-md text-primary">TikTok</h1>
+<span class="font-label-sm text-label-sm text-secondary uppercase tracking-widest">Selected App</span>
+</section>
+<!-- Timer Picker (Scroll-wheel style) -->
+<section class="flex-1 flex flex-col justify-center items-center relative py-stack-lg">
+<!-- Structural Container for the 'Wheel' -->
+<div class="relative flex items-center justify-center gap-8 w-full h-[200px] overflow-hidden select-none">
+<!-- Highlight Box (indicates active selection row) -->
+<div class="absolute inset-x-0 top-1/2 -translate-y-1/2 h-[64px] border-y-2 border-primary pointer-events-none bg-surface-container/20"></div>
+<!-- Hours Column -->
+<div class="flex flex-col items-center justify-center space-y-6 z-10 w-24">
+<div class="font-headline-md text-headline-md text-secondary opacity-40">00</div>
+<div class="font-headline-lg text-headline-lg text-primary transform scale-110">01</div>
+<div class="font-headline-md text-headline-md text-secondary opacity-40">02</div>
+</div>
+<!-- Divider -->
+<div class="font-headline-lg text-headline-lg text-primary z-10 pb-1">:</div>
+<!-- Minutes Column -->
+<div class="flex flex-col items-center justify-center space-y-6 z-10 w-24">
+<div class="font-headline-md text-headline-md text-secondary opacity-40">25</div>
+<div class="font-headline-lg text-headline-lg text-primary transform scale-110">30</div>
+<div class="font-headline-md text-headline-md text-secondary opacity-40">35</div>
+</div>
+</div>
+<div class="flex justify-center gap-16 mt-stack-sm w-full font-label-sm text-label-sm text-secondary uppercase tracking-widest">
+<span>Hours</span>
+<span>Mins</span>
+</div>
+</section>
+<!-- Warning Message -->
+<section class="border border-primary p-stack-md bg-surface flex gap-stack-sm items-start">
+<span class="material-symbols-outlined text-primary mt-1">warning</span>
+<div>
+<p class="font-body-lg text-body-lg text-primary font-bold">This limit cannot be changed once set today.</p>
+<p class="font-body-md text-body-md text-on-surface-variant mt-2">The app will lock completely until tomorrow when time runs out. Asceticism requires commitment.</p>
+</div>
+</section>
+<!-- Spacer to push CTA down if needed, though flex-1 on main might handle it -->
+<div class="flex-1"></div>
+<!-- Action CTA -->
+<button class="w-full h-touch-target bg-primary text-on-primary font-label-bold text-label-bold uppercase tracking-widest flex items-center justify-center hover:bg-surface-tint active:scale-[0.98] transition-all duration-200" id="triggerModalBtn">
+            Lock It In
+        </button>
+</main>
+<!-- Confirmation Modal Overlay (Hidden by default) -->
+<div class="fixed inset-0 z-50 flex items-center justify-center hidden opacity-0 transition-opacity duration-200" id="confirmationModal">
+<!-- Backdrop -->
+<div class="absolute inset-0 bg-background/90 backdrop-blur-sm" id="modalBackdrop"></div>
+<!-- Modal Content -->
+<div class="relative bg-background border-2 border-primary w-[90%] max-w-sm p-margin-page flex flex-col gap-stack-lg transform scale-95 transition-transform duration-200 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]" id="modalDialog">
+<div class="flex flex-col gap-stack-sm text-center">
+<span class="material-symbols-outlined text-[48px] text-primary mx-auto icon-fill">lock</span>
+<h2 class="font-headline-md text-headline-md text-primary mt-4">Are you sure?</h2>
+<p class="font-body-md text-body-md text-on-surface-variant">This cannot be undone today. You are committing to 01:30 of usage.</p>
+</div>
+<div class="flex flex-col gap-stack-sm">
+<button class="w-full h-touch-target bg-primary text-on-primary font-label-bold text-label-bold uppercase tracking-widest flex items-center justify-center active:scale-[0.98] transition-transform" id="confirmBtn">
+                    Confirm Lock
+                </button>
+<button class="w-full h-touch-target bg-transparent text-primary border border-primary font-label-bold text-label-bold uppercase tracking-widest flex items-center justify-center hover:bg-surface-container active:scale-[0.98] transition-all" id="cancelBtn">
+                    Cancel
+                </button>
+</div>
+</div>
+</div>
+<!-- Interactive Logic -->
+<script>
+        document.addEventListener('DOMContentLoaded', () => {
+            const modal = document.getElementById('confirmationModal');
+            const modalDialog = document.getElementById('modalDialog');
+            const triggerBtn = document.getElementById('triggerModalBtn');
+            const cancelBtn = document.getElementById('cancelBtn');
+            const confirmBtn = document.getElementById('confirmBtn');
+            const backdrop = document.getElementById('modalBackdrop');
+
+            const openModal = () => {
+                modal.classList.remove('hidden');
+                // Trigger reflow
+                void modal.offsetWidth;
+                modal.classList.remove('opacity-0');
+                modalDialog.classList.remove('scale-95');
+                modalDialog.classList.add('scale-100');
+            };
+
+            const closeModal = () => {
+                modal.classList.add('opacity-0');
+                modalDialog.classList.remove('scale-100');
+                modalDialog.classList.add('scale-95');
+                setTimeout(() => {
+                    modal.classList.add('hidden');
+                }, 200); // match duration
+            };
+
+            triggerBtn.addEventListener('click', openModal);
+            cancelBtn.addEventListener('click', closeModal);
+            backdrop.addEventListener('click', closeModal);
+            
+            confirmBtn.addEventListener('click', () => {
+                // Simulate success action, then close
+                confirmBtn.innerHTML = '<span class="material-symbols-outlined animate-spin mr-2">progress_activity</span> Locking...';
+                setTimeout(() => {
+                    closeModal();
+                    // Reset button text after close
+                    setTimeout(() => {
+                        confirmBtn.innerHTML = 'Confirm Lock';
+                    }, 250);
+                }, 800);
+            });
+        });
+    </script>
+</body></html>

@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Stats Screen</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "secondary": "#5e5e5e",
+                    "on-primary-container": "#848484",
+                    "on-background": "#1a1c1c",
+                    "secondary-container": "#e3e2e2",
+                    "inverse-primary": "#c6c6c6",
+                    "on-primary": "#ffffff",
+                    "surface-tint": "#5e5e5e",
+                    "outline": "#7e7576",
+                    "outline-variant": "#cfc4c5",
+                    "on-error": "#ffffff",
+                    "surface-bright": "#f9f9f9",
+                    "on-surface-variant": "#4c4546",
+                    "on-secondary": "#ffffff",
+                    "tertiary-fixed": "#e2e2e2",
+                    "on-tertiary-container": "#838484",
+                    "background": "#f9f9f9",
+                    "error-container": "#ffdad6",
+                    "primary-fixed": "#e2e2e2",
+                    "on-secondary-fixed-variant": "#464747",
+                    "surface-variant": "#e2e2e2",
+                    "tertiary-fixed-dim": "#c6c6c7",
+                    "on-tertiary-fixed-variant": "#454747",
+                    "on-tertiary-fixed": "#1a1c1c",
+                    "error": "#ba1a1a",
+                    "primary-fixed-dim": "#c6c6c6",
+                    "inverse-on-surface": "#f0f1f1",
+                    "on-tertiary": "#ffffff",
+                    "tertiary": "#000000",
+                    "on-secondary-fixed": "#1b1c1c",
+                    "secondary-fixed-dim": "#c7c6c6",
+                    "primary": "#000000",
+                    "surface-dim": "#dadada",
+                    "surface-container-lowest": "#ffffff",
+                    "on-error-container": "#93000a",
+                    "surface-container-highest": "#e2e2e2",
+                    "on-surface": "#1a1c1c",
+                    "surface": "#f9f9f9",
+                    "surface-container": "#eeeeee",
+                    "on-primary-fixed-variant": "#474747",
+                    "surface-container-low": "#f3f3f4",
+                    "surface-container-high": "#e8e8e8",
+                    "on-primary-fixed": "#1b1b1b",
+                    "secondary-fixed": "#e3e2e2",
+                    "on-secondary-container": "#646464",
+                    "inverse-surface": "#2f3131",
+                    "primary-container": "#1b1b1b",
+                    "tertiary-container": "#1a1c1c"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.125rem",
+                    "lg": "0.25rem",
+                    "xl": "0.5rem",
+                    "full": "0.75rem"
+            },
+            "spacing": {
+                    "stack-sm": "8px",
+                    "stack-lg": "32px",
+                    "margin-page": "24px",
+                    "gutter-grid": "16px",
+                    "stack-md": "16px",
+                    "touch-target": "48px"
+            },
+            "fontFamily": {
+                    "label-sm": ["Inter"],
+                    "label-bold": ["Inter"],
+                    "headline-md": ["Inter"],
+                    "body-lg": ["Inter"],
+                    "headline-lg": ["Inter"],
+                    "body-md": ["Inter"]
+            },
+            "fontSize": {
+                    "label-sm": ["12px", {"lineHeight": "16px", "letterSpacing": "0", "fontWeight": "400"}],
+                    "label-bold": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "700"}],
+                    "headline-md": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "700"}],
+                    "body-lg": ["16px", {"lineHeight": "24px", "letterSpacing": "0", "fontWeight": "400"}],
+                    "headline-lg": ["32px", {"lineHeight": "40px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "body-md": ["14px", {"lineHeight": "20px", "letterSpacing": "0", "fontWeight": "400"}]
+            }
+          },
+        }
+      }
+    </script>
+<style>
+        body {
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .icon-fill {
+            font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        /* Hide scrollbar for clean aesthetic */
+        ::-webkit-scrollbar {
+            display: none;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-background min-h-screen flex flex-col font-body-md max-w-[390px] mx-auto border-x border-surface-container relative pb-touch-target">
+<!-- TopAppBar from JSON -->
+<header class="bg-background dark:bg-on-background sticky top-0 z-40 border-b border-primary dark:border-outline-variant flex justify-between items-center w-full px-margin-page h-touch-target">
+<button aria-label="calendar_today" class="flex items-center justify-center h-full text-primary dark:text-on-primary hover:bg-secondary-container dark:hover:bg-secondary transition-colors active:scale-95 duration-200">
+<span class="material-symbols-outlined">calendar_today</span>
+</button>
+<h1 class="font-headline-md text-headline-md font-bold tracking-tighter text-primary dark:text-on-primary">Today</h1>
+<button aria-label="settings" class="flex items-center justify-center h-full text-primary dark:text-on-primary hover:bg-secondary-container dark:hover:bg-secondary transition-colors active:scale-95 duration-200">
+<span class="material-symbols-outlined">settings</span>
+</button>
+</header>
+<main class="flex-1 px-margin-page py-stack-lg flex flex-col gap-stack-lg">
+<!-- Toggle Component -->
+<div class="flex w-full border border-primary rounded-none overflow-hidden h-touch-target">
+<button class="flex-1 flex items-center justify-center bg-primary text-on-primary font-label-bold text-label-bold uppercase tracking-widest transition-colors duration-200">
+                Week
+            </button>
+<div class="w-px bg-primary"></div>
+<button class="flex-1 flex items-center justify-center bg-background text-primary font-label-bold text-label-bold uppercase tracking-widest hover:bg-surface-container transition-colors duration-200">
+                Month
+            </button>
+</div>
+<!-- Weekly Chart Section -->
+<section class="flex flex-col gap-stack-md pt-stack-sm">
+<h2 class="font-headline-lg text-headline-lg text-primary tracking-tight">36h 27m</h2>
+<p class="font-body-md text-body-md text-secondary">Total screen time this week</p>
+<div class="mt-stack-md flex items-end justify-between h-48 border-b border-primary pb-stack-sm">
+<!-- Bars (8px rounded corners as per prompt, which is xl in config) -->
+<div class="flex flex-col items-center gap-2 group">
+<div class="w-8 bg-primary rounded-t-xl h-12 transition-transform duration-200 origin-bottom group-hover:scale-y-105"></div>
+<span class="font-label-sm text-label-sm text-secondary">M</span>
+</div>
+<div class="flex flex-col items-center gap-2 group">
+<div class="w-8 bg-primary rounded-t-xl h-24 transition-transform duration-200 origin-bottom group-hover:scale-y-105"></div>
+<span class="font-label-sm text-label-sm text-secondary">T</span>
+</div>
+<div class="flex flex-col items-center gap-2 group">
+<div class="w-8 bg-primary rounded-t-xl h-16 transition-transform duration-200 origin-bottom group-hover:scale-y-105"></div>
+<span class="font-label-sm text-label-sm text-secondary">W</span>
+</div>
+<div class="flex flex-col items-center gap-2 group">
+<div class="w-8 bg-primary rounded-t-xl h-32 transition-transform duration-200 origin-bottom group-hover:scale-y-105"></div>
+<span class="font-label-sm text-label-sm text-secondary">T</span>
+</div>
+<div class="flex flex-col items-center gap-2 group">
+<div class="w-8 bg-primary rounded-t-xl h-20 transition-transform duration-200 origin-bottom group-hover:scale-y-105"></div>
+<span class="font-label-sm text-label-sm text-secondary">F</span>
+</div>
+<div class="flex flex-col items-center gap-2 group">
+<div class="w-8 bg-primary rounded-t-xl h-40 transition-transform duration-200 origin-bottom group-hover:scale-y-105"></div>
+<span class="font-label-sm text-label-sm text-secondary">S</span>
+</div>
+<div class="flex flex-col items-center gap-2 group">
+<div class="w-8 bg-primary rounded-t-xl h-28 transition-transform duration-200 origin-bottom group-hover:scale-y-105"></div>
+<span class="font-label-sm text-label-sm text-primary font-bold">S</span>
+</div>
+</div>
+</section>
+<!-- Usage List Section -->
+<section class="flex flex-col">
+<h3 class="font-label-bold text-label-bold uppercase tracking-widest text-secondary mb-stack-sm pb-stack-sm border-b border-surface-container">App Breakdown</h3>
+<div class="flex flex-col">
+<div class="flex justify-between items-center py-stack-md border-b border-surface-container-high group hover:bg-surface-container-lowest transition-colors cursor-default">
+<span class="font-body-lg text-body-lg font-bold text-primary flex items-center gap-3">
+<span class="w-2 h-2 bg-primary rounded-full"></span>
+                        TikTok
+                    </span>
+<span class="font-body-md text-body-md text-secondary">12h 45m</span>
+</div>
+<div class="flex justify-between items-center py-stack-md border-b border-surface-container-high group hover:bg-surface-container-lowest transition-colors cursor-default">
+<span class="font-body-lg text-body-lg font-bold text-primary flex items-center gap-3">
+<span class="w-2 h-2 bg-primary rounded-full"></span>
+                        Instagram
+                    </span>
+<span class="font-body-md text-body-md text-secondary">8h 12m</span>
+</div>
+<div class="flex justify-between items-center py-stack-md border-b border-surface-container-high group hover:bg-surface-container-lowest transition-colors cursor-default">
+<span class="font-body-lg text-body-lg font-bold text-primary flex items-center gap-3">
+<span class="w-2 h-2 bg-primary rounded-full"></span>
+                        YouTube
+                    </span>
+<span class="font-body-md text-body-md text-secondary">15h 30m</span>
+</div>
+</div>
+</section>
+</main>
+<!-- BottomNavBar from JSON -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center h-touch-target bg-background dark:bg-on-background border-t-2 border-primary dark:border-outline max-w-[390px] mx-auto" style="left: 50%; transform: translateX(-50%);">
+<a class="flex items-center justify-center text-primary dark:text-on-primary h-12 w-12 hover:invert transition-all" href="#">
+<span class="material-symbols-outlined">grid_view</span>
+</a>
+<a class="flex items-center justify-center text-primary dark:text-on-primary h-12 w-12 hover:invert transition-all" href="#">
+<span class="material-symbols-outlined">history</span>
+</a>
+<!-- Active Tab: Analytics -->
+<a class="flex items-center justify-center bg-primary dark:bg-on-primary text-on-primary dark:text-primary rounded-none h-12 w-12 hover:invert transition-all active:scale-98 duration-200" href="#">
+<span class="material-symbols-outlined icon-fill">analytics</span>
+</a>
+<a class="flex items-center justify-center text-primary dark:text-on-primary h-12 w-12 hover:invert transition-all" href="#">
+<span class="material-symbols-outlined">person</span>
+</a>
+</nav>
+</body></html>
