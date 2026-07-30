@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, ScrollView, TextInput, TouchableOpacity, Alert, ActivityIndicator } from "react-native";
+import { View, Text, ScrollView, TextInput, TouchableOpacity, Alert, ActivityIndicator, Image } from "react-native";
 import { useApp } from "../context/AppContext";
 import { NavigationHeader } from "../components/NavigationHeader";
 import { Button } from "../components/ui/Button";
@@ -88,14 +88,16 @@ export const AddAppScreen: React.FC = () => {
       selectedApp.packageName,
       selectedApp.appName,
       totalMs,
-      selectedApp.category
+      selectedApp.category,
+      undefined,
+      selectedApp.iconBase64
     );
 
     setShowConfirmModal(false);
     if (res.success) {
       setCurrentScreen("home");
     } else {
-      Alert.alert("Lock Failed", res.error || "Could not set lock.");
+      Alert.alert("Error", res.error || "Could not set lock.");
     }
   };
 
@@ -155,10 +157,18 @@ export const AddAppScreen: React.FC = () => {
                   <View className="flex-row items-center justify-between">
                     <View className="flex-row items-center gap-2.5 flex-1 pr-2">
                       <View className="w-5 h-5 items-center justify-center">
-                        <IconComp
-                          size={20}
-                          color={isSelected ? (isDark ? "#000000" : "#ffffff") : iconColor}
-                        />
+                        {app.iconBase64 ? (
+                          <Image
+                            source={{ uri: `data:image/png;base64,${app.iconBase64}` }}
+                            className="w-5 h-5"
+                            resizeMode="contain"
+                          />
+                        ) : (
+                          <IconComp
+                            size={20}
+                            color={isSelected ? (isDark ? "#000000" : "#ffffff") : iconColor}
+                          />
+                        )}
                       </View>
                       <Text
                         numberOfLines={1}

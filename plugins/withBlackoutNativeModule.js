@@ -258,7 +258,7 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
     }
 
     @ReactMethod
-    def getInstalledApps(promise: Promise) {
+    fun getInstalledApps(promise: Promise) {
         try {
             val pm = reactApplicationContext.packageManager
             val intent = Intent(Intent.ACTION_MAIN, null).apply {
@@ -273,10 +273,29 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
                 if (packageName != reactApplicationContext.packageName && !addedPackages.contains(packageName)) {
                     addedPackages.add(packageName)
                     val appName = resolveInfo.loadLabel(pm).toString()
+                    var iconBase64 = ""
+                    try {
+                        val iconDrawable = resolveInfo.loadIcon(pm)
+                        val width = Math.min(iconDrawable.intrinsicWidth.takeIf { it > 0 } ?: 96, 96)
+                        val height = Math.min(iconDrawable.intrinsicHeight.takeIf { it > 0 } ?: 96, 96)
+                        val bitmap = android.graphics.Bitmap.createBitmap(width, height, android.graphics.Bitmap.Config.ARGB_8888)
+                        val canvas = android.graphics.Canvas(bitmap)
+                        iconDrawable.setBounds(0, 0, canvas.width, canvas.height)
+                        iconDrawable.draw(canvas)
+                        val outputStream = java.io.ByteArrayOutputStream()
+                        bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 80, outputStream)
+                        iconBase64 = android.util.Base64.encodeToString(outputStream.toByteArray(), android.util.Base64.NO_WRAP)
+                    } catch (e: Exception) {
+                        // ignore icon error
+                    }
+
                     val map = WritableNativeMap().apply {
                         putString("packageName", packageName)
                         putString("appName", appName)
                         putString("category", "Installed App")
+                        if (iconBase64.isNotEmpty()) {
+                            putString("iconBase64", iconBase64)
+                        }
                     }
                     array.pushMap(map)
                 }
@@ -284,6 +303,46 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
             promise.resolve(array)
         } catch (e: Exception) {
             promise.reject("GET_APPS_ERROR", e.message)
+        }
+    }
+
+    @ReactMethod
+    fun getWeeklyUsageStats(promise: Promise) {
+        try {
+            val usageStatsManager = reactApplicationContext.getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
+            val dayNames = arrayOf("SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT")
+            val array = WritableNativeArray()
+
+            for (i in 0..6) {
+                val dayCal = Calendar.getInstance()
+                dayCal.add(Calendar.DAY_OF_YEAR, -6 + i)
+                val dayName = dayNames[dayCal.get(Calendar.DAY_OF_WEEK) - 1]
+                val dayStart = dayCal.apply {
+                    set(Calendar.HOUR_OF_DAY, 0)
+                    set(Calendar.MINUTE, 0)
+                    set(Calendar.SECOND, 0)
+                    set(Calendar.MILLISECOND, 0)
+                }.timeInMillis
+                val dayEnd = dayStart + (24 * 3600 * 1000) - 1
+
+                val dailyStats = usageStatsManager.queryUsageStats(UsageStatsManager.INTERVAL_DAILY, dayStart, dayEnd)
+                var dayTotalMs = 0L
+                if (dailyStats != null) {
+                    for (stat in dailyStats) {
+                        dayTotalMs += stat.totalTimeInForeground
+                    }
+                }
+
+                val map = WritableNativeMap().apply {
+                    putString("day", dayName)
+                    putString("dateStr", "${dayCal.get(Calendar.MONTH) + 1}/${dayCal.get(Calendar.DAY_OF_MONTH)}")
+                    putDouble("totalUsageMs", dayTotalMs.toDouble())
+                }
+                array.pushMap(map)
+            }
+            promise.resolve(array)
+        } catch (e: Exception) {
+            promise.reject("WEEKLY_STATS_ERROR", e.message)
         }
     }
 }

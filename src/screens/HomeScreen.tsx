@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, SafeAreaView, ScrollView, TouchableOpacity } from "react-native";
+import { View, Text, ScrollView, TouchableOpacity, Image } from "react-native";
 import { useApp } from "../context/AppContext";
 import { NavigationHeader } from "../components/NavigationHeader";
 import { BottomNavBar } from "../components/BottomNavBar";
@@ -109,7 +109,15 @@ export const HomeScreen: React.FC = () => {
                   <View className="flex-row items-center justify-between">
                     <View className="flex-row items-center gap-2.5 flex-1 pr-2">
                       <View className="w-5 h-5 items-center justify-center">
-                        <IconComp size={20} color={iconColor} />
+                        {app.iconBase64 ? (
+                          <Image
+                            source={{ uri: `data:image/png;base64,${app.iconBase64}` }}
+                            className="w-5 h-5"
+                            resizeMode="contain"
+                          />
+                        ) : (
+                          <IconComp size={20} color={iconColor} />
+                        )}
                       </View>
                       <Text
                         numberOfLines={1}

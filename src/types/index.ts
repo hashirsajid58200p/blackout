@@ -7,6 +7,7 @@ export interface TrackedApp {
   lockDate: string; // "YYYY-MM-DD" — the day this lock applies to
   category?: string;
   iconName?: string;
+  iconBase64?: string;
 }
 
 export interface Settings {
@@ -19,6 +20,7 @@ export interface InstalledAppInfo {
   appName: string;
   iconName?: string;
   category?: string;
+  iconBase64?: string;
 }
 
 export interface WeeklyStats {

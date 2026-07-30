@@ -88,7 +88,8 @@ export const StorageService = {
     appName: string,
     dailyLimitMs: number,
     category?: string,
-    iconName?: string
+    iconName?: string,
+    iconBase64?: string
   ): Promise<{ success: boolean; error?: string }> {
     const apps = await StorageService.getTrackedApps();
     const today = getTodayDateString();
@@ -110,6 +111,7 @@ export const StorageService = {
       lockDate: today,
       category,
       iconName,
+      iconBase64,
     };
 
     const updated = [...apps, newApp];

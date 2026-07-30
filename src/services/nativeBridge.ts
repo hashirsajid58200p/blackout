@@ -79,7 +79,7 @@ export const NativeBridge = {
     }
   },
 
-  async getTodayUsage(packageName: string): Promise<number> {
+  async getTodayUsageStats(packageName: string): Promise<number> {
     if (Platform.OS === "android" && BlackoutModule?.getTodayUsage) {
       try {
         return await BlackoutModule.getTodayUsage(packageName);
@@ -90,7 +90,21 @@ export const NativeBridge = {
     return 0;
   },
 
-  async getInstalledApps(): Promise<Array<{ packageName: string; appName: string; category?: string }>> {
+  async getWeeklyUsageStats(): Promise<Array<{ day: string; dateStr: string; totalUsageMs: number }>> {
+    if (Platform.OS === "android" && BlackoutModule?.getWeeklyUsageStats) {
+      try {
+        const stats = await BlackoutModule.getWeeklyUsageStats();
+        if (Array.isArray(stats) && stats.length > 0) {
+          return stats;
+        }
+      } catch {
+        // fallback
+      }
+    }
+    return [];
+  },
+
+  async getInstalledApps(): Promise<Array<{ packageName: string; appName: string; category?: string; iconBase64?: string }>> {
     if (Platform.OS === "android" && BlackoutModule?.getInstalledApps) {
       try {
         const apps = await BlackoutModule.getInstalledApps();

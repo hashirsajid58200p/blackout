@@ -28,7 +28,8 @@ interface AppContextType {
     appName: string,
     dailyLimitMs: number,
     category?: string,
-    iconName?: string
+    iconName?: string,
+    iconBase64?: string
   ) => Promise<{ success: boolean; error?: string }>;
   activeBlockApp: TrackedApp | null;
   setActiveBlockApp: (app: TrackedApp | null) => void;
@@ -126,26 +127,21 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     init();
   }, [refreshPermissions, refreshData]);
 
-  // Polling loop for app usage updates
+  // Periodically fetch real device usage stats from Native Android for each tracked app
   useEffect(() => {
-    const interval = setInterval(async () => {
-      const apps = await StorageService.getTrackedApps();
-      let updated = false;
-
-      const newApps = await Promise.all(
-        apps.map(async (app) => {
-          const usageFromOS = await NativeBridge.getTodayUsage(app.packageName);
-          if (usageFromOS > app.usedTodayMs) {
-            updated = true;
-            const newUsed = usageFromOS;
-            const isNowLocked = newUsed >= app.dailyLimitMs;
-            if (isNowLocked && !app.isLocked) {
-              setActiveBlockApp({ ...app, usedTodayMs: newUsed, isLocked: true });
-              setCurrentScreen("blackout");
-            }
+    const fetchUsage = async () => {
+      if (trackedApps.length === 0) return;
+      let hasUpdates = false;
+      const updatedApps = await Promise.all(
+        trackedApps.map(async (app) => {
+          if (app.packageName.startsWith("custom.")) return app;
+          const realUsedMs = await NativeBridge.getTodayUsageStats(app.packageName);
+          if (realUsedMs !== app.usedTodayMs) {
+            hasUpdates = true;
+            const isNowLocked = realUsedMs >= app.dailyLimitMs;
             return {
               ...app,
-              usedTodayMs: newUsed,
+              usedTodayMs: realUsedMs,
               isLocked: app.isLocked || isNowLocked,
             };
           }
@@ -153,19 +149,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         })
       );
 
-      if (updated) {
-        setTrackedApps(newApps);
-        await StorageService.saveTrackedApps(newApps);
-
-        const lockedPkgs = newApps
-          .filter((a) => a.isLocked)
-          .map((a) => a.packageName);
-        NativeBridge.syncLockedPackages(lockedPkgs);
+      if (hasUpdates) {
+        setTrackedApps(updatedApps);
+        await StorageService.saveTrackedApps(updatedApps);
       }
-    }, 5000);
+    };
 
+    fetchUsage();
+    const interval = setInterval(fetchUsage, 5000);
     return () => clearInterval(interval);
-  }, []);
+  }, [trackedApps]);
 
   const updateThemeMode = async (mode: "system" | "light" | "dark") => {
     const newSettings = { ...settings, themeMode: mode };
@@ -187,14 +180,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     appName: string,
     dailyLimitMs: number,
     category?: string,
-    iconName?: string
+    iconName?: string,
+    iconBase64?: string
   ) => {
     const result = await StorageService.addTrackedApp(
       packageName,
       appName,
       dailyLimitMs,
       category,
-      iconName
+      iconName,
+      iconBase64
     );
     if (result.success) {
       await refreshData();
