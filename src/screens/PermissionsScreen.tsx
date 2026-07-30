@@ -76,71 +76,68 @@ export const PermissionsScreen: React.FC = () => {
 
   return (
     <View className="flex-1 bg-background dark:bg-black">
-      <ScrollView contentContainerStyle={{ flexGrow: 1, paddingBottom: 40 }} className="flex-1 px-margin-page pt-8">
-        <View className="items-center justify-center my-auto py-4">
+      <ScrollView contentContainerStyle={{ flexGrow: 1, paddingBottom: 30 }} className="flex-1 px-margin-page pt-6">
+        <View className="items-center justify-center my-auto py-2">
           {/* Top Logo */}
-          <View className="mb-5 border-2 border-primary dark:border-white p-4 justify-center items-center">
-            <Shield size={48} color={iconColor} />
+          <View className="mb-4 border-2 border-primary dark:border-white p-3.5 justify-center items-center">
+            <Shield size={44} color={iconColor} />
           </View>
 
           {/* Heading */}
-          <Text className="font-bold text-2xl text-primary dark:text-white uppercase tracking-tight text-center mb-2">
+          <Text className="font-bold text-2xl text-primary dark:text-white uppercase tracking-tight text-center mb-1.5">
             REQUIRED PERMISSIONS
           </Text>
 
           {/* Paragraph */}
-          <Text className="text-xs text-secondary dark:text-zinc-400 text-center mb-8 max-w-[290px] leading-5">
+          <Text className="text-xs text-secondary dark:text-zinc-400 text-center mb-6 max-w-[290px] leading-5">
             To detect locked apps in real-time and block them instantly, Blackout requires system privileges.
           </Text>
 
           {/* Permission Cards */}
-          <View className="w-full flex-col gap-4 mb-8">
+          <View className="w-full flex-col gap-3 mb-6">
             {permissionItems.map((item) => {
               const IconComponent = item.icon;
               return (
                 <View
                   key={item.id}
-                  className="border-2 border-primary dark:border-white p-4 rounded-none flex-row items-center justify-between bg-surface-container-lowest dark:bg-zinc-900"
+                  className="border-2 border-primary dark:border-white p-3.5 rounded-none flex-col gap-1.5 bg-surface-container-lowest dark:bg-zinc-900"
                 >
-                  {/* Left Side: Icon aligned with top heading */}
-                  <View className="flex-row items-start gap-3 flex-1 pr-2">
-                    <View className="pt-0.5 justify-center items-center">
-                      <IconComponent size={20} color={iconColor} />
-                    </View>
-                    <View className="flex-1">
-                      {/* Heading: Single line guaranteed */}
+                  {/* Top Row: Icon + Main Heading (Center Aligned Vertically) + Right Button */}
+                  <View className="flex-row items-center justify-between">
+                    <View className="flex-row items-center gap-2.5 flex-1 pr-2">
+                      <IconComponent size={18} color={iconColor} />
                       <Text
                         numberOfLines={1}
-                        className="font-bold text-xs uppercase tracking-wider text-primary dark:text-white"
+                        className="font-bold text-xs uppercase tracking-wider text-primary dark:text-white flex-1"
                       >
                         {item.title}
                       </Text>
-                      {/* Sub-heading / Description below main heading */}
-                      <Text className="text-xs text-secondary dark:text-zinc-400 mt-1 leading-4">
-                        {item.description}
-                      </Text>
                     </View>
+
+                    {item.isGranted ? (
+                      <View className="bg-primary dark:bg-white px-2.5 py-1 flex-row items-center justify-center gap-1 border border-primary dark:border-white min-w-[76px]">
+                        <CheckCircle2 size={12} color={badgeIconColor} />
+                        <Text className="text-xs font-bold text-white dark:text-black uppercase">
+                          GRANTED
+                        </Text>
+                      </View>
+                    ) : (
+                      <TouchableOpacity
+                        activeOpacity={0.8}
+                        onPress={item.onGrant}
+                        className="bg-transparent border-2 border-primary dark:border-white px-2.5 py-1 items-center justify-center min-w-[76px] active:bg-primary/10 dark:active:bg-white/10"
+                      >
+                        <Text className="text-xs font-bold text-primary dark:text-white uppercase">
+                          GRANT
+                        </Text>
+                      </TouchableOpacity>
+                    )}
                   </View>
 
-                  {/* Right Side: Action Button aligned nicely */}
-                  {item.isGranted ? (
-                    <View className="bg-primary dark:bg-white px-3 py-2 flex-row items-center justify-center gap-1.5 border border-primary dark:border-white min-w-[80px] self-center">
-                      <CheckCircle2 size={12} color={badgeIconColor} />
-                      <Text className="text-xs font-bold text-white dark:text-black uppercase">
-                        GRANTED
-                      </Text>
-                    </View>
-                  ) : (
-                    <TouchableOpacity
-                      activeOpacity={0.8}
-                      onPress={item.onGrant}
-                      className="bg-transparent border-2 border-primary dark:border-white px-3 py-2 items-center justify-center min-w-[80px] self-center active:bg-primary/10 dark:active:bg-white/10"
-                    >
-                      <Text className="text-xs font-bold text-primary dark:text-white uppercase">
-                        GRANT
-                      </Text>
-                    </TouchableOpacity>
-                  )}
+                  {/* Bottom Row: Description Paragraph underneath */}
+                  <Text className="text-xs text-secondary dark:text-zinc-400 pl-7 leading-4">
+                    {item.description}
+                  </Text>
                 </View>
               );
             })}
@@ -160,7 +157,7 @@ export const PermissionsScreen: React.FC = () => {
             }}
           />
 
-          <Text className="text-xs text-secondary dark:text-zinc-500 max-w-[260px] text-center pt-4 leading-4">
+          <Text className="text-xs text-secondary dark:text-zinc-500 max-w-[260px] text-center pt-3 leading-4">
             Blackout operates completely offline. No usage data ever leaves your device.
           </Text>
         </View>
