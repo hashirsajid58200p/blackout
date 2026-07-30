@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, SafeAreaView, ScrollView, TouchableOpacity } from "react-native";
+import { View, Text, ScrollView, TouchableOpacity } from "react-native";
 import { useApp } from "../context/AppContext";
 import { NativeBridge } from "../services/nativeBridge";
 import { Button } from "../components/ui/Button";
@@ -50,7 +50,7 @@ export const PermissionsScreen: React.FC = () => {
   const permissionItems = [
     {
       id: "usageStats",
-      title: "Usage Access",
+      title: "USAGE ACCESS",
       description: "Reads daily app usage duration",
       icon: Eye,
       isGranted: isUsageStatsGranted,
@@ -58,7 +58,7 @@ export const PermissionsScreen: React.FC = () => {
     },
     {
       id: "overlay",
-      title: "Draw Over Apps",
+      title: "DRAW OVER APPS",
       description: "Displays full-screen blackout overlay",
       icon: AppWindow,
       isGranted: isOverlayGranted,
@@ -66,7 +66,7 @@ export const PermissionsScreen: React.FC = () => {
     },
     {
       id: "accessibility",
-      title: "Accessibility Service",
+      title: "ACCESSIBILITY SERVICE",
       description: "Detects locked foreground app instantly",
       icon: CircleAlert,
       isGranted: isAccessibilityGranted,
@@ -75,21 +75,25 @@ export const PermissionsScreen: React.FC = () => {
   ];
 
   return (
-    <SafeAreaView className="flex-1 bg-background dark:bg-black">
-      <ScrollView contentContainerStyle={{ flexGrow: 1, paddingBottom: 40 }} className="flex-1 px-margin-page pt-6">
-        <View className="items-center justify-center my-auto py-6">
-          <View className="mb-6 border-2 border-primary dark:border-white p-4 justify-center items-center">
+    <View className="flex-1 bg-background dark:bg-black">
+      <ScrollView contentContainerStyle={{ flexGrow: 1, paddingBottom: 40 }} className="flex-1 px-margin-page pt-8">
+        <View className="items-center justify-center my-auto py-4">
+          {/* Top Logo */}
+          <View className="mb-5 border-2 border-primary dark:border-white p-4 justify-center items-center">
             <Shield size={48} color={iconColor} />
           </View>
 
+          {/* Heading */}
           <Text className="font-bold text-2xl text-primary dark:text-white uppercase tracking-tight text-center mb-2">
             REQUIRED PERMISSIONS
           </Text>
 
+          {/* Paragraph */}
           <Text className="text-xs text-secondary dark:text-zinc-400 text-center mb-8 max-w-[290px] leading-5">
             To detect locked apps in real-time and block them instantly, Blackout requires system privileges.
           </Text>
 
+          {/* Permission Cards */}
           <View className="w-full flex-col gap-4 mb-8">
             {permissionItems.map((item) => {
               const IconComponent = item.icon;
@@ -98,23 +102,30 @@ export const PermissionsScreen: React.FC = () => {
                   key={item.id}
                   className="border-2 border-primary dark:border-white p-4 rounded-none flex-row items-center justify-between bg-surface-container-lowest dark:bg-zinc-900"
                 >
-                  <View className="flex-row items-center gap-3 flex-1 pr-2">
-                    <View className="w-7 h-7 items-center justify-center">
+                  {/* Left Side: Icon aligned with top heading */}
+                  <View className="flex-row items-start gap-3 flex-1 pr-2">
+                    <View className="pt-0.5 justify-center items-center">
                       <IconComponent size={20} color={iconColor} />
                     </View>
                     <View className="flex-1">
-                      <Text className="font-bold text-sm uppercase text-primary dark:text-white">
+                      {/* Heading: Single line guaranteed */}
+                      <Text
+                        numberOfLines={1}
+                        className="font-bold text-xs uppercase tracking-wider text-primary dark:text-white"
+                      >
                         {item.title}
                       </Text>
-                      <Text className="text-xs text-secondary dark:text-zinc-400 mt-0.5">
+                      {/* Sub-heading / Description below main heading */}
+                      <Text className="text-xs text-secondary dark:text-zinc-400 mt-1 leading-4">
                         {item.description}
                       </Text>
                     </View>
                   </View>
 
+                  {/* Right Side: Action Button aligned nicely */}
                   {item.isGranted ? (
-                    <View className="bg-primary dark:bg-white px-3 py-1.5 flex-row items-center justify-center gap-1.5 border border-primary dark:border-white min-w-[92px]">
-                      <CheckCircle2 size={13} color={badgeIconColor} />
+                    <View className="bg-primary dark:bg-white px-3 py-2 flex-row items-center justify-center gap-1.5 border border-primary dark:border-white min-w-[80px] self-center">
+                      <CheckCircle2 size={12} color={badgeIconColor} />
                       <Text className="text-xs font-bold text-white dark:text-black uppercase">
                         GRANTED
                       </Text>
@@ -123,7 +134,7 @@ export const PermissionsScreen: React.FC = () => {
                     <TouchableOpacity
                       activeOpacity={0.8}
                       onPress={item.onGrant}
-                      className="bg-transparent border-2 border-primary dark:border-white px-3 py-1.5 items-center justify-center min-w-[92px] active:bg-primary/10 dark:active:bg-white/10"
+                      className="bg-transparent border-2 border-primary dark:border-white px-3 py-2 items-center justify-center min-w-[80px] self-center active:bg-primary/10 dark:active:bg-white/10"
                     >
                       <Text className="text-xs font-bold text-primary dark:text-white uppercase">
                         GRANT
@@ -135,6 +146,7 @@ export const PermissionsScreen: React.FC = () => {
             })}
           </View>
 
+          {/* Main Action Button */}
           <Button
             label={allGranted ? "ENTER BLACKOUT" : "GRANT PERMISSIONS"}
             onPress={() => {
@@ -153,6 +165,6 @@ export const PermissionsScreen: React.FC = () => {
           </Text>
         </View>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 };
