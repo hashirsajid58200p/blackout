@@ -63,23 +63,32 @@ export const HomeScreen: React.FC = () => {
   const circleCircumference = 408.4;
   const overallStrokeOffset = circleCircumference * (1 - overallPercent / 100);
 
-  // Monochrome minimalist palette shades ordered by usage intensity (highest usage = strongest contrast)
-  const lightShades = ["#000000", "#27272a", "#52525b", "#71717a", "#a1a1aa"];
-  const darkShades = ["#ffffff", "#f4f4f5", "#d4d4d8", "#a1a1aa", "#71717a"];
+  // Dynamic continuous monochrome lightness generator for any number of apps N
+  const getDynamicMonochromeShade = (index: number, total: number, isDark: boolean): string => {
+    if (total <= 1) {
+      return isDark ? "hsl(0, 0%, 100%)" : "hsl(0, 0%, 0%)";
+    }
+    const ratio = index / (total - 1);
+    if (isDark) {
+      const lightness = Math.round(100 - ratio * 65);
+      return `hsl(0, 0%, ${lightness}%)`;
+    } else {
+      const lightness = Math.round(ratio * 70);
+      return `hsl(0, 0%, ${lightness}%)`;
+    }
+  };
 
-  // Sort tracked apps descending by usage duration for dark-to-light hierarchy
+  // Sort active apps descending by screen time usage duration (highest usage first)
   const sortedApps = [...activeApps].sort((a, b) => b.usedTodayMs - a.usedTodayMs);
 
-  // Compute per-app proportional segments on the circle ring
+  // Compute donut ring segments: 100% of ring represents today's total actual screen time
   let currentAngle = -90;
   const appSegments = sortedApps.map((app, index) => {
     const usageFraction = totalUsedTodayMs > 0 ? app.usedTodayMs / totalUsedTodayMs : 0;
-    const arcLength = usageFraction * (circleCircumference * (overallPercent / 100));
+    const strokeDash = usageFraction * circleCircumference;
     const startAngle = currentAngle;
-    currentAngle += (usageFraction * (overallPercent / 100) * 360);
-    const shadeColor = isDark
-      ? darkShades[index % darkShades.length]
-      : lightShades[index % lightShades.length];
+    currentAngle += usageFraction * 360;
+    const shadeColor = getDynamicMonochromeShade(index, sortedApps.length, isDark);
 
     return {
       packageName: app.packageName,
@@ -87,7 +96,7 @@ export const HomeScreen: React.FC = () => {
       usedTodayMs: app.usedTodayMs,
       dailyLimitMs: app.dailyLimitMs,
       usageFraction,
-      strokeDash: Math.max(8, arcLength),
+      strokeDash: Math.max(4, strokeDash),
       startAngle,
       shadeColor,
     };
@@ -263,9 +272,7 @@ export const HomeScreen: React.FC = () => {
                 100,
                 Math.round((app.usedTodayMs / app.dailyLimitMs) * 100)
               );
-              const shadeColor = isDark
-                ? darkShades[appIdx % darkShades.length]
-                : lightShades[appIdx % lightShades.length];
+              const shadeColor = getDynamicMonochromeShade(appIdx, activeApps.length, isDark);
 
               return (
                 <Card
