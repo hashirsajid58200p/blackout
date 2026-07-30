@@ -12,7 +12,9 @@ export const NavigationHeader: React.FC<NavigationHeaderProps> = ({
   title = "TODAY",
   showBack = false,
 }) => {
-  const { currentScreen, setCurrentScreen } = useApp();
+  const { currentScreen, setCurrentScreen, effectiveTheme } = useApp();
+  const isDark = effectiveTheme === "dark";
+  const iconColor = isDark ? "#ffffff" : "#000000";
 
   return (
     <View className="h-touch-target bg-background dark:bg-black border-b-2 border-primary dark:border-white flex-row justify-between items-center px-margin-page z-40">
@@ -21,14 +23,14 @@ export const NavigationHeader: React.FC<NavigationHeaderProps> = ({
           onPress={() => setCurrentScreen("home")}
           className="w-10 h-10 items-center justify-center border border-primary dark:border-white"
         >
-          <ChevronLeft size={20} color={currentScreen === "settings" ? "#ffffff" : "#000000"} />
+          <ChevronLeft size={20} color={iconColor} />
         </TouchableOpacity>
       ) : (
         <TouchableOpacity
           onPress={() => setCurrentScreen("stats")}
           className="w-10 h-10 items-center justify-center border border-primary dark:border-white"
         >
-          <Calendar size={20} color={currentScreen === "settings" ? "#ffffff" : "#000000"} className="dark:text-white" />
+          <Calendar size={20} color={iconColor} />
         </TouchableOpacity>
       )}
 
@@ -40,7 +42,7 @@ export const NavigationHeader: React.FC<NavigationHeaderProps> = ({
         onPress={() => setCurrentScreen("settings")}
         className="w-10 h-10 items-center justify-center border border-primary dark:border-white"
       >
-        <SettingsIcon size={20} color={currentScreen === "settings" ? "#ffffff" : "#000000"} className="dark:text-white" />
+        <SettingsIcon size={20} color={iconColor} />
       </TouchableOpacity>
     </View>
   );

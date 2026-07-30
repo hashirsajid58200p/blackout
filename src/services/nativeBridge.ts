@@ -1,4 +1,5 @@
 import { NativeModules, Platform } from "react-native";
+import * as IntentLauncher from "expo-intent-launcher";
 
 const { BlackoutModule } = NativeModules;
 
@@ -17,12 +18,16 @@ export const NativeBridge = {
         return false;
       }
     }
-    return true; // Fallback for dev/mock
+    return false;
   },
 
   openUsageStatsSettings(): void {
-    if (Platform.OS === "android" && BlackoutModule?.openUsageStatsSettings) {
-      BlackoutModule.openUsageStatsSettings();
+    if (Platform.OS === "android") {
+      if (BlackoutModule?.openUsageStatsSettings) {
+        BlackoutModule.openUsageStatsSettings();
+      } else {
+        IntentLauncher.startActivityAsync("android.settings.USAGE_ACCESS_SETTINGS").catch(() => {});
+      }
     }
   },
 
@@ -34,12 +39,16 @@ export const NativeBridge = {
         return false;
       }
     }
-    return true;
+    return false;
   },
 
   openOverlaySettings(): void {
-    if (Platform.OS === "android" && BlackoutModule?.openOverlaySettings) {
-      BlackoutModule.openOverlaySettings();
+    if (Platform.OS === "android") {
+      if (BlackoutModule?.openOverlaySettings) {
+        BlackoutModule.openOverlaySettings();
+      } else {
+        IntentLauncher.startActivityAsync("android.settings.action.MANAGE_OVERLAY_PERMISSION").catch(() => {});
+      }
     }
   },
 
@@ -51,12 +60,16 @@ export const NativeBridge = {
         return false;
       }
     }
-    return true;
+    return false;
   },
 
   openAccessibilitySettings(): void {
-    if (Platform.OS === "android" && BlackoutModule?.openAccessibilitySettings) {
-      BlackoutModule.openAccessibilitySettings();
+    if (Platform.OS === "android") {
+      if (BlackoutModule?.openAccessibilitySettings) {
+        BlackoutModule.openAccessibilitySettings();
+      } else {
+        IntentLauncher.startActivityAsync("android.settings.ACCESSIBILITY_SETTINGS").catch(() => {});
+      }
     }
   },
 

@@ -9,7 +9,10 @@ import { StatusPill } from "../components/ui/StatusPill";
 import { Plus, Camera, Video, MessageSquare, Globe, ShieldAlert } from "lucide-react-native";
 
 export const HomeScreen: React.FC = () => {
-  const { trackedApps, setCurrentScreen, permissions } = useApp();
+  const { trackedApps, setCurrentScreen, permissions, effectiveTheme } = useApp();
+  const isDark = effectiveTheme === "dark";
+  const iconColor = isDark ? "#ffffff" : "#000000";
+  const fabIconColor = isDark ? "#000000" : "#ffffff";
 
   const getTodayFormatted = () => {
     const options: Intl.DateTimeFormatOptions = {
@@ -62,7 +65,7 @@ export const HomeScreen: React.FC = () => {
             onPress={() => setCurrentScreen("permissions")}
             className="border-2 border-primary dark:border-white bg-surface-container dark:bg-zinc-900 p-4 mb-6 flex-row items-center gap-3"
           >
-            <ShieldAlert size={24} color="#000000" className="dark:text-white" />
+            <ShieldAlert size={24} color={iconColor} />
             <View className="flex-1">
               <Text className="font-bold text-xs uppercase text-primary dark:text-white">
                 PERMISSIONS REQUIRED
@@ -102,7 +105,7 @@ export const HomeScreen: React.FC = () => {
                   <View className="flex-row justify-between items-center">
                     <View className="flex-row items-center gap-3">
                       <View className="w-8 h-8 bg-surface-container dark:bg-zinc-800 rounded-none border border-primary dark:border-white items-center justify-center">
-                        <IconComp size={18} color="#000000" className="dark:text-white" />
+                        <IconComp size={18} color={iconColor} />
                       </View>
                       <Text className="font-bold text-base text-primary dark:text-white">
                         {app.appName}
@@ -137,7 +140,7 @@ export const HomeScreen: React.FC = () => {
         onPress={() => setCurrentScreen("add_app")}
         className="absolute bottom-20 right-6 w-14 h-14 bg-primary dark:bg-white rounded-full items-center justify-center z-40 border-2 border-primary dark:border-white shadow-none active:scale-95"
       >
-        <Plus size={28} color="#ffffff" className="dark:text-black" />
+        <Plus size={28} color={fabIconColor} />
       </TouchableOpacity>
 
       <BottomNavBar />

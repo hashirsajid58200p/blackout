@@ -4,7 +4,8 @@ import { useApp } from "../context/AppContext";
 import { LayoutGrid, BarChart2, ShieldAlert, Settings as SettingsIcon } from "lucide-react-native";
 
 export const BottomNavBar: React.FC = () => {
-  const { currentScreen, setCurrentScreen } = useApp();
+  const { currentScreen, setCurrentScreen, effectiveTheme } = useApp();
+  const isDark = effectiveTheme === "dark";
 
   const navItems = [
     { id: "home", icon: LayoutGrid, label: "Home" },
@@ -18,6 +19,13 @@ export const BottomNavBar: React.FC = () => {
       {navItems.map((item) => {
         const IconComponent = item.icon;
         const isActive = currentScreen === item.id;
+        const iconColor = isActive
+          ? isDark
+            ? "#000000"
+            : "#ffffff"
+          : isDark
+          ? "#a3a3a3"
+          : "#737373";
 
         return (
           <TouchableOpacity
@@ -30,10 +38,7 @@ export const BottomNavBar: React.FC = () => {
                 : "bg-transparent border-transparent"
             }`}
           >
-            <IconComponent
-              size={22}
-              color={isActive ? (currentScreen === "settings" ? "#ffffff" : "#ffffff") : "#5e5e5e"}
-            />
+            <IconComponent size={22} color={iconColor} />
           </TouchableOpacity>
         );
       })}
