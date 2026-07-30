@@ -46,7 +46,7 @@ export const HomeScreen: React.FC = () => {
 
   return (
     <View className="flex-1 bg-background dark:bg-black">
-      <NavigationHeader title="TODAY" />
+      <NavigationHeader title="HOME" />
 
       <ScrollView contentContainerStyle={{ paddingBottom: 120 }} className="px-margin-page pt-4 flex-1">
         {/* Date Header */}

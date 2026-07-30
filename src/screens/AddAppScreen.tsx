@@ -229,56 +229,79 @@ export const AddAppScreen: React.FC = () => {
 
         {/* Step 2: Time Selector */}
         {selectedApp && (
-          <View className="flex-col gap-4 mb-8 border-2 border-primary dark:border-white p-4 bg-surface-container-lowest dark:bg-zinc-900">
+          <View className="flex-col gap-4 mb-8 border-2 border-primary dark:border-white p-4 bg-surface-container-lowest dark:bg-zinc-900 rounded-none">
             <Text className="font-bold text-xs text-secondary dark:text-zinc-400 uppercase tracking-widest">
-              STEP 2 — SET DAILY ALLOWANCE FOR {selectedApp.appName.toUpperCase()}
+              STEP 2 — SET DAILY ALLOWANCE
             </Text>
 
-            <View className="flex-row justify-around items-center py-4">
-              {/* Hours Picker */}
-              <View className="flex-col items-center">
-                <Text className="text-xs font-bold text-secondary dark:text-zinc-400 uppercase mb-2">
+            {/* Selected App Header */}
+            <View className="flex-row items-center gap-2.5 pb-2 border-b border-primary/20 dark:border-white/20">
+              <View className="w-5 h-5 items-center justify-center">
+                {selectedApp.iconBase64 ? (
+                  <Image
+                    source={{ uri: `data:image/png;base64,${selectedApp.iconBase64}` }}
+                    className="w-5 h-5"
+                    resizeMode="contain"
+                  />
+                ) : (
+                  <View className="w-4 h-4 bg-primary dark:bg-white rounded-none" />
+                )}
+              </View>
+              <Text numberOfLines={1} className="font-bold text-sm text-primary dark:text-white uppercase tracking-wider flex-1">
+                {selectedApp.appName}
+              </Text>
+            </View>
+
+            {/* Responsive Time Pickers Row */}
+            <View className="flex-row items-center justify-center gap-2 py-2">
+              {/* Hours Picker Column */}
+              <View className="flex-col items-center flex-1">
+                <Text className="text-xs font-bold text-secondary dark:text-zinc-400 uppercase mb-2 tracking-widest">
                   HOURS
                 </Text>
-                <View className="flex-row items-center gap-3">
+                <View className="flex-row items-center gap-1.5">
                   <TouchableOpacity
+                    activeOpacity={0.8}
                     onPress={() => setHours(Math.max(0, hours - 1))}
-                    className="w-10 h-10 border border-primary dark:border-white items-center justify-center"
+                    className="w-9 h-9 border-2 border-primary dark:border-white items-center justify-center bg-transparent active:bg-primary/10"
                   >
                     <Text className="font-bold text-lg text-primary dark:text-white">-</Text>
                   </TouchableOpacity>
-                  <Text className="font-bold text-3xl text-primary dark:text-white w-12 text-center">
+                  <Text className="font-bold text-2xl text-primary dark:text-white min-w-[32px] text-center">
                     {hours}
                   </Text>
                   <TouchableOpacity
+                    activeOpacity={0.8}
                     onPress={() => setHours(Math.min(12, hours + 1))}
-                    className="w-10 h-10 border border-primary dark:border-white items-center justify-center"
+                    className="w-9 h-9 border-2 border-primary dark:border-white items-center justify-center bg-transparent active:bg-primary/10"
                   >
                     <Text className="font-bold text-lg text-primary dark:text-white">+</Text>
                   </TouchableOpacity>
                 </View>
               </View>
 
-              <Text className="font-bold text-2xl text-primary dark:text-white">:</Text>
+              <Text className="font-bold text-xl text-primary dark:text-white self-end mb-2">:</Text>
 
-              {/* Minutes Picker */}
-              <View className="flex-col items-center">
-                <Text className="text-xs font-bold text-secondary dark:text-zinc-400 uppercase mb-2">
+              {/* Minutes Picker Column */}
+              <View className="flex-col items-center flex-1">
+                <Text className="text-xs font-bold text-secondary dark:text-zinc-400 uppercase mb-2 tracking-widest">
                   MINUTES
                 </Text>
-                <View className="flex-row items-center gap-3">
+                <View className="flex-row items-center gap-1.5">
                   <TouchableOpacity
+                    activeOpacity={0.8}
                     onPress={() => setMinutes(Math.max(0, minutes - 5))}
-                    className="w-10 h-10 border border-primary dark:border-white items-center justify-center"
+                    className="w-9 h-9 border-2 border-primary dark:border-white items-center justify-center bg-transparent active:bg-primary/10"
                   >
                     <Text className="font-bold text-lg text-primary dark:text-white">-</Text>
                   </TouchableOpacity>
-                  <Text className="font-bold text-3xl text-primary dark:text-white w-12 text-center">
+                  <Text className="font-bold text-2xl text-primary dark:text-white min-w-[32px] text-center">
                     {String(minutes).padStart(2, "0")}
                   </Text>
                   <TouchableOpacity
+                    activeOpacity={0.8}
                     onPress={() => setMinutes(Math.min(55, minutes + 5))}
-                    className="w-10 h-10 border border-primary dark:border-white items-center justify-center"
+                    className="w-9 h-9 border-2 border-primary dark:border-white items-center justify-center bg-transparent active:bg-primary/10"
                   >
                     <Text className="font-bold text-lg text-primary dark:text-white">+</Text>
                   </TouchableOpacity>
@@ -286,10 +309,16 @@ export const AddAppScreen: React.FC = () => {
               </View>
             </View>
 
-            <Button
-              label={`SET LOCK FOR ${selectedApp.appName}`}
+            {/* Confirm Action Button */}
+            <TouchableOpacity
+              activeOpacity={0.8}
               onPress={handleSetTimer}
-            />
+              className="bg-primary dark:bg-white border-2 border-primary dark:border-white py-3 px-4 items-center justify-center mt-2 active:opacity-90"
+            >
+              <Text numberOfLines={1} className="font-bold text-xs text-white dark:text-black uppercase tracking-widest">
+                SET DAILY LOCK FOR {selectedApp.appName.toUpperCase()}
+              </Text>
+            </TouchableOpacity>
           </View>
         )}
       </ScrollView>

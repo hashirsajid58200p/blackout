@@ -31,6 +31,7 @@ export const NavigationHeader: React.FC<NavigationHeaderProps> = ({
       <View className="h-touch-target flex-row justify-between items-center px-margin-page">
         {showBack ? (
           <TouchableOpacity
+            activeOpacity={0.8}
             onPress={() => setCurrentScreen("home")}
             className="w-10 h-10 items-center justify-center border border-primary dark:border-white"
           >
@@ -38,6 +39,7 @@ export const NavigationHeader: React.FC<NavigationHeaderProps> = ({
           </TouchableOpacity>
         ) : (
           <TouchableOpacity
+            activeOpacity={0.8}
             onPress={() => setCurrentScreen("stats")}
             className="w-10 h-10 items-center justify-center border border-primary dark:border-white"
           >
@@ -49,12 +51,7 @@ export const NavigationHeader: React.FC<NavigationHeaderProps> = ({
           {title}
         </Text>
 
-        <TouchableOpacity
-          onPress={() => setCurrentScreen("settings")}
-          className="w-10 h-10 items-center justify-center border border-primary dark:border-white"
-        >
-          <SettingsIcon size={20} color={iconColor} />
-        </TouchableOpacity>
+        <View className="w-10 h-10" />
       </View>
     </View>
   );
