@@ -13,6 +13,45 @@ export const getTodayDateString = (): string => {
   return `${year}-${month}-${day}`;
 };
 
+const DEMO_APPS: TrackedApp[] = [
+  {
+    packageName: "com.instagram.android",
+    appName: "INSTAGRAM",
+    dailyLimitMs: 2 * 3600 * 1000,
+    usedTodayMs: 1 * 3600 * 1000 + 45 * 60 * 1000, // 1h 45m
+    isLocked: false,
+    lockDate: getTodayDateString(),
+    category: "Social",
+  },
+  {
+    packageName: "com.google.android.youtube",
+    appName: "YOUTUBE",
+    dailyLimitMs: 2 * 3600 * 1000,
+    usedTodayMs: 2 * 3600 * 1000 + 15 * 60 * 1000, // 2h 15m (LOCKED)
+    isLocked: true,
+    lockDate: getTodayDateString(),
+    category: "Video",
+  },
+  {
+    packageName: "com.zhiliaoapp.musically",
+    appName: "TIKTOK",
+    dailyLimitMs: 1 * 3600 * 1000 + 30 * 60 * 1000,
+    usedTodayMs: 45 * 60 * 1000, // 45m
+    isLocked: false,
+    lockDate: getTodayDateString(),
+    category: "Social",
+  },
+  {
+    packageName: "com.whatsapp",
+    appName: "WHATSAPP",
+    dailyLimitMs: 1 * 3600 * 1000,
+    usedTodayMs: 20 * 60 * 1000, // 20m
+    isLocked: false,
+    lockDate: getTodayDateString(),
+    category: "Messaging",
+  },
+];
+
 export const StorageService = {
   async getSettings(): Promise<Settings> {
     try {
@@ -39,12 +78,17 @@ export const StorageService = {
       const data = await AsyncStorage.getItem(TRACKED_APPS_KEY);
       if (data) {
         const apps: TrackedApp[] = JSON.parse(data);
-        return StorageService.applyMidnightResetIfNeeded(apps);
+        if (apps.length > 0) {
+          return StorageService.applyMidnightResetIfNeeded(apps);
+        }
       }
+      // Populate demo apps on initial load
+      await StorageService.saveTrackedApps(DEMO_APPS);
+      return DEMO_APPS;
     } catch (e) {
       console.error("Error reading tracked apps", e);
     }
-    return [];
+    return DEMO_APPS;
   },
 
   async saveTrackedApps(apps: TrackedApp[]): Promise<void> {

@@ -94,28 +94,44 @@ export const NativeBridge = {
     if (Platform.OS === "android" && BlackoutModule?.getWeeklyUsageStats) {
       try {
         const stats = await BlackoutModule.getWeeklyUsageStats();
-        if (Array.isArray(stats) && stats.length > 0) {
+        if (Array.isArray(stats) && stats.length > 0 && stats.some((s) => s.totalUsageMs > 0)) {
           return stats;
         }
       } catch {
         // fallback
       }
     }
-    return [];
+    // Rich Demo Fallback for 7-Day Chart
+    return [
+      { day: "SUN", dateStr: "Oct 25", totalUsageMs: 3.5 * 3600 * 1000 },
+      { day: "MON", dateStr: "Oct 26", totalUsageMs: 5.2 * 3600 * 1000 },
+      { day: "TUE", dateStr: "Oct 27", totalUsageMs: 4.1 * 3600 * 1000 },
+      { day: "WED", dateStr: "Oct 28", totalUsageMs: 6.0 * 3600 * 1000 },
+      { day: "THU", dateStr: "Oct 29", totalUsageMs: 3.8 * 3600 * 1000 },
+      { day: "FRI", dateStr: "Oct 30", totalUsageMs: 4.8 * 3600 * 1000 },
+      { day: "SAT", dateStr: "Oct 31", totalUsageMs: 5.05 * 3600 * 1000 },
+    ];
   },
 
   async getDayUsageStats(dayOffset: number): Promise<Array<{ packageName: string; appName: string; usedMs: number }>> {
     if (Platform.OS === "android" && BlackoutModule?.getDayUsageStats) {
       try {
         const stats = await BlackoutModule.getDayUsageStats(dayOffset);
-        if (Array.isArray(stats) && stats.length > 0) {
+        if (Array.isArray(stats) && stats.length > 0 && stats.some((s) => s.usedMs > 0)) {
           return stats;
         }
       } catch {
         // fallback
       }
     }
-    return [];
+    // Rich Demo Fallback for Day Breakdown (Most used app at top)
+    const factor = Math.max(0.4, 1 - Math.abs(dayOffset) * 0.08);
+    return [
+      { packageName: "com.google.android.youtube", appName: "YOUTUBE", usedMs: Math.round(2.25 * 3600 * 1000 * factor) },
+      { packageName: "com.instagram.android", appName: "INSTAGRAM", usedMs: Math.round(1.75 * 3600 * 1000 * factor) },
+      { packageName: "com.zhiliaoapp.musically", appName: "TIKTOK", usedMs: Math.round(0.75 * 3600 * 1000 * factor) },
+      { packageName: "com.whatsapp", appName: "WHATSAPP", usedMs: Math.round(0.33 * 3600 * 1000 * factor) },
+    ];
   },
 
   async getInstalledApps(): Promise<Array<{ packageName: string; appName: string; category?: string; iconBase64?: string }>> {
