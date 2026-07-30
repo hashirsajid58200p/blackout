@@ -89,23 +89,23 @@ export const PermissionsScreen: React.FC = () => {
           </Text>
 
           {/* Paragraph */}
-          <Text className="text-xs text-secondary dark:text-zinc-400 text-center mb-6 max-w-[290px] leading-5">
+          <Text className="text-xs text-secondary dark:text-zinc-400 text-center mb-5 max-w-[290px] leading-5">
             To detect locked apps in real-time and block them instantly, Blackout requires system privileges.
           </Text>
 
           {/* Permission Cards */}
-          <View className="w-full flex-col gap-3.5 mb-6">
+          <View className="w-full flex-col gap-2.5 mb-5">
             {permissionItems.map((item) => {
               const IconComponent = item.icon;
               return (
                 <View
                   key={item.id}
-                  className="border-2 border-primary dark:border-white p-4 rounded-none flex-col bg-surface-container-lowest dark:bg-zinc-900"
+                  className="border-2 border-primary dark:border-white p-3 rounded-none flex-col bg-surface-container-lowest dark:bg-zinc-900"
                 >
-                  {/* 1. Top Row: Icon 100% Center-Aligned Vertically with Heading Text Line */}
-                  <View className="flex-row items-center gap-2.5 mb-1.5">
+                  {/* 1. Top Row: Icon Center-Aligned Vertically with Heading Text Line */}
+                  <View className="flex-row items-center gap-2.5 mb-1">
                     <View className="w-5 h-5 items-center justify-center">
-                      <IconComponent size={20} color={iconColor} />
+                      <IconComponent size={18} color={iconColor} />
                     </View>
                     <Text
                       numberOfLines={1}
@@ -115,15 +115,15 @@ export const PermissionsScreen: React.FC = () => {
                     </Text>
                   </View>
 
-                  {/* 2. Description Paragraph: Left-aligned at exact 30px offset (icon 20px + gap 10px) */}
-                  <Text className="text-xs text-secondary dark:text-zinc-400 ml-[30px] leading-4 mb-3">
+                  {/* 2. Description Paragraph: Left-aligned at exact 30px offset */}
+                  <Text className="text-xs text-secondary dark:text-zinc-400 ml-[30px] leading-4 mb-1.5">
                     {item.description}
                   </Text>
 
                   {/* 3. Action Button: Aligned on the Right Side */}
                   <View className="flex-row justify-end">
                     {item.isGranted ? (
-                      <View className="bg-primary dark:bg-white px-3 py-1.5 flex-row items-center justify-center gap-1 border border-primary dark:border-white min-w-[80px]">
+                      <View className="bg-primary dark:bg-white px-2.5 py-1 flex-row items-center justify-center gap-1 border border-primary dark:border-white min-w-[76px]">
                         <CheckCircle2 size={12} color={badgeIconColor} />
                         <Text className="text-xs font-bold text-white dark:text-black uppercase">
                           GRANTED
@@ -133,7 +133,7 @@ export const PermissionsScreen: React.FC = () => {
                       <TouchableOpacity
                         activeOpacity={0.8}
                         onPress={item.onGrant}
-                        className="bg-transparent border-2 border-primary dark:border-white px-3 py-1.5 items-center justify-center min-w-[80px] active:bg-primary/10 dark:active:bg-white/10"
+                        className="bg-transparent border-2 border-primary dark:border-white px-2.5 py-1 items-center justify-center min-w-[76px] active:bg-primary/10 dark:active:bg-white/10"
                       >
                         <Text className="text-xs font-bold text-primary dark:text-white uppercase">
                           GRANT
