@@ -239,11 +239,14 @@ export const HomeScreen: React.FC = () => {
               LOCKED APPLICATIONS
             </Text>
 
-            {trackedApps.map((app) => {
+            {trackedApps.map((app, appIdx) => {
               const percent = Math.min(
                 100,
                 Math.round((app.usedTodayMs / app.dailyLimitMs) * 100)
               );
+              const shadeColor = isDark
+                ? darkShades[appIdx % darkShades.length]
+                : lightShades[appIdx % lightShades.length];
 
               return (
                 <Card
@@ -255,7 +258,7 @@ export const HomeScreen: React.FC = () => {
                   <View className="flex-row items-center justify-between">
                     <View className="flex-row items-center gap-2.5 flex-1 pr-2">
                       <View className="w-5 h-5 items-center justify-center">
-                        <View className="w-4 h-4 bg-primary dark:bg-white rounded-none" />
+                        <View style={{ backgroundColor: shadeColor }} className="w-4 h-4 rounded-none border border-primary dark:border-white" />
                       </View>
                       <Text
                         numberOfLines={1}
