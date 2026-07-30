@@ -38,13 +38,7 @@ export const NavigationHeader: React.FC<NavigationHeaderProps> = ({
             <ChevronLeft size={20} color={iconColor} />
           </TouchableOpacity>
         ) : (
-          <TouchableOpacity
-            activeOpacity={0.8}
-            onPress={() => setCurrentScreen("stats")}
-            className="w-10 h-10 items-center justify-center border border-primary dark:border-white"
-          >
-            <Calendar size={20} color={iconColor} />
-          </TouchableOpacity>
+          <View className="w-10 h-10" />
         )}
 
         <Text className="font-bold text-xl uppercase tracking-tighter text-primary dark:text-white">

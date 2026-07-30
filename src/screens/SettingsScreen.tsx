@@ -142,10 +142,15 @@ export const SettingsScreen: React.FC = () => {
             </Card>
           ) : (
             trackedApps.map((app) => (
-              <Card key={app.packageName} className="flex-row justify-between items-center py-3">
-                <Text className="font-bold text-sm text-primary dark:text-white">
-                  {app.appName}
-                </Text>
+              <Card key={app.packageName} className="flex-row justify-between items-center py-3.5 px-4 rounded-none">
+                <View className="flex-row items-center gap-2.5 flex-1 pr-2">
+                  <View className="w-5 h-5 items-center justify-center">
+                    <View className="w-4 h-4 bg-primary dark:bg-white rounded-none" />
+                  </View>
+                  <Text numberOfLines={1} className="font-bold text-sm text-primary dark:text-white uppercase tracking-wider">
+                    {app.appName}
+                  </Text>
+                </View>
                 <Text className="text-xs font-bold uppercase text-secondary dark:text-zinc-400">
                   {Math.round(app.dailyLimitMs / (1000 * 60))}m daily limit
                 </Text>

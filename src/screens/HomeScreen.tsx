@@ -122,8 +122,8 @@ export const HomeScreen: React.FC = () => {
                     <StatusPill isLocked={app.isLocked} />
                   </View>
 
-                  {/* Middle Row: Progress Text & Percent */}
-                  <View className="flex-col gap-1.5 ml-[30px]">
+                  {/* Progress Row: Aligned with left icon box */}
+                  <View className="flex-col gap-1.5 w-full mt-1">
                     <View className="flex-row justify-between items-end">
                       <Text className="font-bold text-xs text-secondary dark:text-zinc-300">
                         {formatMs(app.usedTodayMs)} / {formatMs(app.dailyLimitMs)} limit
