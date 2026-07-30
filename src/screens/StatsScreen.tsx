@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { View, Text, ScrollView, TouchableOpacity } from "react-native";
+import Svg, { Defs, LinearGradient, Stop, Rect } from "react-native-svg";
 import { useApp } from "../context/AppContext";
 import { NavigationHeader } from "../components/NavigationHeader";
 import { BottomNavBar } from "../components/BottomNavBar";
@@ -34,9 +35,20 @@ export const StatsScreen: React.FC = () => {
 
   const [dayApps, setDayApps] = useState<DayAppUsage[]>([]);
 
-  // Monochrome minimalist shades (black, white, gray spectrum)
-  const lightShades = ["#000000", "#3f3f46", "#71717a", "#a1a1aa", "#d4d4d8"];
-  const darkShades = ["#ffffff", "#e4e4e7", "#a1a1aa", "#71717a", "#52525b"];
+  // Dynamic continuous monochrome lightness generator for any number of apps N
+  const getDynamicMonochromeShade = (index: number, total: number, isDark: boolean): string => {
+    if (total <= 1) {
+      return isDark ? "hsl(0, 0%, 100%)" : "hsl(0, 0%, 0%)";
+    }
+    const ratio = index / (total - 1);
+    if (isDark) {
+      const lightness = Math.round(100 - ratio * 65);
+      return `hsl(0, 0%, ${lightness}%)`;
+    } else {
+      const lightness = Math.round(ratio * 70);
+      return `hsl(0, 0%, ${lightness}%)`;
+    }
+  };
 
   // Fetch 7-day total stats
   useEffect(() => {
@@ -120,30 +132,6 @@ export const StatsScreen: React.FC = () => {
     return `${minsRem}m`;
   };
 
-  // Generate stacked app breakdown segments for each day bar
-  const getStackedAppSegmentsForDay = (dayOffset: number, dayTotalMs: number) => {
-    if (dayTotalMs <= 0) return [];
-    const factor = Math.max(0.4, 1 - Math.abs(dayOffset) * 0.08);
-
-    const baseApps = [
-      { appName: "YOUTUBE", rawMs: 2.25 * 3600 * 1000 * factor },
-      { appName: "INSTAGRAM", rawMs: 1.75 * 3600 * 1000 * factor },
-      { appName: "TIKTOK", rawMs: 0.75 * 3600 * 1000 * factor },
-      { appName: "WHATSAPP", rawMs: 0.33 * 3600 * 1000 * factor },
-    ];
-
-    const rawSum = baseApps.reduce((acc, a) => acc + a.rawMs, 1);
-    return baseApps.map((a, idx) => {
-      const fraction = a.rawMs / rawSum;
-      const color = isDark ? darkShades[idx % darkShades.length] : lightShades[idx % lightShades.length];
-      return {
-        appName: a.appName,
-        fraction,
-        color,
-      };
-    });
-  };
-
   return (
     <View className="flex-1 bg-background dark:bg-black">
       <NavigationHeader title="STATS" showBack />
@@ -211,7 +199,7 @@ export const StatsScreen: React.FC = () => {
           </View>
         </Card>
 
-        {/* 7-Day Stacked Multi-App Bar Chart */}
+        {/* 7-Day Smooth Vertical Gradient Blending Bar Chart */}
         <Card className="p-4 mb-6 rounded-none flex-col">
           <View className="flex-row items-center gap-2.5 mb-4">
             <View className="w-5 h-5 items-center justify-center">
@@ -227,7 +215,6 @@ export const StatsScreen: React.FC = () => {
               const heightPercent = Math.min(100, Math.max(10, Math.round((item.totalUsageMs / maxUsage) * 100)));
               const isSelected = idx === selectedIndex;
               const dayOffsetForBar = idx - 6;
-              const stackedSegments = getStackedAppSegmentsForDay(dayOffsetForBar, item.totalUsageMs);
 
               return (
                 <TouchableOpacity
@@ -241,26 +228,35 @@ export const StatsScreen: React.FC = () => {
                     {formatHours(item.totalUsageMs)}
                   </Text>
 
-                  {/* Stacked Multi-App Bar Container */}
+                  {/* Smooth Vertical Gradient Blending Bar */}
                   <View className="w-full h-28 justify-end items-center px-1">
                     <View
                       style={{ height: `${heightPercent}%` }}
-                      className={`w-full rounded-none overflow-hidden flex-col-reverse ${
+                      className={`w-full rounded-none overflow-hidden ${
                         isSelected
                           ? "border-2 border-primary dark:border-white"
                           : "border border-primary/40 dark:border-zinc-700"
                       }`}
                     >
-                      {stackedSegments.map((seg, sIdx) => (
-                        <View
-                          key={sIdx}
-                          style={{
-                            height: `${Math.round(seg.fraction * 100)}%`,
-                            backgroundColor: seg.color,
-                          }}
-                          className="w-full"
+                      <Svg width="100%" height="100%" preserveAspectRatio="none">
+                        <Defs>
+                          <LinearGradient id={`smoothBarGrad-${idx}`} x1="0" y1="0" x2="0" y2="1">
+                            {/* Top of bar: lighter shade */}
+                            <Stop offset="0%" stopColor={isDark ? "#71717a" : "#d4d4d8"} />
+                            {/* Middle blending transition */}
+                            <Stop offset="50%" stopColor={isDark ? "#d4d4d8" : "#3f3f46"} />
+                            {/* Bottom of bar: darkest / highest contrast shade */}
+                            <Stop offset="100%" stopColor={isDark ? "#ffffff" : "#000000"} />
+                          </LinearGradient>
+                        </Defs>
+                        <Rect
+                          x="0"
+                          y="0"
+                          width="100%"
+                          height="100%"
+                          fill={`url(#smoothBarGrad-${idx})`}
                         />
-                      ))}
+                      </Svg>
                     </View>
                   </View>
                   <Text
@@ -290,13 +286,11 @@ export const StatsScreen: React.FC = () => {
             </Card>
           ) : (
             dayApps.map((app, appIdx) => {
-              const shadeColor = isDark
-                ? darkShades[appIdx % darkShades.length]
-                : lightShades[appIdx % lightShades.length];
+              const shadeColor = getDynamicMonochromeShade(appIdx, dayApps.length, isDark);
 
               return (
                 <Card key={app.packageName} className="flex-row justify-between items-center py-3.5 px-4 rounded-none">
-                  {/* Left: Solid Minimalist Square Box with App's Stacked Monochrome Shade + Title */}
+                  {/* Left: Solid Minimalist Square Box with App's Dynamic Monochrome Shade + Title */}
                   <View className="flex-row items-center gap-2.5 flex-1 pr-2">
                     <View className="w-5 h-5 items-center justify-center">
                       <View style={{ backgroundColor: shadeColor }} className="w-4 h-4 rounded-none border border-primary dark:border-white" />
