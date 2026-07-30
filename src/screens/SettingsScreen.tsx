@@ -14,7 +14,11 @@ export const SettingsScreen: React.FC = () => {
     trackedApps,
     permissions,
     setCurrentScreen,
+    effectiveTheme,
   } = useApp();
+
+  const isDark = effectiveTheme === "dark";
+  const iconColor = isDark ? "#ffffff" : "#000000";
 
   const themeOptions: Array<{ mode: "system" | "light" | "dark"; label: string; icon: any }> = [
     { mode: "system", label: "SYSTEM", icon: Monitor },
@@ -37,6 +41,13 @@ export const SettingsScreen: React.FC = () => {
             {themeOptions.map((item) => {
               const IconComp = item.icon;
               const isSelected = settings.themeMode === item.mode;
+              const buttonIconColor = isSelected
+                ? isDark
+                  ? "#000000"
+                  : "#ffffff"
+                : isDark
+                ? "#ffffff"
+                : "#000000";
 
               return (
                 <TouchableOpacity
@@ -45,15 +56,11 @@ export const SettingsScreen: React.FC = () => {
                   onPress={() => updateThemeMode(item.mode)}
                   className={`flex-1 p-4 border-2 flex-col items-center gap-2 ${
                     isSelected
-                      ? "border-primary bg-primary dark:bg-white"
+                      ? "border-primary bg-primary dark:bg-white dark:border-white"
                       : "border-primary dark:border-white bg-surface-container-lowest dark:bg-black"
                   }`}
                 >
-                  <IconComp
-                    size={22}
-                    color={isSelected ? "#ffffff" : "#000000"}
-                    className={isSelected ? "dark:text-black" : "dark:text-white"}
-                  />
+                  <IconComp size={22} color={buttonIconColor} />
                   <Text
                     className={`font-bold text-xs uppercase ${
                       isSelected
@@ -75,12 +82,12 @@ export const SettingsScreen: React.FC = () => {
             <Text className="font-bold text-xs text-secondary dark:text-zinc-400 uppercase tracking-widest">
               ACTIVE TODAY'S LOCKS (VIEW ONLY)
             </Text>
-            <Lock size={14} color="#7e7576" />
+            <Lock size={14} color={isDark ? "#a3a3a3" : "#7e7576"} />
           </View>
 
           {trackedApps.length === 0 ? (
             <Card className="py-4 items-center">
-              <Text className="text-xs font-bold text-secondary uppercase">
+              <Text className="text-xs font-bold text-secondary dark:text-zinc-400 uppercase">
                 No active locks configured
               </Text>
             </Card>
@@ -113,7 +120,7 @@ export const SettingsScreen: React.FC = () => {
             className="border-2 border-primary dark:border-white bg-surface-container-lowest dark:bg-zinc-900 p-4 flex-row items-center justify-between"
           >
             <View className="flex-row items-center gap-3">
-              <ShieldCheck size={22} color="#000000" className="dark:text-white" />
+              <ShieldCheck size={22} color={iconColor} />
               <View className="flex-col">
                 <Text className="font-bold text-sm uppercase text-primary dark:text-white">
                   SYSTEM PERMISSIONS
@@ -136,7 +143,7 @@ export const SettingsScreen: React.FC = () => {
 
           <Card className="flex-col gap-2">
             <View className="flex-row items-center gap-2">
-              <Info size={18} color="#000000" className="dark:text-white" />
+              <Info size={18} color={iconColor} />
               <Text className="font-bold text-sm text-primary dark:text-white uppercase">
                 BLACKOUT V1.0.0
               </Text>

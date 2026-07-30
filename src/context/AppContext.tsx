@@ -1,5 +1,6 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
-import { useColorScheme } from "react-native";
+import { useColorScheme as useRNColorScheme } from "react-native";
+import { useColorScheme } from "nativewind";
 import { TrackedApp, Settings } from "../types";
 import { StorageService } from "../services/storage";
 import { NativeBridge, NativePermissionsStatus } from "../services/nativeBridge";
@@ -38,7 +39,9 @@ interface AppContextType {
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const systemColorScheme = useColorScheme() || "light";
+  const systemColorScheme = useRNColorScheme() || "light";
+  const { setColorScheme } = useColorScheme();
+
   const [currentScreen, setCurrentScreen] = useState<ScreenType>("home");
   const [trackedApps, setTrackedApps] = useState<TrackedApp[]>([]);
   const [settings, setSettings] = useState<Settings>({ themeMode: "system" });
@@ -52,6 +55,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   // Compute effective theme based on Settings preference or System
   const effectiveTheme: "light" | "dark" =
     settings.themeMode === "system" ? systemColorScheme : settings.themeMode;
+
+  useEffect(() => {
+    setColorScheme(effectiveTheme);
+  }, [effectiveTheme, setColorScheme]);
 
   const refreshPermissions = useCallback(async (): Promise<boolean> => {
     const usageStats = await NativeBridge.checkUsageStatsPermission();
@@ -147,6 +154,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const newSettings = { ...settings, themeMode: mode };
     setSettings(newSettings);
     await StorageService.saveSettings(newSettings);
+    const targetTheme = mode === "system" ? systemColorScheme : mode;
+    setColorScheme(targetTheme);
   };
 
   const addTrackedApp = async (
