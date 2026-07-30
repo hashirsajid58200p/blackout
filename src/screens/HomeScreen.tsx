@@ -47,17 +47,20 @@ export const HomeScreen: React.FC = () => {
   const circleCircumference = 408.4;
   const overallStrokeOffset = circleCircumference * (1 - overallPercent / 100);
 
-  // Monochrome minimalist palette shades (black / white / gray spectrum)
-  const lightShades = ["#000000", "#3f3f46", "#71717a", "#a1a1aa", "#d4d4d8"];
-  const darkShades = ["#ffffff", "#e4e4e7", "#a1a1aa", "#71717a", "#52525b"];
+  // Monochrome minimalist palette shades ordered by usage intensity (highest usage = strongest contrast)
+  const lightShades = ["#000000", "#27272a", "#52525b", "#71717a", "#a1a1aa"];
+  const darkShades = ["#ffffff", "#f4f4f5", "#d4d4d8", "#a1a1aa", "#71717a"];
 
-  // Compute per-app proportional segments on the circle
+  // Sort tracked apps descending by usage duration for dark-to-light hierarchy
+  const sortedApps = [...trackedApps].sort((a, b) => b.usedTodayMs - a.usedTodayMs);
+
+  // Compute per-app proportional segments on the circle ring
   let currentAngle = -90;
-  const appSegments = trackedApps.map((app, index) => {
+  const appSegments = sortedApps.map((app, index) => {
     const usageFraction = totalUsedTodayMs > 0 ? app.usedTodayMs / totalUsedTodayMs : 0;
-    const strokeDash = usageFraction * (circleCircumference * (overallPercent / 100));
+    const arcLength = usageFraction * (circleCircumference * Math.max(0.15, overallPercent / 100));
     const startAngle = currentAngle;
-    currentAngle += (usageFraction * (overallPercent / 100) * 360);
+    currentAngle += (usageFraction * Math.max(0.15, overallPercent / 100) * 360);
     const shadeColor = isDark
       ? darkShades[index % darkShades.length]
       : lightShades[index % lightShades.length];
@@ -68,7 +71,7 @@ export const HomeScreen: React.FC = () => {
       usedTodayMs: app.usedTodayMs,
       dailyLimitMs: app.dailyLimitMs,
       usageFraction,
-      strokeDash,
+      strokeDash: Math.max(4, arcLength),
       startAngle,
       shadeColor,
     };
