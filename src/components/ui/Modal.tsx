@@ -30,7 +30,7 @@ export const Modal: React.FC<ModalProps> = ({
       onRequestClose={onCancel}
     >
       <View className="flex-1 bg-black/80 justify-center items-center px-margin-page">
-        <View className="w-full bg-white dark:bg-black border-2 border-primary dark:border-white p-6 rounded-lg flex-col gap-4">
+        <View className="w-full bg-white dark:bg-black border-2 border-primary dark:border-white p-6 rounded-none flex-col gap-4">
           <View className="flex-row items-center gap-3">
             <AlertTriangle size={28} color="#000000" className="dark:text-white" />
             <Text className="font-bold text-xl uppercase tracking-tight text-primary dark:text-white flex-1">

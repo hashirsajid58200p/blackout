@@ -11,6 +11,7 @@ export interface TrackedApp {
 
 export interface Settings {
   themeMode: "system" | "light" | "dark"; // default: "system"
+  autoCleanUninstalled?: boolean; // default: true
 }
 
 export interface InstalledAppInfo {

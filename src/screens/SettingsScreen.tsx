@@ -1,16 +1,16 @@
 import React from "react";
-import { View, Text, SafeAreaView, ScrollView, TouchableOpacity } from "react-native";
+import { View, Text, ScrollView, TouchableOpacity } from "react-native";
 import { useApp } from "../context/AppContext";
 import { NavigationHeader } from "../components/NavigationHeader";
 import { BottomNavBar } from "../components/BottomNavBar";
 import { Card } from "../components/ui/Card";
-import { NativeBridge } from "../services/nativeBridge";
-import { Moon, Sun, Monitor, ShieldCheck, Info, Lock } from "lucide-react-native";
+import { Moon, Sun, Monitor, ShieldCheck, Info, Lock, Trash2 } from "lucide-react-native";
 
 export const SettingsScreen: React.FC = () => {
   const {
     settings,
     updateThemeMode,
+    updateAutoCleanSetting,
     trackedApps,
     permissions,
     setCurrentScreen,
@@ -19,6 +19,7 @@ export const SettingsScreen: React.FC = () => {
 
   const isDark = effectiveTheme === "dark";
   const iconColor = isDark ? "#ffffff" : "#000000";
+  const isAutoCleanEnabled = settings.autoCleanUninstalled !== false;
 
   const themeOptions: Array<{ mode: "system" | "light" | "dark"; label: string; icon: any }> = [
     { mode: "system", label: "SYSTEM", icon: Monitor },
@@ -74,6 +75,37 @@ export const SettingsScreen: React.FC = () => {
               );
             })}
           </View>
+        </View>
+
+        {/* Section 2: Auto-Clean Feature */}
+        <View className="flex-col gap-3 mb-8">
+          <Text className="font-bold text-xs text-secondary dark:text-zinc-400 uppercase tracking-widest">
+            AUTOMATION & CLEANUP
+          </Text>
+
+          <TouchableOpacity
+            activeOpacity={0.8}
+            onPress={() => updateAutoCleanSetting(!isAutoCleanEnabled)}
+            className="border-2 border-primary dark:border-white p-4 bg-surface-container-lowest dark:bg-zinc-900 flex-row items-center justify-between"
+          >
+            <View className="flex-row items-center gap-3 flex-1 pr-2">
+              <Trash2 size={22} color={iconColor} />
+              <View className="flex-col flex-1">
+                <Text className="font-bold text-sm uppercase text-primary dark:text-white">
+                  AUTO-REMOVE UNINSTALLED APPS
+                </Text>
+                <Text className="text-xs text-secondary dark:text-zinc-400 mt-0.5">
+                  Automatically delete app lock profiles if the app is uninstalled from your phone
+                </Text>
+              </View>
+            </View>
+
+            <View className={`px-3 py-1.5 border-2 border-primary dark:border-white ${isAutoCleanEnabled ? "bg-primary dark:bg-white" : "bg-transparent"}`}>
+              <Text className={`font-bold text-xs uppercase ${isAutoCleanEnabled ? "text-white dark:text-black" : "text-primary dark:text-white"}`}>
+                {isAutoCleanEnabled ? "ENABLED" : "DISABLED"}
+              </Text>
+            </View>
+          </TouchableOpacity>
         </View>
 
         {/* Section 2: Manage Tracked Apps (View Only) */}

@@ -14,7 +14,7 @@ export const Card: React.FC<CardProps> = ({
   ...props
 }) => {
   const baseStyle =
-    "border-2 border-primary dark:border-white p-4 rounded-lg bg-surface-container-lowest dark:bg-black ";
+    "border-2 border-primary dark:border-white p-4 rounded-none bg-surface-container-lowest dark:bg-black ";
   const lockedStyle = variant === "locked" ? "bg-surface-container-low dark:bg-zinc-900 " : "";
 
   return (

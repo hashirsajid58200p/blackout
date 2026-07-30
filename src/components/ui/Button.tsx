@@ -18,7 +18,7 @@ export const Button: React.FC<ButtonProps> = ({
   icon,
   fullWidth = true,
 }) => {
-  let containerStyles = "h-touch-target flex-row items-center justify-center px-6 rounded-md active:scale-95 transition-transform ";
+  let containerStyles = "h-touch-target flex-row items-center justify-center px-6 rounded-none active:scale-95 transition-transform ";
   let textStyles = "font-bold text-base uppercase tracking-wider ";
 
   if (variant === "primary") {

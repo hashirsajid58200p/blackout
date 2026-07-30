@@ -22,6 +22,7 @@ interface AppContextType {
   permissions: NativePermissionsStatus;
   refreshPermissions: () => Promise<boolean>;
   updateThemeMode: (mode: "system" | "light" | "dark") => Promise<void>;
+  updateAutoCleanSetting: (enabled: boolean) => Promise<void>;
   addTrackedApp: (
     packageName: string,
     appName: string,
@@ -44,7 +45,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   const [currentScreen, setCurrentScreen] = useState<ScreenType>("home");
   const [trackedApps, setTrackedApps] = useState<TrackedApp[]>([]);
-  const [settings, setSettings] = useState<Settings>({ themeMode: "system" });
+  const [settings, setSettings] = useState<Settings>({ themeMode: "system", autoCleanUninstalled: true });
   const [permissions, setPermissions] = useState<NativePermissionsStatus>({
     usageStats: false,
     overlay: false,
@@ -76,7 +77,23 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const loadedSettings = await StorageService.getSettings();
     setSettings(loadedSettings);
 
-    const loadedApps = await StorageService.getTrackedApps();
+    let loadedApps = await StorageService.getTrackedApps();
+
+    // Auto-clean uninstalled apps if enabled (default true)
+    if (loadedSettings.autoCleanUninstalled !== false) {
+      const installedApps = await NativeBridge.getInstalledApps();
+      const installedSet = new Set(installedApps.map((a) => a.packageName));
+
+      const validApps = loadedApps.filter(
+        (app) => app.packageName.startsWith("custom.") || installedSet.has(app.packageName)
+      );
+
+      if (validApps.length !== loadedApps.length) {
+        loadedApps = validApps;
+        await StorageService.saveTrackedApps(validApps);
+      }
+    }
+
     setTrackedApps(loadedApps);
 
     // Sync locked packages list to Native Accessibility Service
@@ -158,6 +175,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setColorScheme(targetTheme);
   };
 
+  const updateAutoCleanSetting = async (enabled: boolean) => {
+    const newSettings = { ...settings, autoCleanUninstalled: enabled };
+    setSettings(newSettings);
+    await StorageService.saveSettings(newSettings);
+    await refreshData();
+  };
+
   const addTrackedApp = async (
     packageName: string,
     appName: string,
@@ -188,6 +212,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         permissions,
         refreshPermissions,
         updateThemeMode,
+        updateAutoCleanSetting,
         addTrackedApp,
         activeBlockApp,
         setActiveBlockApp,

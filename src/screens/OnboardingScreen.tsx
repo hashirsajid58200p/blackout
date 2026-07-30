@@ -6,7 +6,9 @@ import { Button } from "../components/ui/Button";
 import { Shield, Lock, Zap } from "lucide-react-native";
 
 export const OnboardingScreen: React.FC = () => {
-  const { setCurrentScreen, refreshPermissions } = useApp();
+  const { setCurrentScreen, refreshPermissions, effectiveTheme } = useApp();
+  const isDark = effectiveTheme === "dark";
+  const iconColor = isDark ? "#000000" : "#ffffff";
   const [slideIndex, setSlideIndex] = useState(0);
 
   const slides = [
@@ -69,7 +71,7 @@ export const OnboardingScreen: React.FC = () => {
 
       <View className="flex-col gap-6 my-auto">
         <View className="w-16 h-16 bg-primary dark:bg-white justify-center items-center rounded-none border-2 border-primary dark:border-white">
-          <IconComponent size={32} color={slideIndex === 99 ? "#ffffff" : "#ffffff"} className="dark:text-black" />
+          <IconComponent size={32} color={iconColor} />
         </View>
 
         <View className="flex-col gap-2">
