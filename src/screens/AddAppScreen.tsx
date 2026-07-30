@@ -1,42 +1,71 @@
-import React, { useState } from "react";
-import { View, Text, SafeAreaView, ScrollView, TextInput, TouchableOpacity, Alert } from "react-native";
+import React, { useState, useEffect } from "react";
+import { View, Text, ScrollView, TextInput, TouchableOpacity, Alert, ActivityIndicator } from "react-native";
 import { useApp } from "../context/AppContext";
 import { NavigationHeader } from "../components/NavigationHeader";
 import { Button } from "../components/ui/Button";
 import { Modal } from "../components/ui/Modal";
-import { Search, Camera, Video, MessageSquare, Globe, Clock, Check } from "lucide-react-native";
+import { NativeBridge } from "../services/nativeBridge";
+import { Search, Camera, Video, MessageSquare, Globe, Check, Plus, Gamepad2 } from "lucide-react-native";
 import { InstalledAppInfo } from "../types";
 
-const POPULAR_APPS: InstalledAppInfo[] = [
-  { packageName: "com.instagram.android", appName: "Instagram", category: "Social" },
-  { packageName: "com.google.android.youtube", appName: "YouTube", category: "Media" },
-  { packageName: "com.zhiliaoapp.musically", appName: "TikTok", category: "Social" },
-  { packageName: "com.reddit.frontpage", appName: "Reddit", category: "News & Social" },
-  { packageName: "com.twitter.android", appName: "X / Twitter", category: "Social" },
-  { packageName: "com.android.chrome", appName: "Google Chrome", category: "Browser" },
-  { packageName: "com.netflix.mediaclient", appName: "Netflix", category: "Entertainment" },
-  { packageName: "com.snapchat.android", appName: "Snapchat", category: "Social" },
-];
-
 export const AddAppScreen: React.FC = () => {
-  const { trackedApps, addTrackedApp, setCurrentScreen } = useApp();
+  const { trackedApps, addTrackedApp, setCurrentScreen, effectiveTheme } = useApp();
+  const isDark = effectiveTheme === "dark";
+  const iconColor = isDark ? "#ffffff" : "#000000";
+
+  const [appsList, setAppsList] = useState<InstalledAppInfo[]>([]);
+  const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedApp, setSelectedApp] = useState<InstalledAppInfo | null>(null);
   const [hours, setHours] = useState(1);
   const [minutes, setMinutes] = useState(0);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
 
-  const filteredApps = POPULAR_APPS.filter((app) =>
-    app.appName.toLowerCase().includes(searchQuery.toLowerCase())
+  useEffect(() => {
+    let isMounted = true;
+    NativeBridge.getInstalledApps()
+      .then((apps) => {
+        if (isMounted) {
+          setAppsList(apps);
+          setLoading(false);
+        }
+      })
+      .catch(() => {
+        if (isMounted) setLoading(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const filteredApps = appsList.filter((app) =>
+    app.appName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    app.packageName.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   const getIcon = (appName: string) => {
     const lower = appName.toLowerCase();
-    if (lower.includes("insta") || lower.includes("camera")) return Camera;
-    if (lower.includes("you") || lower.includes("video") || lower.includes("netf"))
+    if (lower.includes("insta") || lower.includes("camera") || lower.includes("photo")) return Camera;
+    if (lower.includes("you") || lower.includes("video") || lower.includes("netf") || lower.includes("tube"))
       return Video;
-    if (lower.includes("chat") || lower.includes("snap")) return MessageSquare;
+    if (lower.includes("chat") || lower.includes("snap") || lower.includes("mess") || lower.includes("what"))
+      return MessageSquare;
+    if (lower.includes("pubg") || lower.includes("game") || lower.includes("fire") || lower.includes("roblox"))
+      return Gamepad2;
     return Globe;
+  };
+
+  const handleSelectCustomApp = () => {
+    const cleanName = searchQuery.trim();
+    if (!cleanName) return;
+    const customPkg = "custom." + cleanName.toLowerCase().replace(/[^a-z0-9]/g, "");
+    const newCustomApp: InstalledAppInfo = {
+      packageName: customPkg,
+      appName: cleanName,
+      category: "Custom Lock",
+    };
+    setSelectedApp(newCustomApp);
   };
 
   const handleSetTimer = () => {
@@ -71,17 +100,17 @@ export const AddAppScreen: React.FC = () => {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-background dark:bg-black">
+    <View className="flex-1 bg-background dark:bg-black">
       <NavigationHeader title="SET TIMER" showBack />
 
-      <ScrollView contentContainerStyle={{ paddingBottom: 40 }} className="px-margin-page pt-4 flex-1">
+      <ScrollView contentContainerStyle={{ paddingBottom: 60 }} className="px-margin-page pt-4 flex-1">
         {/* Step 1: Search & Pick App */}
         <View className="flex-col gap-2 mb-4">
           <Text className="font-bold text-xs text-secondary dark:text-zinc-400 uppercase tracking-widest">
             STEP 1 — SELECT TARGET APPLICATION
           </Text>
           <View className="flex-row items-center border-2 border-primary dark:border-white bg-surface-container-lowest dark:bg-zinc-900 px-3 h-12">
-            <Search size={20} color="#000000" className="dark:text-white" />
+            <Search size={20} color={iconColor} />
             <TextInput
               value={searchQuery}
               onChangeText={setSearchQuery}
@@ -92,75 +121,101 @@ export const AddAppScreen: React.FC = () => {
           </View>
         </View>
 
-        {/* App Selection Grid / List */}
-        <View className="flex-col gap-2 mb-8">
-          {filteredApps.map((app) => {
-            const IconComp = getIcon(app.appName);
-            const isAlreadyTracked = trackedApps.some(
-              (ta) => ta.packageName === app.packageName
-            );
-            const isSelected = selectedApp?.packageName === app.packageName;
+        {/* Loading Indicator */}
+        {loading ? (
+          <View className="py-12 items-center justify-center flex-col gap-3">
+            <ActivityIndicator size="large" color={isDark ? "#ffffff" : "#000000"} />
+            <Text className="font-bold text-xs text-secondary dark:text-zinc-400 uppercase tracking-wider">
+              SCANNING INSTALLED APPS...
+            </Text>
+          </View>
+        ) : (
+          <View className="flex-col gap-2 mb-8">
+            {filteredApps.map((app) => {
+              const IconComp = getIcon(app.appName);
+              const isAlreadyTracked = trackedApps.some(
+                (ta) => ta.packageName === app.packageName
+              );
+              const isSelected = selectedApp?.packageName === app.packageName;
 
-            return (
+              return (
+                <TouchableOpacity
+                  key={app.packageName}
+                  disabled={isAlreadyTracked}
+                  onPress={() => setSelectedApp(app)}
+                  className={`p-4 border-2 flex-row justify-between items-center ${
+                    isAlreadyTracked
+                      ? "border-outline opacity-40 bg-surface-container dark:bg-zinc-900"
+                      : isSelected
+                      ? "border-primary bg-primary dark:bg-white text-white"
+                      : "border-primary dark:border-white bg-surface-container-lowest dark:bg-black"
+                  }`}
+                >
+                  <View className="flex-row items-center gap-3">
+                    <IconComp
+                      size={20}
+                      color={isSelected ? (isDark ? "#000000" : "#ffffff") : iconColor}
+                    />
+                    <View className="flex-col">
+                      <Text
+                        className={`font-bold text-base ${
+                          isSelected
+                            ? "text-white dark:text-black"
+                            : "text-primary dark:text-white"
+                        }`}
+                      >
+                        {app.appName}
+                      </Text>
+                      <Text
+                        className={`text-xs ${
+                          isSelected
+                            ? "text-zinc-300 dark:text-zinc-700"
+                            : "text-secondary dark:text-zinc-400"
+                        }`}
+                      >
+                        {app.category || app.packageName}
+                      </Text>
+                    </View>
+                  </View>
+
+                  {isAlreadyTracked ? (
+                    <Text className="text-xs font-bold uppercase text-secondary">
+                      LOCKED TODAY
+                    </Text>
+                  ) : isSelected ? (
+                    <View className="w-6 h-6 rounded-full bg-white dark:bg-black items-center justify-center">
+                      <Check size={14} color={isDark ? "#ffffff" : "#000000"} />
+                    </View>
+                  ) : null}
+                </TouchableOpacity>
+              );
+            })}
+
+            {/* Custom App Option when searching */}
+            {searchQuery.trim().length > 0 && (
               <TouchableOpacity
-                key={app.packageName}
-                disabled={isAlreadyTracked}
-                onPress={() => setSelectedApp(app)}
-                className={`p-4 border-2 flex-row justify-between items-center ${
-                  isAlreadyTracked
-                    ? "border-outline opacity-40 bg-surface-container dark:bg-zinc-900"
-                    : isSelected
-                    ? "border-primary bg-primary dark:bg-white text-white"
-                    : "border-primary dark:border-white bg-surface-container-lowest dark:bg-black"
-                }`}
+                onPress={handleSelectCustomApp}
+                className="p-4 border-2 border-dashed border-primary dark:border-white bg-surface-container-lowest dark:bg-zinc-900 flex-row items-center gap-3 mt-2"
               >
-                <View className="flex-row items-center gap-3">
-                  <IconComp
-                    size={20}
-                    color={isSelected ? "#ffffff" : "#000000"}
-                    className={isSelected ? "dark:text-black" : "dark:text-white"}
-                  />
-                  <View className="flex-col">
-                    <Text
-                      className={`font-bold text-base ${
-                        isSelected
-                          ? "text-white dark:text-black"
-                          : "text-primary dark:text-white"
-                      }`}
-                    >
-                      {app.appName}
-                    </Text>
-                    <Text
-                      className={`text-xs ${
-                        isSelected
-                          ? "text-zinc-300 dark:text-zinc-700"
-                          : "text-secondary dark:text-zinc-400"
-                      }`}
-                    >
-                      {app.category}
-                    </Text>
-                  </View>
-                </View>
-
-                {isAlreadyTracked ? (
-                  <Text className="text-xs font-bold uppercase text-secondary">
-                    LOCKED TODAY
+                <Plus size={20} color={iconColor} />
+                <View className="flex-col flex-1">
+                  <Text className="font-bold text-sm text-primary dark:text-white uppercase">
+                    ADD CUSTOM LOCK: "{searchQuery.trim()}"
                   </Text>
-                ) : isSelected ? (
-                  <View className="w-6 h-6 rounded-full bg-white dark:bg-black items-center justify-center">
-                    <Check size={14} color="#000000" className="dark:text-white" />
-                  </View>
-                ) : null}
+                  <Text className="text-xs text-secondary dark:text-zinc-400">
+                    Set a daily limit for "{searchQuery.trim()}"
+                  </Text>
+                </View>
               </TouchableOpacity>
-            );
-          })}
-        </View>
+            )}
+          </View>
+        )}
 
         {/* Step 2: Time Selector */}
         {selectedApp && (
           <View className="flex-col gap-4 mb-8 border-2 border-primary dark:border-white p-4 bg-surface-container-lowest dark:bg-zinc-900">
             <Text className="font-bold text-xs text-secondary dark:text-zinc-400 uppercase tracking-widest">
-              STEP 2 — SET DAILY ALLOWANCE
+              STEP 2 — SET DAILY ALLOWANCE FOR {selectedApp.appName.toUpperCase()}
             </Text>
 
             <View className="flex-row justify-around items-center py-4">
@@ -232,6 +287,6 @@ export const AddAppScreen: React.FC = () => {
         onConfirm={confirmLock}
         onCancel={() => setShowConfirmModal(false)}
       />
-    </SafeAreaView>
+    </View>
   );
 };

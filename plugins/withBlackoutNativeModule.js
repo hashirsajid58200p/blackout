@@ -256,6 +256,36 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
         }
         promise.resolve(totalTimeMs.toDouble())
     }
+
+    @ReactMethod
+    def getInstalledApps(promise: Promise) {
+        try {
+            val pm = reactApplicationContext.packageManager
+            val intent = Intent(Intent.ACTION_MAIN, null).apply {
+                addCategory(Intent.CATEGORY_LAUNCHER)
+            }
+            val resolveInfos = pm.queryIntentActivities(intent, 0)
+            val array = WritableNativeArray()
+            val addedPackages = mutableSetOf<String>()
+
+            for (resolveInfo in resolveInfos) {
+                val packageName = resolveInfo.activityInfo.packageName
+                if (packageName != reactApplicationContext.packageName && !addedPackages.contains(packageName)) {
+                    addedPackages.add(packageName)
+                    val appName = resolveInfo.loadLabel(pm).toString()
+                    val map = WritableNativeMap().apply {
+                        putString("packageName", packageName)
+                        putString("appName", appName)
+                        putString("category", "Installed App")
+                    }
+                    array.pushMap(map)
+                }
+            }
+            promise.resolve(array)
+        } catch (e: Exception) {
+            promise.reject("GET_APPS_ERROR", e.message)
+        }
+    }
 }
 `;
       fs.writeFileSync(
