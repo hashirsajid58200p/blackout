@@ -28,24 +28,24 @@ export const NavigationHeader: React.FC<NavigationHeaderProps> = ({
       style={{ paddingTop: topPadding }}
       className="bg-background dark:bg-black border-b-2 border-primary dark:border-white z-40"
     >
-      <View className="h-touch-target flex-row justify-between items-center px-margin-page">
+      <View className="py-2.5 flex-row justify-between items-center px-margin-page min-h-[52px]">
         {showBack ? (
           <TouchableOpacity
             activeOpacity={0.8}
             onPress={() => setCurrentScreen("home")}
-            className="w-10 h-10 items-center justify-center border border-primary dark:border-white"
+            className="w-8 h-8 items-center justify-center border border-primary dark:border-white active:bg-primary/10"
           >
-            <ChevronLeft size={20} color={iconColor} />
+            <ChevronLeft size={18} color={iconColor} />
           </TouchableOpacity>
         ) : (
-          <View className="w-10 h-10" />
+          <View className="w-8 h-8" />
         )}
 
         <Text className="font-bold text-xl uppercase tracking-tighter text-primary dark:text-white">
           {title}
         </Text>
 
-        <View className="w-10 h-10" />
+        <View className="w-8 h-8" />
       </View>
     </View>
   );

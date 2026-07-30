@@ -33,7 +33,6 @@ export const StatsScreen: React.FC = () => {
   ]);
 
   const [dayApps, setDayApps] = useState<DayAppUsage[]>([]);
-  const [loadingApps, setLoadingApps] = useState<boolean>(false);
 
   // Fetch 7-day total stats
   useEffect(() => {
@@ -52,7 +51,6 @@ export const StatsScreen: React.FC = () => {
   // Fetch specific day app breakdown whenever selectedDayOffset changes
   useEffect(() => {
     let isMounted = true;
-    setLoadingApps(true);
 
     if (selectedDayOffset === 0 && trackedApps.length > 0) {
       // For Today: merge tracked apps & native usage stats
@@ -61,21 +59,17 @@ export const StatsScreen: React.FC = () => {
         appName: a.appName,
         usedMs: a.usedTodayMs,
       }));
-      // Sort highest usage to top
       mapped.sort((a, b) => b.usedMs - a.usedMs);
       if (isMounted) {
         setDayApps(mapped);
-        setLoadingApps(false);
       }
     } else {
       NativeBridge.getDayUsageStats(selectedDayOffset).then((data) => {
         if (isMounted) {
           if (data && data.length > 0) {
-            // Sort highest usage at top
             data.sort((a, b) => b.usedMs - a.usedMs);
             setDayApps(data);
           } else {
-            // Fallback mock/tracked data if native OS usage access is empty
             const fallback = trackedApps.map((a) => ({
               packageName: a.packageName,
               appName: a.appName,
@@ -84,7 +78,6 @@ export const StatsScreen: React.FC = () => {
             fallback.sort((a, b) => b.usedMs - a.usedMs);
             setDayApps(fallback);
           }
-          setLoadingApps(false);
         }
       });
     }
@@ -97,7 +90,7 @@ export const StatsScreen: React.FC = () => {
   const totalWeeklyMs = weeklyStats.reduce((acc, curr) => acc + curr.totalUsageMs, 0);
   const maxUsage = Math.max(1, ...weeklyStats.map((w) => w.totalUsageMs));
 
-  // Selected Day Label & Details
+  // Selected Day Label
   const getSelectedDayLabel = () => {
     if (selectedDayOffset === 0) return "TODAY";
     if (selectedDayOffset === -1) return "YESTERDAY";
@@ -106,7 +99,7 @@ export const StatsScreen: React.FC = () => {
     return d.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" }).toUpperCase();
   };
 
-  const selectedIndex = 6 + selectedDayOffset; // 0 = 6 days ago, 6 = Today
+  const selectedIndex = 6 + selectedDayOffset;
   const selectedDayTotalMs = dayApps.reduce((acc, curr) => acc + curr.usedMs, 0);
 
   const formatHours = (ms: number) => {
@@ -129,42 +122,43 @@ export const StatsScreen: React.FC = () => {
       <NavigationHeader title="STATS" showBack />
 
       <ScrollView contentContainerStyle={{ paddingBottom: 100 }} className="px-margin-page pt-4 flex-1">
-        {/* Header with Interactive Date Navigator */}
-        <View className="flex-col gap-3 mb-6">
-          <View className="flex-row justify-between items-center">
-            <Text className="font-bold text-3xl text-primary dark:text-white uppercase tracking-tight">
-              SCREEN TIME
+        {/* Title: Single Line */}
+        <Text numberOfLines={1} className="font-bold text-3xl text-primary dark:text-white uppercase tracking-tight mb-3">
+          SCREEN TIME
+        </Text>
+
+        {/* Date Selector Carousel (Placed Directly Below Title, Pitch Black Background) */}
+        <View className="flex-row items-center justify-between border-2 border-primary dark:border-white p-2 bg-surface-container-lowest dark:bg-black rounded-none mb-6">
+          <TouchableOpacity
+            activeOpacity={0.8}
+            disabled={selectedDayOffset <= -6}
+            onPress={() => setSelectedDayOffset((prev) => Math.max(-6, prev - 1))}
+            className={`p-2 border border-primary dark:border-white min-w-[36px] items-center justify-center ${
+              selectedDayOffset <= -6 ? "opacity-20" : "active:bg-primary/10"
+            }`}
+          >
+            <ChevronLeft size={18} color={iconColor} />
+          </TouchableOpacity>
+
+          <View className="flex-col items-center">
+            <Text className="font-bold text-sm uppercase text-primary dark:text-white tracking-widest">
+              {getSelectedDayLabel()}
             </Text>
-
-            {/* Previous / Next Day Buttons */}
-            <View className="flex-row items-center gap-1.5 border-2 border-primary dark:border-white p-1 bg-surface-container-lowest dark:bg-zinc-900 rounded-none">
-              <TouchableOpacity
-                activeOpacity={0.8}
-                disabled={selectedDayOffset <= -6}
-                onPress={() => setSelectedDayOffset((prev) => Math.max(-6, prev - 1))}
-                className={`p-1.5 border border-primary dark:border-white ${
-                  selectedDayOffset <= -6 ? "opacity-30" : "active:bg-primary/10"
-                }`}
-              >
-                <ChevronLeft size={16} color={iconColor} />
-              </TouchableOpacity>
-
-              <Text className="font-bold text-xs uppercase px-2 text-primary dark:text-white tracking-wider">
-                {getSelectedDayLabel()}
-              </Text>
-
-              <TouchableOpacity
-                activeOpacity={0.8}
-                disabled={selectedDayOffset >= 0}
-                onPress={() => setSelectedDayOffset((prev) => Math.min(0, prev + 1))}
-                className={`p-1.5 border border-primary dark:border-white ${
-                  selectedDayOffset >= 0 ? "opacity-30" : "active:bg-primary/10"
-                }`}
-              >
-                <ChevronRight size={16} color={iconColor} />
-              </TouchableOpacity>
-            </View>
+            <Text className="text-[10px] font-bold text-secondary dark:text-zinc-400 uppercase tracking-widest mt-0.5">
+              {selectedDayOffset === 0 ? "CURRENT DATE" : "HISTORICAL RECORD"}
+            </Text>
           </View>
+
+          <TouchableOpacity
+            activeOpacity={0.8}
+            disabled={selectedDayOffset >= 0}
+            onPress={() => setSelectedDayOffset((prev) => Math.min(0, prev + 1))}
+            className={`p-2 border border-primary dark:border-white min-w-[36px] items-center justify-center ${
+              selectedDayOffset >= 0 ? "opacity-20" : "active:bg-primary/10"
+            }`}
+          >
+            <ChevronRight size={18} color={iconColor} />
+          </TouchableOpacity>
         </View>
 
         {/* Selected Day Summary Card */}
@@ -192,21 +186,16 @@ export const StatsScreen: React.FC = () => {
 
         {/* 7-Day Bar Chart */}
         <Card className="p-4 mb-6 rounded-none flex-col">
-          <View className="flex-row items-center justify-between mb-4">
-            <View className="flex-row items-center gap-2.5">
-              <View className="w-5 h-5 items-center justify-center">
-                <BarChart2 size={20} color={iconColor} />
-              </View>
-              <Text className="font-bold text-sm text-primary dark:text-white uppercase tracking-wider leading-5">
-                LAST 7 DAYS TRACKER
-              </Text>
+          <View className="flex-row items-center gap-2.5 mb-4">
+            <View className="w-5 h-5 items-center justify-center">
+              <BarChart2 size={20} color={iconColor} />
             </View>
-            <Text className="text-xs font-bold text-secondary dark:text-zinc-400 uppercase">
-              TAP BAR TO SELECT
+            <Text className="font-bold text-sm text-primary dark:text-white uppercase tracking-wider leading-5">
+              LAST 7 DAYS TRACKER
             </Text>
           </View>
 
-          <View className="flex-row justify-between items-end h-40 pt-4 px-1">
+          <View className="flex-row justify-between items-end h-44 pt-2 px-1">
             {weeklyStats.map((item, idx) => {
               const heightPercent = Math.min(100, Math.max(10, Math.round((item.totalUsageMs / maxUsage) * 100)));
               const isSelected = idx === selectedIndex;
@@ -216,9 +205,14 @@ export const StatsScreen: React.FC = () => {
                   key={idx}
                   activeOpacity={0.8}
                   onPress={() => setSelectedDayOffset(idx - 6)}
-                  className="flex-col items-center gap-2 flex-1"
+                  className="flex-col items-center gap-1.5 flex-1"
                 >
-                  <View className="w-full h-32 justify-end items-center px-1">
+                  {/* Display usage duration directly above each bar */}
+                  <Text className={`text-[10px] font-bold ${isSelected ? "text-primary dark:text-white" : "text-secondary dark:text-zinc-500"}`}>
+                    {formatHours(item.totalUsageMs)}
+                  </Text>
+
+                  <View className="w-full h-28 justify-end items-center px-1">
                     <View
                       style={{ height: `${heightPercent}%` }}
                       className={`w-full rounded-none border ${
@@ -241,16 +235,11 @@ export const StatsScreen: React.FC = () => {
           </View>
         </Card>
 
-        {/* Sorted App Usage Breakdown (Highest Usage First) */}
+        {/* Sorted App Usage Breakdown */}
         <View className="flex-col gap-3">
-          <View className="flex-row justify-between items-center">
-            <Text className="font-bold text-xs text-secondary dark:text-zinc-400 uppercase tracking-widest">
-              {getSelectedDayLabel()} APP USAGE (MOST USED TOP)
-            </Text>
-            <Text className="text-xs font-bold text-secondary dark:text-zinc-500 uppercase">
-              SORTED BY TIME
-            </Text>
-          </View>
+          <Text className="font-bold text-xs text-secondary dark:text-zinc-400 uppercase tracking-widest">
+            {getSelectedDayLabel()} APP USAGE (MOST USED TOP)
+          </Text>
 
           {dayApps.length === 0 ? (
             <Card className="py-6 items-center">
