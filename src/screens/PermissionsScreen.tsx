@@ -105,11 +105,11 @@ export const PermissionsScreen: React.FC = () => {
                   {/* 1. Top Row: Icon Center-Aligned Vertically with Heading Text Line */}
                   <View className="flex-row items-center gap-2.5 mb-1">
                     <View className="w-5 h-5 items-center justify-center">
-                      <IconComponent size={18} color={iconColor} />
+                      <IconComponent size={20} color={iconColor} />
                     </View>
                     <Text
                       numberOfLines={1}
-                      className="font-bold text-xs uppercase tracking-wider text-primary dark:text-white flex-1 leading-5"
+                      className="font-bold text-sm uppercase tracking-wider text-primary dark:text-white flex-1 leading-5"
                     >
                       {item.title}
                     </Text>
