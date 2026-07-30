@@ -143,7 +143,7 @@ export const AddAppScreen: React.FC = () => {
                   key={app.packageName}
                   disabled={isAlreadyTracked}
                   onPress={() => setSelectedApp(app)}
-                  className={`p-4 border-2 flex-row justify-between items-center ${
+                  className={`p-3.5 border-2 flex-col gap-1 ${
                     isAlreadyTracked
                       ? "border-outline opacity-40 bg-surface-container dark:bg-zinc-900"
                       : isSelected
@@ -151,14 +151,18 @@ export const AddAppScreen: React.FC = () => {
                       : "border-primary dark:border-white bg-surface-container-lowest dark:bg-black"
                   }`}
                 >
-                  <View className="flex-row items-center gap-3">
-                    <IconComp
-                      size={20}
-                      color={isSelected ? (isDark ? "#000000" : "#ffffff") : iconColor}
-                    />
-                    <View className="flex-col">
+                  {/* Top Row: Icon Center-Aligned Vertically with App Name + Selection Indicator on Right */}
+                  <View className="flex-row items-center justify-between">
+                    <View className="flex-row items-center gap-2.5 flex-1 pr-2">
+                      <View className="w-5 h-5 items-center justify-center">
+                        <IconComp
+                          size={20}
+                          color={isSelected ? (isDark ? "#000000" : "#ffffff") : iconColor}
+                        />
+                      </View>
                       <Text
-                        className={`font-bold text-base ${
+                        numberOfLines={1}
+                        className={`font-bold text-sm uppercase tracking-wider flex-1 leading-5 ${
                           isSelected
                             ? "text-white dark:text-black"
                             : "text-primary dark:text-white"
@@ -166,27 +170,29 @@ export const AddAppScreen: React.FC = () => {
                       >
                         {app.appName}
                       </Text>
-                      <Text
-                        className={`text-xs ${
-                          isSelected
-                            ? "text-zinc-300 dark:text-zinc-700"
-                            : "text-secondary dark:text-zinc-400"
-                        }`}
-                      >
-                        {app.category || app.packageName}
-                      </Text>
                     </View>
+
+                    {isAlreadyTracked ? (
+                      <Text className="text-xs font-bold uppercase text-secondary">
+                        LOCKED TODAY
+                      </Text>
+                    ) : isSelected ? (
+                      <View className="w-5 h-5 rounded-full bg-white dark:bg-black items-center justify-center">
+                        <Check size={12} color={isDark ? "#ffffff" : "#000000"} />
+                      </View>
+                    ) : null}
                   </View>
 
-                  {isAlreadyTracked ? (
-                    <Text className="text-xs font-bold uppercase text-secondary">
-                      LOCKED TODAY
-                    </Text>
-                  ) : isSelected ? (
-                    <View className="w-6 h-6 rounded-full bg-white dark:bg-black items-center justify-center">
-                      <Check size={14} color={isDark ? "#ffffff" : "#000000"} />
-                    </View>
-                  ) : null}
+                  {/* Category / Package Sub-text: Left-aligned at 30px offset */}
+                  <Text
+                    className={`text-xs ml-[30px] leading-4 ${
+                      isSelected
+                        ? "text-zinc-300 dark:text-zinc-700"
+                        : "text-secondary dark:text-zinc-400"
+                    }`}
+                  >
+                    {app.category || app.packageName}
+                  </Text>
                 </TouchableOpacity>
               );
             })}

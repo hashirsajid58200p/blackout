@@ -62,18 +62,21 @@ export const HomeScreen: React.FC = () => {
         {/* Permission Notice if missing */}
         {(!permissions.usageStats || !permissions.overlay || !permissions.accessibility) && (
           <TouchableOpacity
+            activeOpacity={0.8}
             onPress={() => setCurrentScreen("permissions")}
-            className="border-2 border-primary dark:border-white bg-surface-container dark:bg-zinc-900 p-4 mb-6 flex-row items-center gap-3"
+            className="border-2 border-primary dark:border-white bg-surface-container dark:bg-zinc-900 p-4 mb-6 flex-col rounded-none"
           >
-            <ShieldAlert size={24} color={iconColor} />
-            <View className="flex-1">
-              <Text className="font-bold text-xs uppercase text-primary dark:text-white">
+            <View className="flex-row items-center gap-2.5 mb-1">
+              <View className="w-5 h-5 items-center justify-center">
+                <ShieldAlert size={20} color={iconColor} />
+              </View>
+              <Text className="font-bold text-sm uppercase tracking-wider text-primary dark:text-white flex-1 leading-5">
                 PERMISSIONS REQUIRED
               </Text>
-              <Text className="text-xs text-secondary dark:text-zinc-400">
-                Tap to grant accessibility & overlay permissions
-              </Text>
             </View>
+            <Text className="text-xs text-secondary dark:text-zinc-400 ml-[30px] leading-4">
+              Tap to grant accessibility & overlay permissions
+            </Text>
           </TouchableOpacity>
         )}
 
@@ -88,7 +91,7 @@ export const HomeScreen: React.FC = () => {
             </Text>
           </Card>
         ) : (
-          <View className="flex-col gap-4">
+          <View className="flex-col gap-3.5">
             {trackedApps.map((app) => {
               const IconComp = getIcon(app.appName);
               const percent = Math.min(
@@ -100,14 +103,18 @@ export const HomeScreen: React.FC = () => {
                 <Card
                   key={app.packageName}
                   variant={app.isLocked ? "locked" : "default"}
-                  className="flex-col gap-4"
+                  className="flex-col gap-2.5 p-4"
                 >
-                  <View className="flex-row justify-between items-center">
-                    <View className="flex-row items-center gap-3">
-                      <View className="w-8 h-8 bg-surface-container dark:bg-zinc-800 rounded-none border border-primary dark:border-white items-center justify-center">
-                        <IconComp size={18} color={iconColor} />
+                  {/* Top Row: Icon Center-Aligned Vertically with App Name + StatusPill Right */}
+                  <View className="flex-row items-center justify-between">
+                    <View className="flex-row items-center gap-2.5 flex-1 pr-2">
+                      <View className="w-5 h-5 items-center justify-center">
+                        <IconComp size={20} color={iconColor} />
                       </View>
-                      <Text className="font-bold text-base text-primary dark:text-white">
+                      <Text
+                        numberOfLines={1}
+                        className="font-bold text-sm uppercase tracking-wider text-primary dark:text-white flex-1 leading-5"
+                      >
                         {app.appName}
                       </Text>
                     </View>
@@ -115,7 +122,8 @@ export const HomeScreen: React.FC = () => {
                     <StatusPill isLocked={app.isLocked} />
                   </View>
 
-                  <View className="flex-col gap-2">
+                  {/* Middle Row: Progress Text & Percent */}
+                  <View className="flex-col gap-1.5 ml-[30px]">
                     <View className="flex-row justify-between items-end">
                       <Text className="font-bold text-xs text-secondary dark:text-zinc-300">
                         {formatMs(app.usedTodayMs)} / {formatMs(app.dailyLimitMs)} limit

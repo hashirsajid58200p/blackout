@@ -83,32 +83,49 @@ export const SettingsScreen: React.FC = () => {
             AUTOMATION & CLEANUP
           </Text>
 
-          <TouchableOpacity
-            activeOpacity={0.8}
-            onPress={() => updateAutoCleanSetting(!isAutoCleanEnabled)}
-            className="border-2 border-primary dark:border-white p-4 bg-surface-container-lowest dark:bg-zinc-900 flex-row items-center justify-between"
-          >
-            <View className="flex-row items-center gap-3 flex-1 pr-2">
-              <Trash2 size={22} color={iconColor} />
-              <View className="flex-col flex-1">
-                <Text className="font-bold text-sm uppercase text-primary dark:text-white">
-                  AUTO-REMOVE UNINSTALLED APPS
-                </Text>
-                <Text className="text-xs text-secondary dark:text-zinc-400 mt-0.5">
-                  Automatically delete app lock profiles if the app is uninstalled from your phone
-                </Text>
+          <View className="border-2 border-primary dark:border-white p-4 bg-surface-container-lowest dark:bg-zinc-900 flex-col rounded-none">
+            {/* Top Row: Icon Center-Aligned Vertically with Heading */}
+            <View className="flex-row items-center gap-2.5 mb-1.5">
+              <View className="w-5 h-5 items-center justify-center">
+                <Trash2 size={20} color={iconColor} />
               </View>
-            </View>
-
-            <View className={`px-3 py-1.5 border-2 border-primary dark:border-white ${isAutoCleanEnabled ? "bg-primary dark:bg-white" : "bg-transparent"}`}>
-              <Text className={`font-bold text-xs uppercase ${isAutoCleanEnabled ? "text-white dark:text-black" : "text-primary dark:text-white"}`}>
-                {isAutoCleanEnabled ? "ENABLED" : "DISABLED"}
+              <Text
+                numberOfLines={1}
+                className="font-bold text-sm uppercase tracking-wider text-primary dark:text-white flex-1 leading-5"
+              >
+                AUTO-REMOVE UNINSTALLED APPS
               </Text>
             </View>
-          </TouchableOpacity>
+
+            {/* Description Paragraph: Left-aligned at 30px offset */}
+            <Text className="text-xs text-secondary dark:text-zinc-400 ml-[30px] leading-4 mb-3">
+              Automatically delete app lock profiles if the app is uninstalled from your phone
+            </Text>
+
+            {/* Action Button: Aligned on the Right Side */}
+            <View className="flex-row justify-end">
+              <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={() => updateAutoCleanSetting(!isAutoCleanEnabled)}
+                className={`px-3 py-1.5 border-2 border-primary dark:border-white ${
+                  isAutoCleanEnabled ? "bg-primary dark:bg-white" : "bg-transparent"
+                }`}
+              >
+                <Text
+                  className={`font-bold text-xs uppercase ${
+                    isAutoCleanEnabled
+                      ? "text-white dark:text-black"
+                      : "text-primary dark:text-white"
+                  }`}
+                >
+                  {isAutoCleanEnabled ? "ENABLED" : "DISABLED"}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
         </View>
 
-        {/* Section 2: Manage Tracked Apps (View Only) */}
+        {/* Section 3: Manage Tracked Apps (View Only) */}
         <View className="flex-col gap-3 mb-8">
           <View className="flex-row justify-between items-center">
             <Text className="font-bold text-xs text-secondary dark:text-zinc-400 uppercase tracking-widest">
@@ -141,46 +158,52 @@ export const SettingsScreen: React.FC = () => {
           </Text>
         </View>
 
-        {/* Section 3: Permissions Status */}
+        {/* Section 4: Permissions Status */}
         <View className="flex-col gap-3 mb-8">
           <Text className="font-bold text-xs text-secondary dark:text-zinc-400 uppercase tracking-widest">
             PERMISSIONS STATUS
           </Text>
 
           <TouchableOpacity
+            activeOpacity={0.8}
             onPress={() => setCurrentScreen("permissions")}
-            className="border-2 border-primary dark:border-white bg-surface-container-lowest dark:bg-zinc-900 p-4 flex-row items-center justify-between"
+            className="border-2 border-primary dark:border-white bg-surface-container-lowest dark:bg-zinc-900 p-4 flex-col rounded-none"
           >
-            <View className="flex-row items-center gap-3">
-              <ShieldCheck size={22} color={iconColor} />
-              <View className="flex-col">
-                <Text className="font-bold text-sm uppercase text-primary dark:text-white">
-                  SYSTEM PERMISSIONS
-                </Text>
-                <Text className="text-xs text-secondary dark:text-zinc-400">
-                  {permissions.usageStats && permissions.overlay && permissions.accessibility
-                    ? "ALL 3 PERMISSIONS GRANTED"
-                    : "ACTION REQUIRED — TAP TO REVIEW"}
-                </Text>
+            <View className="flex-row items-center gap-2.5 mb-1.5">
+              <View className="w-5 h-5 items-center justify-center">
+                <ShieldCheck size={20} color={iconColor} />
               </View>
+              <Text
+                numberOfLines={1}
+                className="font-bold text-sm uppercase tracking-wider text-primary dark:text-white flex-1 leading-5"
+              >
+                SYSTEM PERMISSIONS
+              </Text>
             </View>
+            <Text className="text-xs text-secondary dark:text-zinc-400 ml-[30px] leading-4">
+              {permissions.usageStats && permissions.overlay && permissions.accessibility
+                ? "ALL 3 PERMISSIONS GRANTED"
+                : "ACTION REQUIRED — TAP TO REVIEW"}
+            </Text>
           </TouchableOpacity>
         </View>
 
-        {/* Section 4: About Blackout */}
+        {/* Section 5: About Blackout */}
         <View className="flex-col gap-3 mb-8">
           <Text className="font-bold text-xs text-secondary dark:text-zinc-400 uppercase tracking-widest">
             ABOUT BLACKOUT
           </Text>
 
-          <Card className="flex-col gap-2">
-            <View className="flex-row items-center gap-2">
-              <Info size={18} color={iconColor} />
-              <Text className="font-bold text-sm text-primary dark:text-white uppercase">
+          <Card className="flex-col p-4 rounded-none">
+            <View className="flex-row items-center gap-2.5 mb-1.5">
+              <View className="w-5 h-5 items-center justify-center">
+                <Info size={20} color={iconColor} />
+              </View>
+              <Text className="font-bold text-sm text-primary dark:text-white uppercase tracking-wider leading-5">
                 BLACKOUT V1.0.0
               </Text>
             </View>
-            <Text className="text-xs text-secondary dark:text-zinc-400 leading-relaxed">
+            <Text className="text-xs text-secondary dark:text-zinc-400 ml-[30px] leading-relaxed">
               Blackout is an offline, zero-telemetry Android digital wellbeing tool designed for uncompromised cognitive focus.
             </Text>
           </Card>
