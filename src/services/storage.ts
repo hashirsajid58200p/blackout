@@ -78,11 +78,13 @@ export const StorageService = {
       const data = await AsyncStorage.getItem(TRACKED_APPS_KEY);
       if (data) {
         const apps: TrackedApp[] = JSON.parse(data);
-        if (apps.length > 0) {
-          return StorageService.applyMidnightResetIfNeeded(apps);
+        const resetApps = await StorageService.applyMidnightResetIfNeeded(apps);
+        const totalUsage = resetApps.reduce((sum, a) => sum + a.usedTodayMs, 0);
+        if (resetApps.length >= 2 && totalUsage > 0) {
+          return resetApps;
         }
       }
-      // Populate demo apps on initial load
+      // Populate rich demo apps on initial load
       await StorageService.saveTrackedApps(DEMO_APPS);
       return DEMO_APPS;
     } catch (e) {
