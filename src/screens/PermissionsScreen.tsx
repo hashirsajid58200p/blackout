@@ -100,7 +100,7 @@ export const PermissionsScreen: React.FC = () => {
               return (
                 <View
                   key={item.id}
-                  className="border-2 border-primary dark:border-white p-3 rounded-none flex-col bg-surface-container-lowest dark:bg-zinc-900"
+                  className="border-2 border-primary dark:border-white p-3 rounded-none flex-col bg-surface-container-lowest dark:bg-black"
                 >
                   {/* 1. Top Row: Icon Center-Aligned Vertically with Heading Text Line */}
                   <View className="flex-row items-center gap-2.5 mb-1">

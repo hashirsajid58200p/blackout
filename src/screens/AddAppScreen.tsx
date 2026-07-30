@@ -208,7 +208,7 @@ export const AddAppScreen: React.FC = () => {
             {searchQuery.trim().length > 0 && (
               <TouchableOpacity
                 onPress={handleSelectCustomApp}
-                className="p-4 border-2 border-dashed border-primary dark:border-white bg-surface-container-lowest dark:bg-zinc-900 flex-row items-center gap-3 mt-2"
+                className="p-4 border-2 border-dashed border-primary dark:border-white bg-surface-container-lowest dark:bg-black flex-row items-center gap-3 mt-2"
               >
                 <Plus size={20} color={iconColor} />
                 <View className="flex-col flex-1">
@@ -226,7 +226,7 @@ export const AddAppScreen: React.FC = () => {
 
         {/* Step 2: Time Selector */}
         {selectedApp && (
-          <View className="flex-col gap-4 mb-8 border-2 border-primary dark:border-white p-4 bg-surface-container-lowest dark:bg-zinc-900 rounded-none">
+          <View className="flex-col gap-4 mb-8 border-2 border-primary dark:border-white p-4 bg-surface-container-lowest dark:bg-black rounded-none">
             <Text className="font-bold text-xs text-secondary dark:text-zinc-400 uppercase tracking-widest">
               STEP 2 — SET DAILY ALLOWANCE
             </Text>

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState } from "react";
 import { View, Text, ScrollView, TouchableOpacity } from "react-native";
 import Svg, { Circle } from "react-native-svg";
 import { useApp } from "../context/AppContext";
@@ -14,6 +14,8 @@ export const HomeScreen: React.FC = () => {
   const isDark = effectiveTheme === "dark";
   const iconColor = isDark ? "#ffffff" : "#000000";
   const fabIconColor = isDark ? "#000000" : "#ffffff";
+
+  const [selectedAppPackage, setSelectedAppPackage] = useState<string | null>(null);
 
   const getTodayFormatted = () => {
     const options: Intl.DateTimeFormatOptions = {
@@ -34,7 +36,7 @@ export const HomeScreen: React.FC = () => {
     return `${minsRem}m`;
   };
 
-  // Compute Total Screen Time & Limits for Circular Chart
+  // Compute Total Screen Time & Limits for Circular Donut Chart
   const totalUsedTodayMs = trackedApps.reduce((acc, curr) => acc + curr.usedTodayMs, 0);
   const totalLimitTodayMs = trackedApps.reduce((acc, curr) => acc + curr.dailyLimitMs, 0);
   const overallPercent = Math.min(
@@ -43,7 +45,36 @@ export const HomeScreen: React.FC = () => {
   );
 
   const circleCircumference = 408.4;
-  const strokeOffset = circleCircumference * (1 - overallPercent / 100);
+  const overallStrokeOffset = circleCircumference * (1 - overallPercent / 100);
+
+  // Monochrome minimalist palette shades (black / white / gray spectrum)
+  const lightShades = ["#000000", "#3f3f46", "#71717a", "#a1a1aa", "#d4d4d8"];
+  const darkShades = ["#ffffff", "#e4e4e7", "#a1a1aa", "#71717a", "#52525b"];
+
+  // Compute per-app proportional segments on the circle
+  let currentAngle = -90;
+  const appSegments = trackedApps.map((app, index) => {
+    const usageFraction = totalUsedTodayMs > 0 ? app.usedTodayMs / totalUsedTodayMs : 0;
+    const strokeDash = usageFraction * (circleCircumference * (overallPercent / 100));
+    const startAngle = currentAngle;
+    currentAngle += (usageFraction * (overallPercent / 100) * 360);
+    const shadeColor = isDark
+      ? darkShades[index % darkShades.length]
+      : lightShades[index % lightShades.length];
+
+    return {
+      packageName: app.packageName,
+      appName: app.appName,
+      usedTodayMs: app.usedTodayMs,
+      dailyLimitMs: app.dailyLimitMs,
+      usageFraction,
+      strokeDash,
+      startAngle,
+      shadeColor,
+    };
+  });
+
+  const activeFocusApp = appSegments.find((a) => a.packageName === selectedAppPackage);
 
   return (
     <View className="flex-1 bg-background dark:bg-black">
@@ -65,7 +96,7 @@ export const HomeScreen: React.FC = () => {
           <TouchableOpacity
             activeOpacity={0.8}
             onPress={() => setCurrentScreen("permissions")}
-            className="border-2 border-primary dark:border-white bg-surface-container dark:bg-zinc-900 p-4 mb-6 flex-col rounded-none"
+            className="border-2 border-primary dark:border-white bg-surface-container dark:bg-black p-4 mb-6 flex-col rounded-none"
           >
             <View className="flex-row items-center gap-2.5 mb-1">
               <View className="w-5 h-5 items-center justify-center">
@@ -81,9 +112,9 @@ export const HomeScreen: React.FC = () => {
           </TouchableOpacity>
         )}
 
-        {/* Minimalist Circular Progress / Donut Chart */}
+        {/* Minimalist Multi-Segment Monochrome Donut Chart */}
         {trackedApps.length > 0 && (
-          <Card className="p-5 mb-6 items-center justify-center flex-col rounded-none">
+          <Card className="p-5 mb-6 items-center justify-center flex-col rounded-none bg-surface-container-lowest dark:bg-black">
             <View className="w-full flex-row justify-between items-center mb-4">
               <Text className="font-bold text-xs text-secondary dark:text-zinc-400 uppercase tracking-widest">
                 TODAY'S SCREEN TIME OVERVIEW
@@ -93,46 +124,102 @@ export const HomeScreen: React.FC = () => {
               </Text>
             </View>
 
-            <View className="relative w-44 h-44 items-center justify-center mb-3">
-              <Svg width={176} height={176} viewBox="0 0 160 160">
-                {/* Background Track Circle */}
+            {/* Circular SVG Chart */}
+            <View className="relative w-48 h-48 items-center justify-center mb-4">
+              <Svg width={192} height={192} viewBox="0 0 160 160">
+                {/* Track Base Circle */}
                 <Circle
                   cx="80"
                   cy="80"
                   r="65"
                   stroke={isDark ? "#27272a" : "#e4e4e7"}
-                  strokeWidth="12"
+                  strokeWidth="14"
                   fill="none"
                 />
-                {/* Active Progress Circle */}
-                <Circle
-                  cx="80"
-                  cy="80"
-                  r="65"
-                  stroke={isDark ? "#ffffff" : "#000000"}
-                  strokeWidth="12"
-                  fill="none"
-                  strokeDasharray="408.4"
-                  strokeDashoffset={strokeOffset}
-                  strokeLinecap="butt"
-                  transform="rotate(-90 80 80)"
-                />
+
+                {/* Per-App Monochrome Segments */}
+                {totalUsedTodayMs > 0 ? (
+                  appSegments.map((seg, idx) => {
+                    if (seg.usedTodayMs <= 0) return null;
+                    const isSelected = selectedAppPackage === seg.packageName;
+                    return (
+                      <Circle
+                        key={idx}
+                        cx="80"
+                        cy="80"
+                        r="65"
+                        stroke={seg.shadeColor}
+                        strokeWidth={isSelected ? "18" : "14"}
+                        fill="none"
+                        strokeDasharray={`${seg.strokeDash} ${circleCircumference - seg.strokeDash}`}
+                        strokeLinecap="butt"
+                        transform={`rotate(${seg.startAngle} 80 80)`}
+                      />
+                    );
+                  })
+                ) : (
+                  <Circle
+                    cx="80"
+                    cy="80"
+                    r="65"
+                    stroke={isDark ? "#ffffff" : "#000000"}
+                    strokeWidth="14"
+                    fill="none"
+                    strokeDasharray="408.4"
+                    strokeDashoffset={overallStrokeOffset}
+                    strokeLinecap="butt"
+                    transform="rotate(-90 80 80)"
+                  />
+                )}
               </Svg>
 
-              {/* Center Text Label inside Circle */}
-              <View className="absolute items-center justify-center">
-                <Text className="font-bold text-2xl text-primary dark:text-white">
-                  {formatMs(totalUsedTodayMs)}
+              {/* Center Text inside Donut Circle */}
+              <View className="absolute items-center justify-center pointer-events-none px-2 text-center">
+                <Text numberOfLines={1} className="font-bold text-2xl text-primary dark:text-white">
+                  {activeFocusApp ? formatMs(activeFocusApp.usedTodayMs) : formatMs(totalUsedTodayMs)}
                 </Text>
-                <Text className="font-bold text-[10px] text-secondary dark:text-zinc-400 uppercase tracking-widest mt-0.5">
-                  SCREEN TIME
+                <Text numberOfLines={1} className="font-bold text-[10px] text-secondary dark:text-zinc-400 uppercase tracking-widest mt-0.5 max-w-[110px] text-center">
+                  {activeFocusApp ? activeFocusApp.appName : "SCREEN TIME"}
                 </Text>
               </View>
             </View>
 
-            <Text className="text-xs font-bold text-secondary dark:text-zinc-400 uppercase text-center tracking-wider">
-              {formatMs(totalUsedTodayMs)} / {formatMs(totalLimitTodayMs)} TOTAL ALLOWANCE
-            </Text>
+            {/* App Usage Segment Legend Breakdown */}
+            <View className="w-full flex-col gap-2 pt-2 border-t border-primary/20 dark:border-white/20">
+              <Text className="text-[10px] font-bold text-secondary dark:text-zinc-500 uppercase tracking-widest mb-1">
+                APP USAGE BREAKDOWN (TAP TO HIGHLIGHT)
+              </Text>
+              {appSegments.map((seg) => {
+                const percentOfTotal = totalUsedTodayMs > 0
+                  ? Math.round((seg.usedTodayMs / totalUsedTodayMs) * 100)
+                  : 0;
+                const isSelected = selectedAppPackage === seg.packageName;
+
+                return (
+                  <TouchableOpacity
+                    key={seg.packageName}
+                    activeOpacity={0.8}
+                    onPress={() => setSelectedAppPackage(isSelected ? null : seg.packageName)}
+                    className={`flex-row justify-between items-center py-1.5 px-2 border ${
+                      isSelected
+                        ? "border-primary dark:border-white bg-primary/10 dark:bg-white/10"
+                        : "border-transparent"
+                    }`}
+                  >
+                    <View className="flex-row items-center gap-2 flex-1 pr-2">
+                      <View style={{ backgroundColor: seg.shadeColor }} className="w-3.5 h-3.5 rounded-none border border-primary dark:border-white" />
+                      <Text numberOfLines={1} className="font-bold text-xs text-primary dark:text-white uppercase flex-1">
+                        {seg.appName}
+                      </Text>
+                    </View>
+
+                    <Text className="font-bold text-xs text-secondary dark:text-zinc-300 uppercase">
+                      {formatMs(seg.usedTodayMs)} ({percentOfTotal}%)
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
           </Card>
         )}
 

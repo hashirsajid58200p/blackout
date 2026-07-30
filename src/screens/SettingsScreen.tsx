@@ -83,7 +83,7 @@ export const SettingsScreen: React.FC = () => {
             AUTOMATION & CLEANUP
           </Text>
 
-          <View className="border-2 border-primary dark:border-white p-4 bg-surface-container-lowest dark:bg-zinc-900 flex-col rounded-none">
+          <View className="border-2 border-primary dark:border-white p-4 bg-surface-container-lowest dark:bg-black flex-col rounded-none">
             {/* Top Row: Icon Center-Aligned Vertically with Heading */}
             <View className="flex-row items-center gap-2.5 mb-1.5">
               <View className="w-5 h-5 items-center justify-center">
@@ -97,8 +97,8 @@ export const SettingsScreen: React.FC = () => {
               </Text>
             </View>
 
-            {/* Description Paragraph: Left-aligned at 30px offset */}
-            <Text className="text-xs text-secondary dark:text-zinc-400 ml-[30px] leading-4 mb-3">
+            {/* Description Paragraph: Full-width aligned */}
+            <Text className="text-xs text-secondary dark:text-zinc-400 leading-4 mb-3">
               Automatically delete app lock profiles if the app is uninstalled from your phone
             </Text>
 
@@ -172,7 +172,7 @@ export const SettingsScreen: React.FC = () => {
           <TouchableOpacity
             activeOpacity={0.8}
             onPress={() => setCurrentScreen("permissions")}
-            className="border-2 border-primary dark:border-white bg-surface-container-lowest dark:bg-zinc-900 p-4 flex-col rounded-none"
+            className="border-2 border-primary dark:border-white bg-surface-container-lowest dark:bg-black p-4 flex-col rounded-none"
           >
             <View className="flex-row items-center gap-2.5 mb-1.5">
               <View className="w-5 h-5 items-center justify-center">
