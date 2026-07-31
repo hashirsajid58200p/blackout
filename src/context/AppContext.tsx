@@ -62,11 +62,23 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     settings.themeMode === "system" ? sysScheme : settings.themeMode;
 
   // ── Listen to live OS dark/light changes ────────────────────────────────────
+  // Appearance.addChangeListener doesn't fire on all Android devices (e.g. Infinix),
+  // so we also poll Appearance.getColorScheme() every second as a fallback.
   useEffect(() => {
     const subscription = Appearance.addChangeListener(({ colorScheme }) => {
       setSysScheme(colorScheme === "dark" ? "dark" : "light");
     });
-    return () => subscription.remove();
+
+    const interval = setInterval(() => {
+      const current = Appearance.getColorScheme();
+      const next: "light" | "dark" = current === "dark" ? "dark" : "light";
+      setSysScheme((prev) => (prev !== next ? next : prev));
+    }, 1000);
+
+    return () => {
+      subscription.remove();
+      clearInterval(interval);
+    };
   }, []);
 
   // ── Keep NativeWind colour-scheme in sync with effectiveTheme ───────────────
