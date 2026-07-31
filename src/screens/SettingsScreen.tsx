@@ -97,8 +97,8 @@ export const SettingsScreen: React.FC = () => {
               </Text>
             </View>
 
-            {/* 2. Description Paragraph: Full-width aligned */}
-            <Text className="text-xs text-secondary dark:text-zinc-400 leading-4 mb-3">
+            {/* 2. Description Paragraph: Left-aligned with heading text (30px offset) */}
+            <Text className="text-xs text-secondary dark:text-zinc-400 ml-[30px] leading-4 mb-3">
               Automatically delete app lock profiles if the app is uninstalled from your phone
             </Text>
 
