@@ -57,8 +57,21 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
 
     @ReactMethod
     fun hasAccessibilityPermission(promise: Promise) {
-        val isServiceRunning = BlackoutAccessibilityService.instance != null
-        promise.resolve(isServiceRunning)
+        try {
+            if (BlackoutAccessibilityService.instance != null) {
+                promise.resolve(true)
+                return
+            }
+            val contentResolver = reactApplicationContext.contentResolver
+            val enabledServices = Settings.Secure.getString(contentResolver, Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES)
+            val isEnabled = enabledServices != null && (
+                enabledServices.contains("BlackoutAccessibilityService") ||
+                enabledServices.contains(reactApplicationContext.packageName)
+            )
+            promise.resolve(isEnabled)
+        } catch (e: Exception) {
+            promise.resolve(false)
+        }
     }
 
     @ReactMethod

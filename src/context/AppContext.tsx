@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
-import { useColorScheme as useRNColorScheme } from "react-native";
+import { Appearance } from "react-native";
 import { useColorScheme } from "nativewind";
 import { TrackedApp, Settings } from "../types";
 import { StorageService } from "../services/storage";
@@ -41,9 +41,11 @@ interface AppContextType {
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const systemColorScheme = useRNColorScheme() || "light";
   const { setColorScheme } = useColorScheme();
 
+  const [sysScheme, setSysScheme] = useState<"light" | "dark">(
+    Appearance.getColorScheme() === "dark" ? "dark" : "light"
+  );
   const [currentScreen, setCurrentScreen] = useState<ScreenType>("home");
   const [trackedApps, setTrackedApps] = useState<TrackedApp[]>([]);
   const [settings, setSettings] = useState<Settings>({ themeMode: "system", autoCleanUninstalled: true });
@@ -54,17 +56,21 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   });
   const [activeBlockApp, setActiveBlockApp] = useState<TrackedApp | null>(null);
 
+  // Listen to live Android system color scheme changes
+  useEffect(() => {
+    const subscription = Appearance.addChangeListener(({ colorScheme }) => {
+      setSysScheme(colorScheme === "dark" ? "dark" : "light");
+    });
+    return () => subscription.remove();
+  }, []);
+
   // Compute effective theme based on Settings preference or System
   const effectiveTheme: "light" | "dark" =
-    settings.themeMode === "system"
-      ? systemColorScheme === "dark"
-        ? "dark"
-        : "light"
-      : settings.themeMode;
+    settings.themeMode === "system" ? sysScheme : settings.themeMode;
 
   useEffect(() => {
     setColorScheme(effectiveTheme);
-  }, [effectiveTheme, systemColorScheme, settings.themeMode, setColorScheme]);
+  }, [effectiveTheme, sysScheme, settings.themeMode, setColorScheme]);
 
   const refreshPermissions = useCallback(async (): Promise<boolean> => {
     const usageStats = await NativeBridge.checkUsageStatsPermission();
