@@ -1,6 +1,7 @@
 package com.blackout.app
 
 import android.app.AppOpsManager
+import android.app.usage.UsageEvents
 import android.app.usage.UsageStatsManager
 import android.content.Context
 import android.content.Intent
@@ -93,26 +94,46 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
 
     @ReactMethod
     fun getTodayUsage(packageName: String, promise: Promise) {
-        val usageStatsManager = reactApplicationContext.getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
-        val calendar = Calendar.getInstance().apply {
-            set(Calendar.HOUR_OF_DAY, 0)
-            set(Calendar.MINUTE, 0)
-            set(Calendar.SECOND, 0)
-            set(Calendar.MILLISECOND, 0)
-        }
-        val startTime = calendar.timeInMillis
-        val endTime = System.currentTimeMillis()
+        try {
+            val usageStatsManager = reactApplicationContext.getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
+            val calendar = Calendar.getInstance().apply {
+                set(Calendar.HOUR_OF_DAY, 0)
+                set(Calendar.MINUTE, 0)
+                set(Calendar.SECOND, 0)
+                set(Calendar.MILLISECOND, 0)
+            }
+            val startTime = calendar.timeInMillis
+            val endTime = System.currentTimeMillis()
 
-        val stats = usageStatsManager.queryUsageStats(UsageStatsManager.INTERVAL_DAILY, startTime, endTime)
-        var totalTimeMs = 0L
-        if (stats != null) {
-            for (usageStat in stats) {
-                if (usageStat.packageName == packageName) {
-                    totalTimeMs += usageStat.totalTimeInForeground
+            val statsMap = usageStatsManager.queryAndAggregateUsageStats(startTime, endTime)
+            var totalTimeMs = statsMap[packageName]?.totalTimeInForeground ?: 0L
+
+            val events = usageStatsManager.queryEvents(startTime, endTime)
+            val event = UsageEvents.Event()
+            var lastResumed = 0L
+            var eventTotal = 0L
+
+            while (events.hasNextEvent()) {
+                events.getNextEvent(event)
+                if (event.packageName == packageName) {
+                    if (event.eventType == UsageEvents.Event.ACTIVITY_RESUMED || event.eventType == 1) {
+                        lastResumed = event.timeStamp
+                    } else if ((event.eventType == UsageEvents.Event.ACTIVITY_PAUSED || event.eventType == 2) && lastResumed > 0) {
+                        eventTotal += (event.timeStamp - lastResumed)
+                        lastResumed = 0L
+                    }
                 }
             }
+
+            if (lastResumed > 0) {
+                eventTotal += (endTime - lastResumed)
+            }
+
+            totalTimeMs = Math.max(totalTimeMs, eventTotal)
+            promise.resolve(totalTimeMs.toDouble())
+        } catch (e: Exception) {
+            promise.resolve(0.0)
         }
-        promise.resolve(totalTimeMs.toDouble())
     }
 
     @ReactMethod
@@ -163,7 +184,6 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
                 }
             }
 
-            // Fallback for any user app with launch intent missed by queryIntentActivities
             try {
                 val installedAppsList = pm.getInstalledApplications(0)
                 for (appInfo in installedAppsList) {
@@ -237,57 +257,103 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
         try {
             val usageStatsManager = reactApplicationContext.getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
             val pm = reactApplicationContext.packageManager
-            val calendar = Calendar.getInstance()
-            calendar.add(Calendar.DAY_OF_YEAR, dayOffset)
-            calendar.set(Calendar.HOUR_OF_DAY, 0)
-            calendar.set(Calendar.MINUTE, 0)
-            calendar.set(Calendar.SECOND, 0)
-            calendar.set(Calendar.MILLISECOND, 0)
-            val startTime = calendar.timeInMillis
-            val endTime = startTime + (24 * 3600 * 1000) - 1
 
-            val stats = usageStatsManager.queryUsageStats(UsageStatsManager.INTERVAL_DAILY, startTime, endTime)
-            val array = WritableNativeArray()
+            val calendar = Calendar.getInstance().apply {
+                add(Calendar.DAY_OF_YEAR, dayOffset)
+                set(Calendar.HOUR_OF_DAY, 0)
+                set(Calendar.MINUTE, 0)
+                set(Calendar.SECOND, 0)
+                set(Calendar.MILLISECOND, 0)
+            }
+            val startTime = calendar.timeInMillis
+            val endTime = if (dayOffset == 0) System.currentTimeMillis() else (startTime + (24 * 3600 * 1000) - 1)
+
             val packageUsageMap = mutableMapOf<String, Long>()
 
-            if (stats != null) {
-                for (stat in stats) {
-                    if (stat.totalTimeInForeground > 0) {
-                        val current = packageUsageMap.getOrDefault(stat.packageName, 0L)
-                        packageUsageMap[stat.packageName] = Math.max(current, stat.totalTimeInForeground)
+            // 1. Query aggregated usage stats
+            try {
+                val aggregateStats = usageStatsManager.queryAndAggregateUsageStats(startTime, endTime)
+                if (aggregateStats != null) {
+                    for ((pkg, stat) in aggregateStats) {
+                        if (stat.totalTimeInForeground > 0) {
+                            packageUsageMap[pkg] = stat.totalTimeInForeground
+                        }
                     }
                 }
-            }
+            } catch (e: Exception) {}
 
-            val systemIgnores = setOf(
+            // 2. Query UsageEvents to get exact active foreground sessions matching Digital Wellbeing
+            try {
+                val events = usageStatsManager.queryEvents(startTime, endTime)
+                val eventMap = mutableMapOf<String, Long>()
+                val lastResumedTimeMap = mutableMapOf<String, Long>()
+                val event = UsageEvents.Event()
+
+                while (events.hasNextEvent()) {
+                    events.getNextEvent(event)
+                    val pkg = event.packageName
+                    if (event.eventType == UsageEvents.Event.ACTIVITY_RESUMED || event.eventType == 1) {
+                        lastResumedTimeMap[pkg] = event.timeStamp
+                    } else if (event.eventType == UsageEvents.Event.ACTIVITY_PAUSED || event.eventType == UsageEvents.Event.ACTIVITY_STOPPED || event.eventType == 2) {
+                        val lastResumed = lastResumedTimeMap[pkg]
+                        if (lastResumed != null && lastResumed > 0) {
+                            val duration = event.timeStamp - lastResumed
+                            if (duration in 1..86400000) {
+                                eventMap[pkg] = (eventMap[pkg] ?: 0L) + duration
+                            }
+                            lastResumedTimeMap.remove(pkg)
+                        }
+                    }
+                }
+
+                for ((pkg, resumedTime) in lastResumedTimeMap) {
+                    val duration = endTime - resumedTime
+                    if (duration in 1..86400000) {
+                        eventMap[pkg] = (eventMap[pkg] ?: 0L) + duration
+                    }
+                }
+
+                for ((pkg, timeMs) in eventMap) {
+                    val existing = packageUsageMap[pkg] ?: 0L
+                    packageUsageMap[pkg] = Math.max(existing, timeMs)
+                }
+            } catch (e: Exception) {}
+
+            val array = WritableNativeArray()
+            val selfPkg = reactApplicationContext.packageName
+
+            val hiddenSystemPkgs = setOf(
                 "com.android.systemui",
                 "android",
                 "com.google.android.inputmethod.latin",
-                reactApplicationContext.packageName
+                "com.android.providers.media.module"
             )
 
             for ((pkg, timeMs) in packageUsageMap.entries) {
-                if (systemIgnores.contains(pkg) || pkg.contains("launcher") || pkg.contains("systemui")) continue
+                if (timeMs < 1000 || hiddenSystemPkgs.contains(pkg)) continue
+
+                var appName = pkg
                 try {
                     val appInfo = pm.getApplicationInfo(pkg, 0)
-                    if (pm.getLaunchIntentForPackage(pkg) == null) continue
-                    val appName = pm.getApplicationLabel(appInfo).toString()
-                    val map = WritableNativeMap().apply {
-                        putString("packageName", pkg)
-                        putString("appName", appName)
-                        putDouble("usedMs", timeMs.toDouble())
-                    }
-                    array.pushMap(map)
+                    appName = pm.getApplicationLabel(appInfo).toString()
                 } catch (e: Exception) {
-                    // skip
+                    appName = pkg.substringAfterLast('.')
                 }
+
+                val map = WritableNativeMap().apply {
+                    putString("packageName", pkg)
+                    putString("appName", appName)
+                    putDouble("usedMs", timeMs.toDouble())
+                }
+                array.pushMap(map)
             }
+
             promise.resolve(array)
         } catch (e: Exception) {
             promise.reject("DAY_STATS_ERROR", e.message)
         }
     }
-
+}
     @ReactMethod
     fun uninstallPackage(packageName: String, promise: Promise) {
         try {

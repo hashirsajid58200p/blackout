@@ -21,16 +21,22 @@ export const HomeScreen: React.FC = () => {
 
   useEffect(() => {
     let isMounted = true;
-    NativeBridge.getDayUsageStats(0)
-      .then((stats) => {
-        if (isMounted && Array.isArray(stats)) {
-          setDeviceUsage(stats);
-        }
-      })
-      .catch(() => {});
+    const loadUsage = () => {
+      NativeBridge.getDayUsageStats(0)
+        .then((stats) => {
+          if (isMounted && Array.isArray(stats)) {
+            setDeviceUsage(stats);
+          }
+        })
+        .catch(() => {});
+    };
+
+    loadUsage();
+    const interval = setInterval(loadUsage, 5000);
 
     return () => {
       isMounted = false;
+      clearInterval(interval);
     };
   }, []);
 
