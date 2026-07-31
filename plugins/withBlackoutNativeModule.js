@@ -75,9 +75,38 @@ const withBlackoutNativeModule = (config) => {
         "res",
         "xml"
       );
+      const resValuesDir = path.join(
+        projectRoot,
+        "android",
+        "app",
+        "src",
+        "main",
+        "res",
+        "values"
+      );
 
       fs.mkdirSync(androidSrcDir, { recursive: true });
       fs.mkdirSync(resXmlDir, { recursive: true });
+      fs.mkdirSync(resValuesDir, { recursive: true });
+
+      // Ensure accessibility_service_description string exists in strings.xml
+      const stringsXmlPath = path.join(resValuesDir, "strings.xml");
+      const descString = `<string name="accessibility_service_description">Used by Blackout to detect foreground app launches and enforce app lock limits.</string>`;
+      if (fs.existsSync(stringsXmlPath)) {
+        let existingContent = fs.readFileSync(stringsXmlPath, "utf8");
+        if (!existingContent.includes("accessibility_service_description")) {
+          existingContent = existingContent.replace(
+            "</resources>",
+            `    ${descString}\n</resources>`
+          );
+          fs.writeFileSync(stringsXmlPath, existingContent);
+        }
+      } else {
+        fs.writeFileSync(
+          stringsXmlPath,
+          `<?xml version="1.0" encoding="utf-8"?>\n<resources>\n    <string name="app_name">Blackout</string>\n    ${descString}\n</resources>`
+        );
+      }
 
       // Create accessibility_service_config.xml
       const xmlContent = `<?xml version="1.0" encoding="utf-8"?>
@@ -225,7 +254,7 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
     }
 
     @ReactMethod
-    def setLockedPackages(packagesList: ReadableArray) {
+    fun setLockedPackages(packagesList: ReadableArray) {
         val set = mutableSetOf<String>()
         for (i in 0 until packagesList.size()) {
             packagesList.getString(i)?.let { set.add(it) }
@@ -234,7 +263,7 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
     }
 
     @ReactMethod
-    def getTodayUsage(packageName: String, promise: Promise) {
+    fun getTodayUsage(packageName: String, promise: Promise) {
         val usageStatsManager = reactApplicationContext.getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
         val calendar = Calendar.getInstance().apply {
             set(Calendar.HOUR_OF_DAY, 0)

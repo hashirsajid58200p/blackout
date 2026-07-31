@@ -70,7 +70,7 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
     }
 
     @ReactMethod
-    def setLockedPackages(packagesList: ReadableArray) {
+    fun setLockedPackages(packagesList: ReadableArray) {
         val set = mutableSetOf<String>()
         for (i in 0 until packagesList.size()) {
             packagesList.getString(i)?.let { set.add(it) }
@@ -79,7 +79,7 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
     }
 
     @ReactMethod
-    def getTodayUsage(packageName: String, promise: Promise) {
+    fun getTodayUsage(packageName: String, promise: Promise) {
         val usageStatsManager = reactApplicationContext.getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
         val calendar = Calendar.getInstance().apply {
             set(Calendar.HOUR_OF_DAY, 0)
