@@ -107,8 +107,7 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
             val startTime = calendar.timeInMillis
             val endTime = System.currentTimeMillis()
 
-            val statsMap = usageStatsManager.queryAndAggregateUsageStats(startTime, endTime)
-            var totalTimeMs = statsMap[packageName]?.totalTimeInForeground ?: 0L
+            var totalTimeMs = 0L
 
             val events = usageStatsManager.queryEvents(startTime, endTime)
             val event = UsageEvents.Event()
@@ -131,7 +130,7 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
                 eventTotal += (endTime - lastResumed)
             }
 
-            totalTimeMs = Math.max(totalTimeMs, eventTotal)
+            totalTimeMs = eventTotal
             promise.resolve(totalTimeMs.toDouble())
         } catch (e: Exception) {
             promise.resolve(0.0)
@@ -328,17 +327,8 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
 
             val packageUsageMap = mutableMapOf<String, Long>()
 
-            // Step 2: Query aggregated usage stats
-            try {
-                val aggregateStats = usageStatsManager.queryAndAggregateUsageStats(startTime, endTime)
-                if (aggregateStats != null) {
-                    for ((pkg, stat) in aggregateStats) {
-                        if (stat.totalTimeInForeground > 0 && validPackages.containsKey(pkg)) {
-                            packageUsageMap[pkg] = stat.totalTimeInForeground
-                        }
-                    }
-                }
-            } catch (e: Exception) {}
+            // queryAndAggregateUsageStats removed due to UTC bounds timezone inaccuracy.
+            // We solely rely on precise local UsageEvents.
 
             // Step 3: Query UsageEvents for exact session precision
             try {
