@@ -17,6 +17,8 @@
       "bundleIdentifier": "com.blackout.app"
     },
     "android": {
+      "compileSdkVersion": 35,
+      "targetSdkVersion": 35,
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#000000"
