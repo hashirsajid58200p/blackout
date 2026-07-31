@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
-import { Appearance } from "react-native";
-import { useColorScheme } from "nativewind";
+import { useColorScheme as useRNColorScheme } from "react-native";
+import { useColorScheme as useNativeWindColorScheme } from "nativewind";
 import { TrackedApp, Settings } from "../types";
 import { StorageService } from "../services/storage";
 import { NativeBridge, NativePermissionsStatus } from "../services/nativeBridge";
@@ -41,11 +41,10 @@ interface AppContextType {
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const { setColorScheme } = useColorScheme();
+  const { setColorScheme } = useNativeWindColorScheme();
+  const rnColorScheme = useRNColorScheme();
+  const sysScheme: "light" | "dark" = rnColorScheme === "dark" ? "dark" : "light";
 
-  const [sysScheme, setSysScheme] = useState<"light" | "dark">(
-    Appearance.getColorScheme() === "dark" ? "dark" : "light"
-  );
   const [currentScreen, setCurrentScreen] = useState<ScreenType>("home");
   const [trackedApps, setTrackedApps] = useState<TrackedApp[]>([]);
   const [settings, setSettings] = useState<Settings>({ themeMode: "system", autoCleanUninstalled: true });
@@ -56,21 +55,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   });
   const [activeBlockApp, setActiveBlockApp] = useState<TrackedApp | null>(null);
 
-  // Listen to live Android system color scheme changes
-  useEffect(() => {
-    const subscription = Appearance.addChangeListener(({ colorScheme }) => {
-      setSysScheme(colorScheme === "dark" ? "dark" : "light");
-    });
-    return () => subscription.remove();
-  }, []);
-
   // Compute effective theme based on Settings preference or System
   const effectiveTheme: "light" | "dark" =
     settings.themeMode === "system" ? sysScheme : settings.themeMode;
 
   useEffect(() => {
     setColorScheme(effectiveTheme);
-  }, [effectiveTheme, sysScheme, settings.themeMode, setColorScheme]);
+  }, [effectiveTheme, setColorScheme]);
 
   const refreshPermissions = useCallback(async (): Promise<boolean> => {
     const usageStats = await NativeBridge.checkUsageStatsPermission();
@@ -174,7 +165,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const newSettings = { ...settings, themeMode: mode };
     setSettings(newSettings);
     await StorageService.saveSettings(newSettings);
-    const targetTheme = mode === "system" ? systemColorScheme : mode;
+    const targetTheme = mode === "system" ? sysScheme : mode;
     setColorScheme(targetTheme);
   };
 
@@ -221,7 +212,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         addTrackedApp,
         activeBlockApp,
         setActiveBlockApp,
-        colorScheme: systemColorScheme,
+        colorScheme: sysScheme,
         effectiveTheme,
         refreshData,
       }}

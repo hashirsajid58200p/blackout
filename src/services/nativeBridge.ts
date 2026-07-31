@@ -9,6 +9,12 @@ export interface NativePermissionsStatus {
   accessibility: boolean;
 }
 
+let mockPermissions: NativePermissionsStatus = {
+  usageStats: false,
+  overlay: false,
+  accessibility: false,
+};
+
 export const NativeBridge = {
   async checkUsageStatsPermission(): Promise<boolean> {
     if (Platform.OS === "android" && BlackoutModule?.hasUsageStatsPermission) {
@@ -18,7 +24,7 @@ export const NativeBridge = {
         return false;
       }
     }
-    return false;
+    return mockPermissions.usageStats;
   },
 
   openUsageStatsSettings(): void {
@@ -29,6 +35,8 @@ export const NativeBridge = {
         IntentLauncher.startActivityAsync("android.settings.USAGE_ACCESS_SETTINGS").catch(() => {});
       }
     }
+    // Always toggle mock state to allow testing in Expo Go / simulator / web
+    mockPermissions.usageStats = !mockPermissions.usageStats;
   },
 
   async checkOverlayPermission(): Promise<boolean> {
@@ -39,7 +47,7 @@ export const NativeBridge = {
         return false;
       }
     }
-    return false;
+    return mockPermissions.overlay;
   },
 
   openOverlaySettings(): void {
@@ -50,6 +58,8 @@ export const NativeBridge = {
         IntentLauncher.startActivityAsync("android.settings.action.MANAGE_OVERLAY_PERMISSION").catch(() => {});
       }
     }
+    // Always toggle mock state to allow testing in Expo Go / simulator / web
+    mockPermissions.overlay = !mockPermissions.overlay;
   },
 
   async checkAccessibilityPermission(): Promise<boolean> {
@@ -60,7 +70,7 @@ export const NativeBridge = {
         return false;
       }
     }
-    return false;
+    return mockPermissions.accessibility;
   },
 
   openAccessibilitySettings(): void {
@@ -71,6 +81,8 @@ export const NativeBridge = {
         IntentLauncher.startActivityAsync("android.settings.ACCESSIBILITY_SETTINGS").catch(() => {});
       }
     }
+    // Always toggle mock state to allow testing in Expo Go / simulator / web
+    mockPermissions.accessibility = !mockPermissions.accessibility;
   },
 
   syncLockedPackages(packageNames: string[]): void {

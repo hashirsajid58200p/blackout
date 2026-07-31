@@ -203,13 +203,22 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
 
     @ReactMethod
     fun hasUsageStatsPermission(promise: Promise) {
-        val appOps = reactApplicationContext.getSystemService(Context.APP_OPS_SERVICE) as AppOpsManager
-        val mode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
-            appOps.unsafeCheckOpNoThrow(AppOpsManager.OPSTR_GET_USAGE_STATS, Process.myUid(), reactApplicationContext.packageName)
-        } else {
-            appOps.checkOpNoThrow(AppOpsManager.OPSTR_GET_USAGE_STATS, Process.myUid(), reactApplicationContext.packageName)
+        try {
+            val appOps = reactApplicationContext.getSystemService(Context.APP_OPS_SERVICE) as AppOpsManager
+            val mode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                appOps.unsafeCheckOpNoThrow(AppOpsManager.OPSTR_GET_USAGE_STATS, Process.myUid(), reactApplicationContext.packageName)
+            } else {
+                appOps.checkOpNoThrow(AppOpsManager.OPSTR_GET_USAGE_STATS, Process.myUid(), reactApplicationContext.packageName)
+            }
+            if (mode == AppOpsManager.MODE_ALLOWED) {
+                promise.resolve(true)
+                return
+            }
+            val mode2 = appOps.checkOpNoThrow(AppOpsManager.OPSTR_GET_USAGE_STATS, Process.myUid(), reactApplicationContext.packageName)
+            promise.resolve(mode2 == AppOpsManager.MODE_ALLOWED)
+        } catch (e: Exception) {
+            promise.resolve(false)
         }
-        promise.resolve(mode == AppOpsManager.MODE_ALLOWED)
     }
 
     @ReactMethod
@@ -248,9 +257,10 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
             }
             val contentResolver = reactApplicationContext.contentResolver
             val enabledServices = Settings.Secure.getString(contentResolver, Settings.Secure.ENABLED_ACCESSIBILITY_SERVICES)
+            val pkgName = reactApplicationContext.packageName
             val isEnabled = enabledServices != null && (
-                enabledServices.contains("BlackoutAccessibilityService") ||
-                enabledServices.contains(reactApplicationContext.packageName)
+                enabledServices.contains("BlackoutAccessibilityService", ignoreCase = true) ||
+                enabledServices.contains(pkgName, ignoreCase = true)
             )
             promise.resolve(isEnabled)
         } catch (e: Exception) {
