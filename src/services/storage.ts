@@ -78,19 +78,12 @@ export const StorageService = {
       const data = await AsyncStorage.getItem(TRACKED_APPS_KEY);
       if (data) {
         const apps: TrackedApp[] = JSON.parse(data);
-        const resetApps = await StorageService.applyMidnightResetIfNeeded(apps);
-        const totalUsage = resetApps.reduce((sum, a) => sum + a.usedTodayMs, 0);
-        if (resetApps.length >= 2 && totalUsage > 0) {
-          return resetApps;
-        }
+        return await StorageService.applyMidnightResetIfNeeded(apps);
       }
-      // Populate rich demo apps on initial load
-      await StorageService.saveTrackedApps(DEMO_APPS);
-      return DEMO_APPS;
     } catch (e) {
       console.error("Error reading tracked apps", e);
     }
-    return DEMO_APPS;
+    return [];
   },
 
   async saveTrackedApps(apps: TrackedApp[]): Promise<void> {

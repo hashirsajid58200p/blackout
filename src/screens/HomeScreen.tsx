@@ -36,21 +36,7 @@ export const HomeScreen: React.FC = () => {
     return `${minsRem}m`;
   };
 
-  // Demo fallback apps to ensure Home Screen is ALWAYS populated with live usage metrics & donut chart data
-  const DEMO_FALLBACK_APPS = [
-    { packageName: "com.instagram.android", appName: "INSTAGRAM", dailyLimitMs: 2 * 3600 * 1000, usedTodayMs: 1 * 3600 * 1000 + 45 * 60 * 1000, isLocked: false },
-    { packageName: "com.google.android.youtube", appName: "YOUTUBE", dailyLimitMs: 2 * 3600 * 1000, usedTodayMs: 2 * 3600 * 1000 + 15 * 60 * 1000, isLocked: true },
-    { packageName: "com.zhiliaoapp.musically", appName: "TIKTOK", dailyLimitMs: 1 * 3600 * 1000 + 30 * 60 * 1000, usedTodayMs: 45 * 60 * 1000, isLocked: false },
-    { packageName: "com.whatsapp", appName: "WHATSAPP", dailyLimitMs: 1 * 3600 * 1000, usedTodayMs: 20 * 60 * 1000, isLocked: false },
-  ];
-
-  // Guarantee activeApps has real or demo usage metrics
-  const activeApps = trackedApps.length > 0
-    ? trackedApps.map((a, idx) => ({
-        ...a,
-        usedTodayMs: a.usedTodayMs > 0 ? a.usedTodayMs : DEMO_FALLBACK_APPS[idx % DEMO_FALLBACK_APPS.length].usedTodayMs,
-      }))
-    : DEMO_FALLBACK_APPS;
+  const activeApps = trackedApps;
 
   // Compute Total Screen Time & Limits for Circular Donut Chart
   const totalUsedTodayMs = activeApps.reduce((acc, curr) => acc + curr.usedTodayMs, 0);
