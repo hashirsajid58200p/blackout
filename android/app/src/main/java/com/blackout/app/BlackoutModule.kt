@@ -111,6 +111,7 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
 
             val events = usageStatsManager.queryEvents(startTime, endTime)
             val event = UsageEvents.Event()
+            var eventTotal = 0L
             var currentPkg: String? = null
             var currentStart = 0L
 
@@ -351,6 +352,7 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
             try {
                 val events = usageStatsManager.queryEvents(startTime, endTime)
                 val eventMap = mutableMapOf<String, Long>()
+                val event = UsageEvents.Event()
                 var currentPkg: String? = null
                 var currentStart = 0L
 
