@@ -56,11 +56,15 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // Compute effective theme based on Settings preference or System
   const effectiveTheme: "light" | "dark" =
-    settings.themeMode === "system" ? systemColorScheme : settings.themeMode;
+    settings.themeMode === "system"
+      ? systemColorScheme === "dark"
+        ? "dark"
+        : "light"
+      : settings.themeMode;
 
   useEffect(() => {
     setColorScheme(effectiveTheme);
-  }, [effectiveTheme, setColorScheme]);
+  }, [effectiveTheme, systemColorScheme, settings.themeMode, setColorScheme]);
 
   const refreshPermissions = useCallback(async (): Promise<boolean> => {
     const usageStats = await NativeBridge.checkUsageStatsPermission();

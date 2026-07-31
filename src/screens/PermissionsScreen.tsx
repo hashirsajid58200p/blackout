@@ -1,5 +1,5 @@
-import React, { useEffect, useState } from "react";
-import { View, Text, ScrollView, TouchableOpacity, StatusBar, Platform } from "react-native";
+import React, { useEffect } from "react";
+import { View, Text, ScrollView, TouchableOpacity, StatusBar, Platform, AppState } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useApp } from "../context/AppContext";
 import { NativeBridge } from "../services/nativeBridge";
@@ -18,40 +18,41 @@ export const PermissionsScreen: React.FC = () => {
       ? Math.max(insets.top, StatusBar.currentHeight || 0) + 12
       : Math.max(insets.top, 16);
 
-  // Dev state override for testing in Expo Go
-  const [devGranted, setDevGranted] = useState({
-    usageStats: false,
-    overlay: false,
-    accessibility: false,
-  });
-
   useEffect(() => {
     refreshPermissions();
+
+    const subscription = AppState.addEventListener("change", (nextAppState) => {
+      if (nextAppState === "active") {
+        refreshPermissions();
+      }
+    });
+
     const interval = setInterval(() => {
       refreshPermissions();
-    }, 2000);
-    return () => clearInterval(interval);
+    }, 1500);
+
+    return () => {
+      subscription.remove();
+      clearInterval(interval);
+    };
   }, [refreshPermissions]);
 
-  const isUsageStatsGranted = permissions.usageStats || devGranted.usageStats;
-  const isOverlayGranted = permissions.overlay || devGranted.overlay;
-  const isAccessibilityGranted = permissions.accessibility || devGranted.accessibility;
+  const isUsageStatsGranted = permissions.usageStats;
+  const isOverlayGranted = permissions.overlay;
+  const isAccessibilityGranted = permissions.accessibility;
 
   const allGranted = isUsageStatsGranted && isOverlayGranted && isAccessibilityGranted;
 
   const handleGrantUsageStats = () => {
     NativeBridge.openUsageStatsSettings();
-    setDevGranted((prev) => ({ ...prev, usageStats: true }));
   };
 
   const handleGrantOverlay = () => {
     NativeBridge.openOverlaySettings();
-    setDevGranted((prev) => ({ ...prev, overlay: true }));
   };
 
   const handleGrantAccessibility = () => {
     NativeBridge.openAccessibilitySettings();
-    setDevGranted((prev) => ({ ...prev, accessibility: true }));
   };
 
   const permissionItems = [
