@@ -9,7 +9,8 @@ export interface NativePermissionsStatus {
   accessibility: boolean;
 }
 
-let mockPermissions: NativePermissionsStatus = {
+// Web / Simulator mock state ONLY (never used on real Android)
+let webMockPermissions: NativePermissionsStatus = {
   usageStats: false,
   overlay: false,
   accessibility: false,
@@ -17,14 +18,17 @@ let mockPermissions: NativePermissionsStatus = {
 
 export const NativeBridge = {
   async checkUsageStatsPermission(): Promise<boolean> {
-    if (Platform.OS === "android" && BlackoutModule?.hasUsageStatsPermission) {
-      try {
-        return await BlackoutModule.hasUsageStatsPermission();
-      } catch {
-        return false;
+    if (Platform.OS === "android") {
+      if (BlackoutModule?.hasUsageStatsPermission) {
+        try {
+          return await BlackoutModule.hasUsageStatsPermission();
+        } catch {
+          return false;
+        }
       }
+      return false;
     }
-    return mockPermissions.usageStats;
+    return webMockPermissions.usageStats;
   },
 
   openUsageStatsSettings(): void {
@@ -34,20 +38,23 @@ export const NativeBridge = {
       } else {
         IntentLauncher.startActivityAsync("android.settings.USAGE_ACCESS_SETTINGS").catch(() => {});
       }
+    } else {
+      webMockPermissions.usageStats = !webMockPermissions.usageStats;
     }
-    // Always toggle mock state to allow testing in Expo Go / simulator / web
-    mockPermissions.usageStats = !mockPermissions.usageStats;
   },
 
   async checkOverlayPermission(): Promise<boolean> {
-    if (Platform.OS === "android" && BlackoutModule?.hasOverlayPermission) {
-      try {
-        return await BlackoutModule.hasOverlayPermission();
-      } catch {
-        return false;
+    if (Platform.OS === "android") {
+      if (BlackoutModule?.hasOverlayPermission) {
+        try {
+          return await BlackoutModule.hasOverlayPermission();
+        } catch {
+          return false;
+        }
       }
+      return false;
     }
-    return mockPermissions.overlay;
+    return webMockPermissions.overlay;
   },
 
   openOverlaySettings(): void {
@@ -57,20 +64,23 @@ export const NativeBridge = {
       } else {
         IntentLauncher.startActivityAsync("android.settings.action.MANAGE_OVERLAY_PERMISSION").catch(() => {});
       }
+    } else {
+      webMockPermissions.overlay = !webMockPermissions.overlay;
     }
-    // Always toggle mock state to allow testing in Expo Go / simulator / web
-    mockPermissions.overlay = !mockPermissions.overlay;
   },
 
   async checkAccessibilityPermission(): Promise<boolean> {
-    if (Platform.OS === "android" && BlackoutModule?.hasAccessibilityPermission) {
-      try {
-        return await BlackoutModule.hasAccessibilityPermission();
-      } catch {
-        return false;
+    if (Platform.OS === "android") {
+      if (BlackoutModule?.hasAccessibilityPermission) {
+        try {
+          return await BlackoutModule.hasAccessibilityPermission();
+        } catch {
+          return false;
+        }
       }
+      return false;
     }
-    return mockPermissions.accessibility;
+    return webMockPermissions.accessibility;
   },
 
   openAccessibilitySettings(): void {
@@ -80,9 +90,9 @@ export const NativeBridge = {
       } else {
         IntentLauncher.startActivityAsync("android.settings.ACCESSIBILITY_SETTINGS").catch(() => {});
       }
+    } else {
+      webMockPermissions.accessibility = !webMockPermissions.accessibility;
     }
-    // Always toggle mock state to allow testing in Expo Go / simulator / web
-    mockPermissions.accessibility = !mockPermissions.accessibility;
   },
 
   syncLockedPackages(packageNames: string[]): void {
