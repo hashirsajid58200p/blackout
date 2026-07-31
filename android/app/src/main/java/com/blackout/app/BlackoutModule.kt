@@ -5,6 +5,8 @@ import android.app.usage.UsageEvents
 import android.app.usage.UsageStatsManager
 import android.content.Context
 import android.content.Intent
+import android.content.pm.ApplicationInfo
+import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
 import android.os.Process
@@ -140,13 +142,16 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
     fun getInstalledApps(promise: Promise) {
         try {
             val pm = reactApplicationContext.packageManager
-            val intent = Intent(Intent.ACTION_MAIN, null).apply {
-                addCategory(Intent.CATEGORY_LAUNCHER)
-            }
-            val resolveInfos = pm.queryIntentActivities(intent, 0)
             val array = WritableNativeArray()
             val addedPackages = mutableSetOf<String>()
             val selfPkg = reactApplicationContext.packageName
+
+            // 1. Query launcher intent activities
+            val intent = Intent(Intent.ACTION_MAIN, null).apply {
+                addCategory(Intent.CATEGORY_LAUNCHER)
+            }
+            val flags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) PackageManager.MATCH_ALL else 0
+            val resolveInfos = pm.queryIntentActivities(intent, flags)
 
             for (resolveInfo in resolveInfos) {
                 val packageName = resolveInfo.activityInfo.packageName
@@ -184,26 +189,51 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
                 }
             }
 
+            // 2. Query ALL installed packages to ensure apps like Instagram, MovieBox, WhatsApp are included
             try {
-                val installedAppsList = pm.getInstalledApplications(0)
-                for (appInfo in installedAppsList) {
-                    val packageName = appInfo.packageName
+                val installedPackages = pm.getInstalledPackages(PackageManager.GET_META_DATA)
+                for (pkgInfo in installedPackages) {
+                    val packageName = pkgInfo.packageName
                     if (packageName != selfPkg && !addedPackages.contains(packageName)) {
-                        val launchIntent = pm.getLaunchIntentForPackage(packageName)
-                        if (launchIntent != null) {
+                        val appInfo = pkgInfo.applicationInfo ?: continue
+                        val isUserApp = (appInfo.flags and ApplicationInfo.FLAG_SYSTEM) == 0 ||
+                                       (appInfo.flags and ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) != 0 ||
+                                       pm.getLaunchIntentForPackage(packageName) != null
+
+                        if (isUserApp) {
+                            if (packageName.startsWith("com.android.systemui") || packageName == "android") {
+                                continue
+                            }
                             addedPackages.add(packageName)
                             val appName = pm.getApplicationLabel(appInfo).toString()
+                            var iconBase64 = ""
+                            try {
+                                val iconDrawable = pm.getApplicationIcon(appInfo)
+                                val width = Math.min(iconDrawable.intrinsicWidth.takeIf { it > 0 } ?: 96, 96)
+                                val height = Math.min(iconDrawable.intrinsicHeight.takeIf { it > 0 } ?: 96, 96)
+                                val bitmap = android.graphics.Bitmap.createBitmap(width, height, android.graphics.Bitmap.Config.ARGB_8888)
+                                val canvas = android.graphics.Canvas(bitmap)
+                                iconDrawable.setBounds(0, 0, canvas.width, canvas.height)
+                                iconDrawable.draw(canvas)
+                                val outputStream = java.io.ByteArrayOutputStream()
+                                bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 80, outputStream)
+                                iconBase64 = android.util.Base64.encodeToString(outputStream.toByteArray(), android.util.Base64.NO_WRAP)
+                            } catch (e: Exception) {}
+
                             val map = WritableNativeMap().apply {
                                 putString("packageName", packageName)
                                 putString("appName", appName)
                                 putString("category", "Installed App")
+                                if (iconBase64.isNotEmpty()) {
+                                    putString("iconBase64", iconBase64)
+                                }
                             }
                             array.pushMap(map)
                         }
                     }
                 }
             } catch (e: Exception) {
-                // ignore secondary list error
+                // ignore
             }
 
             promise.resolve(array)
@@ -268,18 +298,37 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
             val startTime = calendar.timeInMillis
             val endTime = if (dayOffset == 0) System.currentTimeMillis() else (startTime + (24 * 3600 * 1000) - 1)
 
-            // Step 1: Pre-query all launchable user apps (apps with launcher activity or icon)
-            val launcherIntent = Intent(Intent.ACTION_MAIN, null).apply {
-                addCategory(Intent.CATEGORY_LAUNCHER)
-            }
-            val launcherApps = pm.queryIntentActivities(launcherIntent, 0)
+            // Step 1: Pre-query launchable and user installed packages
             val validPackages = mutableMapOf<String, String>()
+            try {
+                val launcherIntent = Intent(Intent.ACTION_MAIN, null).apply {
+                    addCategory(Intent.CATEGORY_LAUNCHER)
+                }
+                val flags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) PackageManager.MATCH_ALL else 0
+                val launcherApps = pm.queryIntentActivities(launcherIntent, flags)
 
-            for (resolveInfo in launcherApps) {
-                val pkg = resolveInfo.activityInfo.packageName
-                val label = resolveInfo.loadLabel(pm).toString()
-                validPackages[pkg] = label
-            }
+                for (resolveInfo in launcherApps) {
+                    val pkg = resolveInfo.activityInfo.packageName
+                    val label = resolveInfo.loadLabel(pm).toString()
+                    validPackages[pkg] = label
+                }
+            } catch (e: Exception) {}
+
+            try {
+                val allPkgs = pm.getInstalledPackages(PackageManager.GET_META_DATA)
+                for (pkgInfo in allPkgs) {
+                    val pkg = pkgInfo.packageName
+                    if (!validPackages.containsKey(pkg)) {
+                        val appInfo = pkgInfo.applicationInfo ?: continue
+                        val isUserApp = (appInfo.flags and ApplicationInfo.FLAG_SYSTEM) == 0 ||
+                                       (appInfo.flags and ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) != 0 ||
+                                       pm.getLaunchIntentForPackage(pkg) != null
+                        if (isUserApp) {
+                            validPackages[pkg] = pm.getApplicationLabel(appInfo).toString()
+                        }
+                    }
+                }
+            } catch (e: Exception) {}
 
             val packageUsageMap = mutableMapOf<String, Long>()
 
@@ -288,7 +337,7 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
                 val aggregateStats = usageStatsManager.queryAndAggregateUsageStats(startTime, endTime)
                 if (aggregateStats != null) {
                     for ((pkg, stat) in aggregateStats) {
-                        if (stat.totalTimeInForeground > 0 && (validPackages.containsKey(pkg) || pm.getLaunchIntentForPackage(pkg) != null)) {
+                        if (stat.totalTimeInForeground > 0 && validPackages.containsKey(pkg)) {
                             packageUsageMap[pkg] = stat.totalTimeInForeground
                         }
                     }
@@ -305,7 +354,7 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
                 while (events.hasNextEvent()) {
                     events.getNextEvent(event)
                     val pkg = event.packageName
-                    if (validPackages.containsKey(pkg) || pm.getLaunchIntentForPackage(pkg) != null) {
+                    if (validPackages.containsKey(pkg)) {
                         if (event.eventType == UsageEvents.Event.ACTIVITY_RESUMED || event.eventType == 1) {
                             lastResumedTimeMap[pkg] = event.timeStamp
                         } else if (event.eventType == UsageEvents.Event.ACTIVITY_PAUSED || event.eventType == UsageEvents.Event.ACTIVITY_STOPPED || event.eventType == 2) {
@@ -339,7 +388,7 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
 
             // Sort by duration descending (highest usage apps first, e.g. MovieBox, Instagram)
             val sortedList = packageUsageMap.entries
-                .filter { it.value >= 30000 && it.key != "com.android.systemui" && it.key != "android" } // 30+ seconds threshold
+                .filter { it.value >= 30000 && it.key != "com.android.systemui" && it.key != "android" && it.key != selfPkg }
                 .sortedByDescending { it.value }
 
             for (entry in sortedList) {

@@ -25,6 +25,20 @@ const withBlackoutNativeModule = (config) => {
       }
     }
 
+    if (!manifest["queries"]) {
+      manifest["queries"] = [];
+    }
+    if (!manifest["queries"].some((q) => q.intent)) {
+      manifest["queries"].push({
+        intent: [
+          {
+            action: [{ $: { "android:name": "android.intent.action.MAIN" } }],
+            category: [{ $: { "android:name": "android.intent.category.LAUNCHER" } }],
+          },
+        ],
+      });
+    }
+
     const mainApplication = config.modResults.manifest.application[0];
 
     // Ensure accessibility service is declared
