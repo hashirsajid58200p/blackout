@@ -42,18 +42,9 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { setColorScheme } = useNativeWindColorScheme();
+  // useRNColorScheme is reactive — when OS dark/light changes it re-renders AppProvider
   const rnColorScheme = useRNColorScheme();
-
-  // Store sysScheme in state so that system theme changes trigger a re-render
-  const [sysScheme, setSysScheme] = useState<"light" | "dark">(
-    rnColorScheme === "dark" ? "dark" : "light"
-  );
-
-  // Keep sysScheme in sync with the OS theme hook reactively
-  useEffect(() => {
-    const next: "light" | "dark" = rnColorScheme === "dark" ? "dark" : "light";
-    setSysScheme(next);
-  }, [rnColorScheme]);
+  const sysScheme: "light" | "dark" = rnColorScheme === "dark" ? "dark" : "light";
 
   const [currentScreen, setCurrentScreen] = useState<ScreenType>("home");
   const [trackedApps, setTrackedApps] = useState<TrackedApp[]>([]);
@@ -65,11 +56,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   });
   const [activeBlockApp, setActiveBlockApp] = useState<TrackedApp | null>(null);
 
-  // Compute effective theme: manual override or follow the OS
+  // Compute effective theme: manual selection or follow the OS
   const effectiveTheme: "light" | "dark" =
     settings.themeMode === "system" ? sysScheme : settings.themeMode;
 
-  // Keep NativeWind internal state in sync with effectiveTheme
+  // Keep NativeWind internal colour-scheme state in sync whenever theme changes
   useEffect(() => {
     setColorScheme(effectiveTheme);
   }, [effectiveTheme, setColorScheme]);
