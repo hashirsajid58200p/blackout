@@ -9,13 +9,6 @@ export interface NativePermissionsStatus {
   accessibility: boolean;
 }
 
-// Dev / Simulator fallback mock state (used when BlackoutModule is not registered/linked)
-let devMockPermissions: NativePermissionsStatus = {
-  usageStats: false,
-  overlay: false,
-  accessibility: false,
-};
-
 export const NativeBridge = {
   async checkUsageStatsPermission(): Promise<boolean> {
     if (Platform.OS === "android" && BlackoutModule?.hasUsageStatsPermission) {
@@ -25,7 +18,7 @@ export const NativeBridge = {
         return false;
       }
     }
-    return devMockPermissions.usageStats;
+    return false;
   },
 
   openUsageStatsSettings(): void {
@@ -34,10 +27,7 @@ export const NativeBridge = {
         BlackoutModule.openUsageStatsSettings();
       } else {
         IntentLauncher.startActivityAsync("android.settings.USAGE_ACCESS_SETTINGS").catch(() => {});
-        devMockPermissions.usageStats = !devMockPermissions.usageStats;
       }
-    } else {
-      devMockPermissions.usageStats = !devMockPermissions.usageStats;
     }
   },
 
@@ -49,7 +39,7 @@ export const NativeBridge = {
         return false;
       }
     }
-    return devMockPermissions.overlay;
+    return false;
   },
 
   openOverlaySettings(): void {
@@ -58,10 +48,7 @@ export const NativeBridge = {
         BlackoutModule.openOverlaySettings();
       } else {
         IntentLauncher.startActivityAsync("android.settings.action.MANAGE_OVERLAY_PERMISSION").catch(() => {});
-        devMockPermissions.overlay = !devMockPermissions.overlay;
       }
-    } else {
-      devMockPermissions.overlay = !devMockPermissions.overlay;
     }
   },
 
@@ -73,7 +60,7 @@ export const NativeBridge = {
         return false;
       }
     }
-    return devMockPermissions.accessibility;
+    return false;
   },
 
   openAccessibilitySettings(): void {
@@ -82,10 +69,7 @@ export const NativeBridge = {
         BlackoutModule.openAccessibilitySettings();
       } else {
         IntentLauncher.startActivityAsync("android.settings.ACCESSIBILITY_SETTINGS").catch(() => {});
-        devMockPermissions.accessibility = !devMockPermissions.accessibility;
       }
-    } else {
-      devMockPermissions.accessibility = !devMockPermissions.accessibility;
     }
   },
 

@@ -43,19 +43,16 @@ export const PermissionsScreen: React.FC = () => {
 
   const allGranted = isUsageStatsGranted && isOverlayGranted && isAccessibilityGranted;
 
-  const handleGrantUsageStats = async () => {
+  const handleGrantUsageStats = () => {
     NativeBridge.openUsageStatsSettings();
-    await refreshPermissions();
   };
 
-  const handleGrantOverlay = async () => {
+  const handleGrantOverlay = () => {
     NativeBridge.openOverlaySettings();
-    await refreshPermissions();
   };
 
-  const handleGrantAccessibility = async () => {
+  const handleGrantAccessibility = () => {
     NativeBridge.openAccessibilitySettings();
-    await refreshPermissions();
   };
 
   const permissionItems = [
