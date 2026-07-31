@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { View, Text, SafeAreaView, TouchableOpacity } from "react-native";
+import { View, Text, TouchableOpacity, StatusBar, Platform } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useApp } from "../context/AppContext";
 import { StorageService } from "../services/storage";
 import { Button } from "../components/ui/Button";
@@ -7,9 +8,15 @@ import { Shield, Lock, Zap } from "lucide-react-native";
 
 export const OnboardingScreen: React.FC = () => {
   const { setCurrentScreen, refreshPermissions, effectiveTheme } = useApp();
+  const insets = useSafeAreaInsets();
   const isDark = effectiveTheme === "dark";
   const iconColor = isDark ? "#000000" : "#ffffff";
   const [slideIndex, setSlideIndex] = useState(0);
+
+  const topPadding =
+    Platform.OS === "android"
+      ? Math.max(insets.top, StatusBar.currentHeight || 0) + 12
+      : Math.max(insets.top, 16);
 
   const slides = [
     {
@@ -52,8 +59,8 @@ export const OnboardingScreen: React.FC = () => {
   const IconComponent = slides[slideIndex].icon;
 
   return (
-    <SafeAreaView className="flex-1 bg-background dark:bg-black justify-between p-margin-page">
-      <View className="flex-row justify-between items-center pt-4">
+    <View style={{ paddingTop: topPadding }} className="flex-1 bg-background dark:bg-black justify-between p-margin-page">
+      <View className="flex-row justify-between items-center pt-2">
         <Text className="font-bold text-sm tracking-widest text-primary dark:text-white uppercase">
           BLACKOUT
         </Text>
@@ -105,6 +112,6 @@ export const OnboardingScreen: React.FC = () => {
           onPress={handleNext}
         />
       </View>
-    </SafeAreaView>
+    </View>
   );
 };

@@ -18,10 +18,11 @@ export const NavigationHeader: React.FC<NavigationHeaderProps> = ({
   const isDark = effectiveTheme === "dark";
   const iconColor = isDark ? "#ffffff" : "#000000";
 
-  const topPadding = Math.max(
-    insets.top,
-    Platform.OS === "android" ? StatusBar.currentHeight || 24 : 0
-  );
+  // Calculate safe top padding for all Android notches/camera punch-holes and iOS status bars
+  const topPadding =
+    Platform.OS === "android"
+      ? Math.max(insets.top, StatusBar.currentHeight || 0) + 12
+      : Math.max(insets.top, 16);
 
   return (
     <View

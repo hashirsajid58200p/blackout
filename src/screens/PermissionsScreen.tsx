@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, ScrollView, TouchableOpacity } from "react-native";
+import { View, Text, ScrollView, TouchableOpacity, StatusBar, Platform } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useApp } from "../context/AppContext";
 import { NativeBridge } from "../services/nativeBridge";
 import { Button } from "../components/ui/Button";
@@ -7,9 +8,15 @@ import { Shield, CheckCircle2, CircleAlert, AppWindow, Eye } from "lucide-react-
 
 export const PermissionsScreen: React.FC = () => {
   const { permissions, refreshPermissions, setCurrentScreen, effectiveTheme } = useApp();
+  const insets = useSafeAreaInsets();
   const isDark = effectiveTheme === "dark";
   const iconColor = isDark ? "#ffffff" : "#000000";
   const badgeIconColor = isDark ? "#000000" : "#ffffff";
+
+  const topPadding =
+    Platform.OS === "android"
+      ? Math.max(insets.top, StatusBar.currentHeight || 0) + 12
+      : Math.max(insets.top, 16);
 
   // Dev state override for testing in Expo Go
   const [devGranted, setDevGranted] = useState({
@@ -75,7 +82,7 @@ export const PermissionsScreen: React.FC = () => {
   ];
 
   return (
-    <View className="flex-1 bg-background dark:bg-black">
+    <View style={{ paddingTop: topPadding }} className="flex-1 bg-background dark:bg-black">
       <ScrollView contentContainerStyle={{ flexGrow: 1, paddingBottom: 30 }} className="flex-1 px-margin-page pt-6">
         <View className="items-center justify-center my-auto py-2">
           {/* Top Logo */}
