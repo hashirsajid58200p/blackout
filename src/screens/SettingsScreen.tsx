@@ -84,24 +84,30 @@ export const SettingsScreen: React.FC = () => {
           </Text>
 
           <View className="border-2 border-primary dark:border-white p-4 bg-surface-container-lowest dark:bg-black flex-col rounded-none">
-            {/* Top Row: Icon + Title + Right Action Button */}
-            <View className="flex-row items-center justify-between mb-2 gap-2">
-              <View className="flex-row items-center gap-2.5 flex-1 pr-1">
-                <View className="w-5 h-5 items-center justify-center">
-                  <Trash2 size={20} color={iconColor} />
-                </View>
-                <Text
-                  numberOfLines={1}
-                  className="font-bold text-sm uppercase tracking-wider text-primary dark:text-white flex-1 leading-5"
-                >
-                  AUTO-UNINSTALL CLEANUP
-                </Text>
+            {/* 1. Top Row: Icon Center-Aligned Vertically with Heading Text Line */}
+            <View className="flex-row items-center gap-2.5 mb-1.5">
+              <View className="w-5 h-5 items-center justify-center">
+                <Trash2 size={20} color={iconColor} />
               </View>
+              <Text
+                numberOfLines={1}
+                className="font-bold text-sm uppercase tracking-wider text-primary dark:text-white flex-1 leading-5"
+              >
+                AUTO-REMOVE UNINSTALLED APPS
+              </Text>
+            </View>
 
+            {/* 2. Description Paragraph: Full-width aligned */}
+            <Text className="text-xs text-secondary dark:text-zinc-400 leading-4 mb-3">
+              Automatically delete app lock profiles if the app is uninstalled from your phone
+            </Text>
+
+            {/* 3. Action Button: Aligned on the Right Side at Bottom */}
+            <View className="flex-row justify-end">
               <TouchableOpacity
                 activeOpacity={0.8}
                 onPress={() => updateAutoCleanSetting(!isAutoCleanEnabled)}
-                className={`px-2.5 py-1 border-2 border-primary dark:border-white ${
+                className={`px-3 py-1.5 border-2 border-primary dark:border-white ${
                   isAutoCleanEnabled ? "bg-primary dark:bg-white" : "bg-transparent"
                 }`}
               >
@@ -116,11 +122,6 @@ export const SettingsScreen: React.FC = () => {
                 </Text>
               </TouchableOpacity>
             </View>
-
-            {/* Description Paragraph */}
-            <Text className="text-xs text-secondary dark:text-zinc-400 leading-4">
-              Automatically delete app lock profiles if the app is uninstalled from your phone
-            </Text>
           </View>
         </View>
 
