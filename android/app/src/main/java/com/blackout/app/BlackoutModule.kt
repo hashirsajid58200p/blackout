@@ -113,6 +113,7 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
             val event = UsageEvents.Event()
             var eventTotal = 0L
             var currentPkg: String? = null
+            var lastForegroundPkg: String? = null
             var currentStart = 0L
 
             while (events.hasNextEvent()) {
@@ -129,6 +130,7 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
                         }
                     }
                     currentPkg = pkg
+                    lastForegroundPkg = pkg
                     currentStart = time
                 } else if (type == 2 /* PAUSED */ || type == 23 /* STOPPED */) {
                     if (currentPkg == pkg) {
@@ -145,6 +147,11 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
                             eventTotal += duration
                         }
                         currentPkg = null
+                    }
+                } else if (type == 15 || type == 18) {
+                    if (currentPkg == null && lastForegroundPkg != null) {
+                        currentPkg = lastForegroundPkg
+                        currentStart = time
                     }
                 }
             }
@@ -373,6 +380,7 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
                 val eventMap = mutableMapOf<String, Long>()
                 val event = UsageEvents.Event()
                 var currentPkg: String? = null
+                var lastForegroundPkg: String? = null
                 var currentStart = 0L
 
                 while (events.hasNextEvent()) {
@@ -392,6 +400,7 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
                             }
                         }
                         currentPkg = pkg
+                        lastForegroundPkg = pkg
                         currentStart = time
                     } else if (type == 2 /* PAUSED */ || type == 23 /* STOPPED */) {
                         if (currentPkg == pkg) {
@@ -408,6 +417,11 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
                                 eventMap[currentPkg] = (eventMap[currentPkg] ?: 0L) + duration
                             }
                             currentPkg = null
+                        }
+                    } else if (type == 15 || type == 18) {
+                        if (currentPkg == null && lastForegroundPkg != null) {
+                            currentPkg = lastForegroundPkg
+                            currentStart = time
                         }
                     }
                 }
