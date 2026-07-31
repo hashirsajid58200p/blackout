@@ -196,9 +196,7 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
                     val packageName = pkgInfo.packageName
                     if (packageName != selfPkg && !addedPackages.contains(packageName)) {
                         val appInfo = pkgInfo.applicationInfo ?: continue
-                        val isUserApp = (appInfo.flags and ApplicationInfo.FLAG_SYSTEM) == 0 ||
-                                       (appInfo.flags and ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) != 0 ||
-                                       pm.getLaunchIntentForPackage(packageName) != null
+                        val isUserApp = pm.getLaunchIntentForPackage(packageName) != null
 
                         if (isUserApp) {
                             if (packageName.startsWith("com.android.systemui") || packageName == "android") {
@@ -320,9 +318,7 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
                     val pkg = pkgInfo.packageName
                     if (!validPackages.containsKey(pkg)) {
                         val appInfo = pkgInfo.applicationInfo ?: continue
-                        val isUserApp = (appInfo.flags and ApplicationInfo.FLAG_SYSTEM) == 0 ||
-                                       (appInfo.flags and ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) != 0 ||
-                                       pm.getLaunchIntentForPackage(pkg) != null
+                        val isUserApp = pm.getLaunchIntentForPackage(pkg) != null
                         if (isUserApp) {
                             validPackages[pkg] = pm.getApplicationLabel(appInfo).toString()
                         }
