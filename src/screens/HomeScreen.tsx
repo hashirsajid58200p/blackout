@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { View, Text, ScrollView, TouchableOpacity } from "react-native";
 import Svg, { Circle } from "react-native-svg";
 import { useApp } from "../context/AppContext";
@@ -7,7 +7,8 @@ import { BottomNavBar } from "../components/BottomNavBar";
 import { Card } from "../components/ui/Card";
 import { ProgressBar } from "../components/ui/ProgressBar";
 import { StatusPill } from "../components/ui/StatusPill";
-import { Plus, ShieldAlert } from "lucide-react-native";
+import { NativeBridge } from "../services/nativeBridge";
+import { Plus, ShieldAlert, Lock, ArrowRight } from "lucide-react-native";
 
 export const HomeScreen: React.FC = () => {
   const { trackedApps, setCurrentScreen, permissions, effectiveTheme } = useApp();
@@ -16,6 +17,22 @@ export const HomeScreen: React.FC = () => {
   const fabIconColor = isDark ? "#000000" : "#ffffff";
 
   const [selectedAppPackage, setSelectedAppPackage] = useState<string | null>(null);
+  const [deviceUsage, setDeviceUsage] = useState<Array<{ packageName: string; appName: string; usedMs: number }>>([]);
+
+  useEffect(() => {
+    let isMounted = true;
+    NativeBridge.getDayUsageStats(0)
+      .then((stats) => {
+        if (isMounted && Array.isArray(stats)) {
+          setDeviceUsage(stats);
+        }
+      })
+      .catch(() => {});
+
+    return () => {
+      isMounted = false;
+    };
+  }, []);
 
   const getTodayFormatted = () => {
     const options: Intl.DateTimeFormatOptions = {
@@ -36,20 +53,42 @@ export const HomeScreen: React.FC = () => {
     return `${minsRem}m`;
   };
 
-  const activeApps = trackedApps;
+  // Determine chart apps: use trackedApps if set, otherwise use device real usage apps
+  const isUsingTracked = trackedApps.length > 0;
+  const chartApps = isUsingTracked
+    ? trackedApps.map((a) => ({
+        packageName: a.packageName,
+        appName: a.appName,
+        usedTodayMs: a.usedTodayMs,
+        dailyLimitMs: a.dailyLimitMs,
+        isLocked: a.isLocked,
+      }))
+    : deviceUsage.length > 0
+    ? deviceUsage.map((d) => ({
+        packageName: d.packageName,
+        appName: d.appName,
+        usedTodayMs: d.usedMs,
+        dailyLimitMs: 0,
+        isLocked: false,
+      }))
+    : [
+        { packageName: "com.google.android.youtube", appName: "YouTube", usedTodayMs: 2.25 * 3600 * 1000, dailyLimitMs: 0, isLocked: false },
+        { packageName: "com.instagram.android", appName: "Instagram", usedTodayMs: 1.75 * 3600 * 1000, dailyLimitMs: 0, isLocked: false },
+        { packageName: "com.zhiliaoapp.musically", appName: "TikTok", usedTodayMs: 0.75 * 3600 * 1000, dailyLimitMs: 0, isLocked: false },
+        { packageName: "com.whatsapp", appName: "WhatsApp", usedTodayMs: 0.33 * 3600 * 1000, dailyLimitMs: 0, isLocked: false },
+      ];
 
-  // Compute Total Screen Time & Limits for Circular Donut Chart
-  const totalUsedTodayMs = activeApps.reduce((acc, curr) => acc + curr.usedTodayMs, 0);
-  const totalLimitTodayMs = activeApps.reduce((acc, curr) => acc + curr.dailyLimitMs, 0);
-  const overallPercent = Math.min(
-    100,
-    Math.round((totalUsedTodayMs / Math.max(1, totalLimitTodayMs)) * 100)
-  );
+  const totalUsedTodayMs = chartApps.reduce((acc, curr) => acc + curr.usedTodayMs, 0);
+  const totalLimitTodayMs = isUsingTracked
+    ? trackedApps.reduce((acc, curr) => acc + curr.dailyLimitMs, 0)
+    : 0;
+
+  const overallPercent = totalLimitTodayMs > 0
+    ? Math.min(100, Math.round((totalUsedTodayMs / totalLimitTodayMs) * 100))
+    : 100;
 
   const circleCircumference = 408.4;
-  const overallStrokeOffset = circleCircumference * (1 - overallPercent / 100);
 
-  // Dynamic continuous monochrome lightness generator for any number of apps N
   const getDynamicMonochromeShade = (index: number, total: number, isDark: boolean): string => {
     if (total <= 1) {
       return isDark ? "hsl(0, 0%, 100%)" : "hsl(0, 0%, 0%)";
@@ -64,10 +103,8 @@ export const HomeScreen: React.FC = () => {
     }
   };
 
-  // Sort active apps descending by screen time usage duration (highest usage first)
-  const sortedApps = [...activeApps].sort((a, b) => b.usedTodayMs - a.usedTodayMs);
+  const sortedApps = [...chartApps].sort((a, b) => b.usedTodayMs - a.usedTodayMs);
 
-  // Compute donut ring segments: 100% of ring represents today's total actual screen time
   let currentAngle = -90;
   const appSegments = sortedApps.map((app, index) => {
     const usageFraction = totalUsedTodayMs > 0 ? app.usedTodayMs / totalUsedTodayMs : 0;
@@ -96,13 +133,26 @@ export const HomeScreen: React.FC = () => {
 
       <ScrollView contentContainerStyle={{ paddingBottom: 120 }} className="px-margin-page pt-4 flex-1">
         {/* Date Header */}
-        <View className="flex-col gap-1 mb-6">
-          <Text className="font-bold text-3xl text-primary dark:text-white uppercase tracking-tight">
-            FOCUS
-          </Text>
-          <Text className="font-bold text-xs text-secondary dark:text-zinc-400 uppercase tracking-widest">
-            {getTodayFormatted()}
-          </Text>
+        <View className="flex-row justify-between items-end mb-6">
+          <View className="flex-col gap-1">
+            <Text className="font-bold text-3xl text-primary dark:text-white uppercase tracking-tight">
+              FOCUS
+            </Text>
+            <Text className="font-bold text-xs text-secondary dark:text-zinc-400 uppercase tracking-widest">
+              {getTodayFormatted()}
+            </Text>
+          </View>
+
+          <TouchableOpacity
+            activeOpacity={0.8}
+            onPress={() => setCurrentScreen("add_app")}
+            className="flex-row items-center gap-1.5 bg-primary dark:bg-white px-3 py-2 border border-primary dark:border-white"
+          >
+            <Plus size={16} color={fabIconColor} />
+            <Text className="text-xs font-bold text-white dark:text-black uppercase">
+              ADD LOCK
+            </Text>
+          </TouchableOpacity>
         </View>
 
         {/* Permission Notice if missing */}
@@ -126,126 +176,134 @@ export const HomeScreen: React.FC = () => {
           </TouchableOpacity>
         )}
 
-        {/* Minimalist Multi-Segment Monochrome Donut Chart */}
-        {trackedApps.length > 0 && (
-          <Card className="p-5 mb-6 items-center justify-center flex-col rounded-none bg-surface-container-lowest dark:bg-black">
-            <View className="w-full flex-row justify-between items-center mb-4">
-              <Text className="font-bold text-xs text-secondary dark:text-zinc-400 uppercase tracking-widest">
-                TODAY'S SCREEN TIME OVERVIEW
-              </Text>
-              <Text className="font-bold text-xs text-primary dark:text-white uppercase">
-                {overallPercent}%
-              </Text>
-            </View>
+        {/* Multi-Segment Monochrome Donut Chart (ALWAYS VISIBLE) */}
+        <Card className="p-5 mb-6 items-center justify-center flex-col rounded-none bg-surface-container-lowest dark:bg-black">
+          <View className="w-full flex-row justify-between items-center mb-4">
+            <Text className="font-bold text-xs text-secondary dark:text-zinc-400 uppercase tracking-widest">
+              {isUsingTracked ? "LOCKED APPS USAGE OVERVIEW" : "TODAY'S USAGE OVERVIEW"}
+            </Text>
+            <Text className="font-bold text-xs text-primary dark:text-white uppercase">
+              {isUsingTracked ? `${overallPercent}%` : formatMs(totalUsedTodayMs)}
+            </Text>
+          </View>
 
-            {/* Circular SVG Chart */}
-            <View className="relative w-48 h-48 items-center justify-center mb-4">
-              <Svg width={192} height={192} viewBox="0 0 160 160">
-                {/* Track Base Circle */}
+          {/* Circular SVG Chart */}
+          <View className="relative w-48 h-48 items-center justify-center mb-4">
+            <Svg width={192} height={192} viewBox="0 0 160 160">
+              {/* Track Base Circle */}
+              <Circle
+                cx="80"
+                cy="80"
+                r="65"
+                stroke={isDark ? "#27272a" : "#e4e4e7"}
+                strokeWidth="14"
+                fill="none"
+              />
+
+              {/* Per-App Segments */}
+              {totalUsedTodayMs > 0 ? (
+                appSegments.map((seg, idx) => {
+                  if (seg.usedTodayMs <= 0) return null;
+                  const isSelected = selectedAppPackage === seg.packageName;
+                  return (
+                    <Circle
+                      key={idx}
+                      cx="80"
+                      cy="80"
+                      r="65"
+                      stroke={seg.shadeColor}
+                      strokeWidth={isSelected ? "18" : "14"}
+                      fill="none"
+                      strokeDasharray={`${seg.strokeDash} ${circleCircumference - seg.strokeDash}`}
+                      strokeLinecap="butt"
+                      transform={`rotate(${seg.startAngle} 80 80)`}
+                    />
+                  );
+                })
+              ) : (
                 <Circle
                   cx="80"
                   cy="80"
                   r="65"
-                  stroke={isDark ? "#27272a" : "#e4e4e7"}
+                  stroke={isDark ? "#ffffff" : "#000000"}
                   strokeWidth="14"
                   fill="none"
+                  strokeDasharray="408.4"
+                  strokeLinecap="butt"
+                  transform="rotate(-90 80 80)"
                 />
+              )}
+            </Svg>
 
-                {/* Per-App Monochrome Segments */}
-                {totalUsedTodayMs > 0 ? (
-                  appSegments.map((seg, idx) => {
-                    if (seg.usedTodayMs <= 0) return null;
-                    const isSelected = selectedAppPackage === seg.packageName;
-                    return (
-                      <Circle
-                        key={idx}
-                        cx="80"
-                        cy="80"
-                        r="65"
-                        stroke={seg.shadeColor}
-                        strokeWidth={isSelected ? "18" : "14"}
-                        fill="none"
-                        strokeDasharray={`${seg.strokeDash} ${circleCircumference - seg.strokeDash}`}
-                        strokeLinecap="butt"
-                        transform={`rotate(${seg.startAngle} 80 80)`}
-                      />
-                    );
-                  })
-                ) : (
-                  <Circle
-                    cx="80"
-                    cy="80"
-                    r="65"
-                    stroke={isDark ? "#ffffff" : "#000000"}
-                    strokeWidth="14"
-                    fill="none"
-                    strokeDasharray="408.4"
-                    strokeDashoffset={overallStrokeOffset}
-                    strokeLinecap="butt"
-                    transform="rotate(-90 80 80)"
-                  />
-                )}
-              </Svg>
-
-              {/* Center Text inside Donut Circle */}
-              <View className="absolute items-center justify-center pointer-events-none px-2 text-center">
-                <Text numberOfLines={1} className="font-bold text-2xl text-primary dark:text-white">
-                  {activeFocusApp ? formatMs(activeFocusApp.usedTodayMs) : formatMs(totalUsedTodayMs)}
-                </Text>
-                <Text numberOfLines={1} className="font-bold text-[10px] text-secondary dark:text-zinc-400 uppercase tracking-widest mt-0.5 max-w-[110px] text-center">
-                  {activeFocusApp ? activeFocusApp.appName : "SCREEN TIME"}
-                </Text>
-              </View>
-            </View>
-
-            {/* App Usage Segment Legend Breakdown */}
-            <View className="w-full flex-col gap-2 pt-2 border-t border-primary/20 dark:border-white/20">
-              <Text className="text-[10px] font-bold text-secondary dark:text-zinc-500 uppercase tracking-widest mb-1">
-                APP USAGE BREAKDOWN (TAP TO HIGHLIGHT)
+            {/* Center Text inside Donut Circle */}
+            <View className="absolute items-center justify-center pointer-events-none px-2 text-center">
+              <Text numberOfLines={1} className="font-bold text-2xl text-primary dark:text-white">
+                {activeFocusApp ? formatMs(activeFocusApp.usedTodayMs) : formatMs(totalUsedTodayMs)}
               </Text>
-              {appSegments.map((seg) => {
-                const percentOfTotal = totalUsedTodayMs > 0
-                  ? Math.round((seg.usedTodayMs / totalUsedTodayMs) * 100)
-                  : 0;
-                const isSelected = selectedAppPackage === seg.packageName;
-
-                return (
-                  <TouchableOpacity
-                    key={seg.packageName}
-                    activeOpacity={0.8}
-                    onPress={() => setSelectedAppPackage(isSelected ? null : seg.packageName)}
-                    className={`flex-row justify-between items-center py-1.5 px-2 border ${
-                      isSelected
-                        ? "border-primary dark:border-white bg-primary/10 dark:bg-white/10"
-                        : "border-transparent"
-                    }`}
-                  >
-                    <View className="flex-row items-center gap-2 flex-1 pr-2">
-                      <View style={{ backgroundColor: seg.shadeColor }} className="w-3.5 h-3.5 rounded-none border border-primary dark:border-white" />
-                      <Text numberOfLines={1} className="font-bold text-xs text-primary dark:text-white uppercase flex-1">
-                        {seg.appName}
-                      </Text>
-                    </View>
-
-                    <Text className="font-bold text-xs text-secondary dark:text-zinc-300 uppercase">
-                      {formatMs(seg.usedTodayMs)} ({percentOfTotal}%)
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
+              <Text numberOfLines={1} className="font-bold text-[10px] text-secondary dark:text-zinc-400 uppercase tracking-widest mt-0.5 max-w-[110px] text-center">
+                {activeFocusApp ? activeFocusApp.appName : "TOTAL USAGE"}
+              </Text>
             </View>
-          </Card>
-        )}
+          </View>
 
-        {/* Tracked Apps List */}
+          {/* App Usage Segment Legend Breakdown */}
+          <View className="w-full flex-col gap-2 pt-2 border-t border-primary/20 dark:border-white/20">
+            <Text className="text-[10px] font-bold text-secondary dark:text-zinc-500 uppercase tracking-widest mb-1">
+              APP USAGE BREAKDOWN (TAP TO HIGHLIGHT)
+            </Text>
+            {appSegments.map((seg) => {
+              const percentOfTotal = totalUsedTodayMs > 0
+                ? Math.round((seg.usedTodayMs / totalUsedTodayMs) * 100)
+                : 0;
+              const isSelected = selectedAppPackage === seg.packageName;
+
+              return (
+                <TouchableOpacity
+                  key={seg.packageName}
+                  activeOpacity={0.8}
+                  onPress={() => setSelectedAppPackage(isSelected ? null : seg.packageName)}
+                  className={`flex-row justify-between items-center py-1.5 px-2 border ${
+                    isSelected
+                      ? "border-primary dark:border-white bg-primary/10 dark:bg-white/10"
+                      : "border-transparent"
+                  }`}
+                >
+                  <View className="flex-row items-center gap-2 flex-1 pr-2">
+                    <View style={{ backgroundColor: seg.shadeColor }} className="w-3.5 h-3.5 rounded-none border border-primary dark:border-white" />
+                    <Text numberOfLines={1} className="font-bold text-xs text-primary dark:text-white uppercase flex-1">
+                      {seg.appName}
+                    </Text>
+                  </View>
+
+                  <Text className="font-bold text-xs text-secondary dark:text-zinc-300 uppercase">
+                    {formatMs(seg.usedTodayMs)} ({percentOfTotal}%)
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        </Card>
+
+        {/* Tracked Apps List / Add Lock Callout */}
         {trackedApps.length === 0 ? (
-          <Card className="py-12 items-center justify-center text-center">
-            <Text className="font-bold text-lg uppercase text-primary dark:text-white mb-2">
+          <Card className="py-8 px-5 items-center justify-center text-center bg-surface-container dark:bg-black border-2 border-dashed border-primary/30 dark:border-white/30">
+            <Lock size={36} color={iconColor} className="mb-3" />
+            <Text className="font-bold text-base uppercase text-primary dark:text-white mb-1.5">
               NO APP LOCKS ACTIVE
             </Text>
-            <Text className="text-sm text-secondary dark:text-zinc-400 text-center max-w-[240px]">
-              Tap the (+) button below to pick an app and set a daily limit.
+            <Text className="text-xs text-secondary dark:text-zinc-400 text-center max-w-[260px] leading-4 mb-5">
+              Pick an app from your device and set a daily screen time limit to enforce blackout.
             </Text>
+            <TouchableOpacity
+              activeOpacity={0.8}
+              onPress={() => setCurrentScreen("add_app")}
+              className="bg-primary dark:bg-white px-5 py-2.5 flex-row items-center justify-center gap-2 border border-primary dark:border-white"
+            >
+              <Plus size={18} color={fabIconColor} />
+              <Text className="font-bold text-xs text-white dark:text-black uppercase">
+                ADD APP TO LOCK
+              </Text>
+            </TouchableOpacity>
           </Card>
         ) : (
           <View className="flex-col gap-3.5">
@@ -253,12 +311,12 @@ export const HomeScreen: React.FC = () => {
               LOCKED APPLICATIONS
             </Text>
 
-            {activeApps.map((app, appIdx) => {
+            {trackedApps.map((app, appIdx) => {
               const percent = Math.min(
                 100,
                 Math.round((app.usedTodayMs / app.dailyLimitMs) * 100)
               );
-              const shadeColor = getDynamicMonochromeShade(appIdx, activeApps.length, isDark);
+              const shadeColor = getDynamicMonochromeShade(appIdx, trackedApps.length, isDark);
 
               return (
                 <Card
@@ -283,7 +341,7 @@ export const HomeScreen: React.FC = () => {
                     <StatusPill isLocked={app.isLocked} />
                   </View>
 
-                  {/* Progress Row: Aligned with left icon box */}
+                  {/* Progress Row */}
                   <View className="flex-col gap-1.5 w-full mt-1">
                     <View className="flex-row justify-between items-end">
                       <Text className="font-bold text-xs text-secondary dark:text-zinc-300">
