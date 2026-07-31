@@ -111,23 +111,40 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
 
             val events = usageStatsManager.queryEvents(startTime, endTime)
             val event = UsageEvents.Event()
-            var lastResumed = 0L
-            var eventTotal = 0L
+            var currentPkg: String? = null
+            var currentStart = 0L
 
             while (events.hasNextEvent()) {
                 events.getNextEvent(event)
-                if (event.packageName == packageName) {
-                    if (event.eventType == UsageEvents.Event.ACTIVITY_RESUMED || event.eventType == 1) {
-                        lastResumed = event.timeStamp
-                    } else if ((event.eventType == UsageEvents.Event.ACTIVITY_PAUSED || event.eventType == 2) && lastResumed > 0) {
-                        eventTotal += (event.timeStamp - lastResumed)
-                        lastResumed = 0L
+                val pkg = event.packageName
+                val time = event.timeStamp
+                val type = event.eventType
+
+                if (type == 1 /* RESUMED */) {
+                    if (currentPkg != null) {
+                        val duration = time - currentStart
+                        if (duration > 0 && currentPkg == packageName) {
+                            eventTotal += duration
+                        }
+                    }
+                    currentPkg = pkg
+                    currentStart = time
+                } else if (type == 2 /* PAUSED */ || type == 23 /* STOPPED */) {
+                    if (currentPkg == pkg) {
+                        val duration = time - currentStart
+                        if (duration > 0 && currentPkg == packageName) {
+                            eventTotal += duration
+                        }
+                        currentPkg = null
                     }
                 }
             }
 
-            if (lastResumed > 0) {
-                eventTotal += (endTime - lastResumed)
+            if (currentPkg == packageName) {
+                val duration = endTime - currentStart
+                if (duration > 0) {
+                    eventTotal += duration
+                }
             }
 
             totalTimeMs = eventTotal
@@ -334,32 +351,39 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
             try {
                 val events = usageStatsManager.queryEvents(startTime, endTime)
                 val eventMap = mutableMapOf<String, Long>()
-                val lastResumedTimeMap = mutableMapOf<String, Long>()
-                val event = UsageEvents.Event()
+                var currentPkg: String? = null
+                var currentStart = 0L
 
                 while (events.hasNextEvent()) {
                     events.getNextEvent(event)
                     val pkg = event.packageName
-                    if (validPackages.containsKey(pkg)) {
-                        if (event.eventType == UsageEvents.Event.ACTIVITY_RESUMED || event.eventType == 1) {
-                            lastResumedTimeMap[pkg] = event.timeStamp
-                        } else if (event.eventType == UsageEvents.Event.ACTIVITY_PAUSED || event.eventType == UsageEvents.Event.ACTIVITY_STOPPED || event.eventType == 2) {
-                            val lastResumed = lastResumedTimeMap[pkg]
-                            if (lastResumed != null && lastResumed > 0) {
-                                val duration = event.timeStamp - lastResumed
-                                if (duration in 1..86400000) {
-                                    eventMap[pkg] = (eventMap[pkg] ?: 0L) + duration
-                                }
-                                lastResumedTimeMap.remove(pkg)
+                    val time = event.timeStamp
+                    val type = event.eventType
+
+                    if (type == 1 /* RESUMED */) {
+                        if (currentPkg != null) {
+                            val duration = time - currentStart
+                            if (duration > 0) {
+                                eventMap[currentPkg] = (eventMap[currentPkg] ?: 0L) + duration
                             }
+                        }
+                        currentPkg = pkg
+                        currentStart = time
+                    } else if (type == 2 /* PAUSED */ || type == 23 /* STOPPED */) {
+                        if (currentPkg == pkg) {
+                            val duration = time - currentStart
+                            if (duration > 0) {
+                                eventMap[pkg] = (eventMap[pkg] ?: 0L) + duration
+                            }
+                            currentPkg = null
                         }
                     }
                 }
 
-                for ((pkg, resumedTime) in lastResumedTimeMap) {
-                    val duration = endTime - resumedTime
-                    if (duration in 1..86400000) {
-                        eventMap[pkg] = (eventMap[pkg] ?: 0L) + duration
+                if (currentPkg != null) {
+                    val duration = endTime - currentStart
+                    if (duration > 0) {
+                        eventMap[currentPkg] = (eventMap[currentPkg] ?: 0L) + duration
                     }
                 }
 
