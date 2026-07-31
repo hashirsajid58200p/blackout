@@ -18,7 +18,7 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
     }
 
     @ReactMethod
-    def hasUsageStatsPermission(promise: Promise) {
+    fun hasUsageStatsPermission(promise: Promise) {
         val appOps = reactApplicationContext.getSystemService(Context.APP_OPS_SERVICE) as AppOpsManager
         val mode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             appOps.unsafeCheckOpNoThrow(AppOpsManager.OPSTR_GET_USAGE_STATS, Process.myUid(), reactApplicationContext.packageName)
@@ -29,7 +29,7 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
     }
 
     @ReactMethod
-    def openUsageStatsSettings() {
+    fun openUsageStatsSettings() {
         val intent = Intent(Settings.ACTION_USAGE_ACCESS_SETTINGS).apply {
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         }
@@ -37,7 +37,7 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
     }
 
     @ReactMethod
-    def hasOverlayPermission(promise: Promise) {
+    fun hasOverlayPermission(promise: Promise) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             promise.resolve(Settings.canDrawOverlays(reactApplicationContext))
         } else {
@@ -46,7 +46,7 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
     }
 
     @ReactMethod
-    def openOverlaySettings() {
+    fun openOverlaySettings() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             val intent = Intent(Settings.ACTION_MANAGE_OVERLAY_PERMISSION, Uri.parse("package:" + reactApplicationContext.packageName)).apply {
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
@@ -56,13 +56,13 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
     }
 
     @ReactMethod
-    def hasAccessibilityPermission(promise: Promise) {
+    fun hasAccessibilityPermission(promise: Promise) {
         val isServiceRunning = BlackoutAccessibilityService.instance != null
         promise.resolve(isServiceRunning)
     }
 
     @ReactMethod
-    def openAccessibilitySettings() {
+    fun openAccessibilitySettings() {
         val intent = Intent(Settings.ACTION_ACCESSIBILITY_SETTINGS).apply {
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         }
