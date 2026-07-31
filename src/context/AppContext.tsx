@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
-import { useColorScheme as useRNColorScheme } from "react-native";
+import { Appearance } from "react-native";
 import { useColorScheme as useNativeWindColorScheme } from "nativewind";
 import { TrackedApp, Settings } from "../types";
 import { StorageService } from "../services/storage";
@@ -42,10 +42,11 @@ const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { setColorScheme } = useNativeWindColorScheme();
-  // useRNColorScheme is reactive — when OS dark/light changes it re-renders AppProvider
-  const rnColorScheme = useRNColorScheme();
-  const sysScheme: "light" | "dark" = rnColorScheme === "dark" ? "dark" : "light";
 
+  // ── All useState calls first — order must NEVER change ──────────────────────
+  const [sysScheme, setSysScheme] = useState<"light" | "dark">(
+    Appearance.getColorScheme() === "dark" ? "dark" : "light"
+  );
   const [currentScreen, setCurrentScreen] = useState<ScreenType>("home");
   const [trackedApps, setTrackedApps] = useState<TrackedApp[]>([]);
   const [settings, setSettings] = useState<Settings>({ themeMode: "system", autoCleanUninstalled: true });
@@ -56,11 +57,19 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   });
   const [activeBlockApp, setActiveBlockApp] = useState<TrackedApp | null>(null);
 
-  // Compute effective theme: manual selection or follow the OS
+  // Compute effective theme: manual override, or follow the OS
   const effectiveTheme: "light" | "dark" =
     settings.themeMode === "system" ? sysScheme : settings.themeMode;
 
-  // Keep NativeWind internal colour-scheme state in sync whenever theme changes
+  // ── Listen to live OS dark/light changes ────────────────────────────────────
+  useEffect(() => {
+    const subscription = Appearance.addChangeListener(({ colorScheme }) => {
+      setSysScheme(colorScheme === "dark" ? "dark" : "light");
+    });
+    return () => subscription.remove();
+  }, []);
+
+  // ── Keep NativeWind colour-scheme in sync with effectiveTheme ───────────────
   useEffect(() => {
     setColorScheme(effectiveTheme);
   }, [effectiveTheme, setColorScheme]);
