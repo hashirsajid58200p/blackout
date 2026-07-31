@@ -13,7 +13,7 @@ import { Plus, ShieldAlert, Lock } from "lucide-react-native";
 export const HomeScreen: React.FC = () => {
   const { trackedApps, setCurrentScreen, permissions, effectiveTheme } = useApp();
   const [selectedAppPackage, setSelectedAppPackage] = useState<string | null>(null);
-  const [deviceUsage, setDeviceUsage] = useState<Array<{ packageName: string; appName: string; usedMs: number }>>([]);
+  const [deviceUsage, setDeviceUsage] = useState<Array<{ packageName: string; appName: string; usedMs: number; openCount?: number }>>([]);
 
   const isDark = effectiveTheme === "dark";
   const iconColor = isDark ? "#ffffff" : "#000000";
@@ -73,6 +73,7 @@ export const HomeScreen: React.FC = () => {
         packageName: d.packageName,
         appName: d.appName,
         usedTodayMs: d.usedMs,
+        openCount: d.openCount,
         dailyLimitMs: 0,
         isLocked: false,
       }))
@@ -259,8 +260,8 @@ export const HomeScreen: React.FC = () => {
                     </Text>
                   </View>
 
-                  <Text className="font-bold text-xs text-secondary dark:text-zinc-300 uppercase">
-                    {formatMs(seg.usedTodayMs)} ({percentOfTotal}%)
+                  <Text className="font-bold text-[11px] text-secondary dark:text-zinc-300 uppercase">
+                    {formatMs(seg.usedTodayMs)} ({percentOfTotal}%){seg.openCount ? ` • ${seg.openCount} OPENS` : ""}
                   </Text>
                 </TouchableOpacity>
               );

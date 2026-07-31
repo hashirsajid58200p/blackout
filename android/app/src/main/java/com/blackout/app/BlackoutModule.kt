@@ -138,6 +138,14 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
                         }
                         currentPkg = null
                     }
+                } else if (type == 16 || type == 17 || type == 26) {
+                    if (currentPkg != null) {
+                        val duration = time - currentStart
+                        if (duration > 0 && currentPkg == packageName) {
+                            eventTotal += duration
+                        }
+                        currentPkg = null
+                    }
                 }
             }
 
@@ -170,9 +178,15 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
             val flags = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) PackageManager.MATCH_ALL else 0
             val resolveInfos = pm.queryIntentActivities(intent, flags)
 
+            val homeIntent = Intent(Intent.ACTION_MAIN, null).apply {
+                addCategory(Intent.CATEGORY_HOME)
+            }
+            val homeApps = pm.queryIntentActivities(homeIntent, PackageManager.MATCH_DEFAULT_ONLY)
+            val homePackages = homeApps.map { it.activityInfo.packageName }.toSet()
+
             for (resolveInfo in resolveInfos) {
                 val packageName = resolveInfo.activityInfo.packageName
-                if (packageName != selfPkg && !addedPackages.contains(packageName)) {
+                if (packageName != selfPkg && !addedPackages.contains(packageName) && !homePackages.contains(packageName)) {
                     if (packageName.startsWith("com.android.systemui") || packageName == "android") {
                         continue
                     }
@@ -211,7 +225,7 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
                 val installedPackages = pm.getInstalledPackages(PackageManager.GET_META_DATA)
                 for (pkgInfo in installedPackages) {
                     val packageName = pkgInfo.packageName
-                    if (packageName != selfPkg && !addedPackages.contains(packageName)) {
+                    if (packageName != selfPkg && !addedPackages.contains(packageName) && !homePackages.contains(packageName)) {
                         val appInfo = pkgInfo.applicationInfo ?: continue
                         val isUserApp = pm.getLaunchIntentForPackage(packageName) != null
 
@@ -313,6 +327,10 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
             val startTime = calendar.timeInMillis
             val endTime = if (dayOffset == 0) System.currentTimeMillis() else (startTime + (24 * 3600 * 1000) - 1)
 
+            val homeIntent = Intent(Intent.ACTION_MAIN, null).apply { addCategory(Intent.CATEGORY_HOME) }
+            val homeApps = pm.queryIntentActivities(homeIntent, PackageManager.MATCH_DEFAULT_ONLY)
+            val homePackages = homeApps.map { it.activityInfo.packageName }.toSet()
+
             // Step 1: Pre-query launchable and user installed packages
             val validPackages = mutableMapOf<String, String>()
             try {
@@ -352,6 +370,7 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
             try {
                 val events = usageStatsManager.queryEvents(startTime, endTime)
                 val eventMap = mutableMapOf<String, Long>()
+                val openCountMap = mutableMapOf<String, Int>()
                 val event = UsageEvents.Event()
                 var currentPkg: String? = null
                 var currentStart = 0L
@@ -363,6 +382,9 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
                     val type = event.eventType
 
                     if (type == 1 /* RESUMED */) {
+                        if (currentPkg != pkg) {
+                            openCountMap[pkg] = (openCountMap[pkg] ?: 0) + 1
+                        }
                         if (currentPkg != null) {
                             val duration = time - currentStart
                             if (duration > 0) {
@@ -376,6 +398,14 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
                             val duration = time - currentStart
                             if (duration > 0) {
                                 eventMap[pkg] = (eventMap[pkg] ?: 0L) + duration
+                            }
+                            currentPkg = null
+                        }
+                    } else if (type == 16 || type == 17 || type == 26) {
+                        if (currentPkg != null) {
+                            val duration = time - currentStart
+                            if (duration > 0) {
+                                eventMap[currentPkg] = (eventMap[currentPkg] ?: 0L) + duration
                             }
                             currentPkg = null
                         }
@@ -400,7 +430,7 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
 
             // Sort by duration descending (highest usage apps first, e.g. MovieBox, Instagram)
             val sortedList = packageUsageMap.entries
-                .filter { it.value >= 30000 && it.key != "com.android.systemui" && it.key != "android" && it.key != selfPkg }
+                .filter { it.value >= 30000 && it.key != "com.android.systemui" && it.key != "android" && it.key != selfPkg && !homePackages.contains(it.key) }
                 .sortedByDescending { it.value }
 
             for (entry in sortedList) {
@@ -421,6 +451,7 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
                     putString("packageName", pkg)
                     putString("appName", appName)
                     putDouble("usedMs", timeMs.toDouble())
+                    putInt("openCount", openCountMap[pkg] ?: 0)
                 }
                 array.pushMap(map)
             }
