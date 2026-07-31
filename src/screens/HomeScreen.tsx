@@ -76,12 +76,7 @@ export const HomeScreen: React.FC = () => {
         dailyLimitMs: 0,
         isLocked: false,
       }))
-    : [
-        { packageName: "com.google.android.youtube", appName: "YouTube", usedTodayMs: 2.25 * 3600 * 1000, dailyLimitMs: 0, isLocked: false },
-        { packageName: "com.instagram.android", appName: "Instagram", usedTodayMs: 1.75 * 3600 * 1000, dailyLimitMs: 0, isLocked: false },
-        { packageName: "com.zhiliaoapp.musically", appName: "TikTok", usedTodayMs: 0.75 * 3600 * 1000, dailyLimitMs: 0, isLocked: false },
-        { packageName: "com.whatsapp", appName: "WhatsApp", usedTodayMs: 0.33 * 3600 * 1000, dailyLimitMs: 0, isLocked: false },
-      ];
+    : [];
 
   const totalUsedTodayMs = chartApps.reduce((acc, curr) => acc + curr.usedTodayMs, 0);
   const totalLimitTodayMs = isUsingTracked
