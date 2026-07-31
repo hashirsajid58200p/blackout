@@ -268,21 +268,34 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
             val startTime = calendar.timeInMillis
             val endTime = if (dayOffset == 0) System.currentTimeMillis() else (startTime + (24 * 3600 * 1000) - 1)
 
+            // Step 1: Pre-query all launchable user apps (apps with launcher activity or icon)
+            val launcherIntent = Intent(Intent.ACTION_MAIN, null).apply {
+                addCategory(Intent.CATEGORY_LAUNCHER)
+            }
+            val launcherApps = pm.queryIntentActivities(launcherIntent, 0)
+            val validPackages = mutableMapOf<String, String>()
+
+            for (resolveInfo in launcherApps) {
+                val pkg = resolveInfo.activityInfo.packageName
+                val label = resolveInfo.loadLabel(pm).toString()
+                validPackages[pkg] = label
+            }
+
             val packageUsageMap = mutableMapOf<String, Long>()
 
-            // 1. Query aggregated usage stats
+            // Step 2: Query aggregated usage stats
             try {
                 val aggregateStats = usageStatsManager.queryAndAggregateUsageStats(startTime, endTime)
                 if (aggregateStats != null) {
                     for ((pkg, stat) in aggregateStats) {
-                        if (stat.totalTimeInForeground > 0) {
+                        if (stat.totalTimeInForeground > 0 && (validPackages.containsKey(pkg) || pm.getLaunchIntentForPackage(pkg) != null)) {
                             packageUsageMap[pkg] = stat.totalTimeInForeground
                         }
                     }
                 }
             } catch (e: Exception) {}
 
-            // 2. Query UsageEvents to get exact active foreground sessions matching Digital Wellbeing
+            // Step 3: Query UsageEvents for exact session precision
             try {
                 val events = usageStatsManager.queryEvents(startTime, endTime)
                 val eventMap = mutableMapOf<String, Long>()
@@ -292,16 +305,18 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
                 while (events.hasNextEvent()) {
                     events.getNextEvent(event)
                     val pkg = event.packageName
-                    if (event.eventType == UsageEvents.Event.ACTIVITY_RESUMED || event.eventType == 1) {
-                        lastResumedTimeMap[pkg] = event.timeStamp
-                    } else if (event.eventType == UsageEvents.Event.ACTIVITY_PAUSED || event.eventType == UsageEvents.Event.ACTIVITY_STOPPED || event.eventType == 2) {
-                        val lastResumed = lastResumedTimeMap[pkg]
-                        if (lastResumed != null && lastResumed > 0) {
-                            val duration = event.timeStamp - lastResumed
-                            if (duration in 1..86400000) {
-                                eventMap[pkg] = (eventMap[pkg] ?: 0L) + duration
+                    if (validPackages.containsKey(pkg) || pm.getLaunchIntentForPackage(pkg) != null) {
+                        if (event.eventType == UsageEvents.Event.ACTIVITY_RESUMED || event.eventType == 1) {
+                            lastResumedTimeMap[pkg] = event.timeStamp
+                        } else if (event.eventType == UsageEvents.Event.ACTIVITY_PAUSED || event.eventType == UsageEvents.Event.ACTIVITY_STOPPED || event.eventType == 2) {
+                            val lastResumed = lastResumedTimeMap[pkg]
+                            if (lastResumed != null && lastResumed > 0) {
+                                val duration = event.timeStamp - lastResumed
+                                if (duration in 1..86400000) {
+                                    eventMap[pkg] = (eventMap[pkg] ?: 0L) + duration
+                                }
+                                lastResumedTimeMap.remove(pkg)
                             }
-                            lastResumedTimeMap.remove(pkg)
                         }
                     }
                 }
@@ -322,22 +337,23 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
             val array = WritableNativeArray()
             val selfPkg = reactApplicationContext.packageName
 
-            val hiddenSystemPkgs = setOf(
-                "com.android.systemui",
-                "android",
-                "com.google.android.inputmethod.latin",
-                "com.android.providers.media.module"
-            )
+            // Sort by duration descending (highest usage apps first, e.g. MovieBox, Instagram)
+            val sortedList = packageUsageMap.entries
+                .filter { it.value >= 30000 && it.key != "com.android.systemui" && it.key != "android" } // 30+ seconds threshold
+                .sortedByDescending { it.value }
 
-            for ((pkg, timeMs) in packageUsageMap.entries) {
-                if (timeMs < 1000 || hiddenSystemPkgs.contains(pkg)) continue
+            for (entry in sortedList) {
+                val pkg = entry.key
+                val timeMs = entry.value
 
-                var appName = pkg
-                try {
-                    val appInfo = pm.getApplicationInfo(pkg, 0)
-                    appName = pm.getApplicationLabel(appInfo).toString()
-                } catch (e: Exception) {
-                    appName = pkg.substringAfterLast('.')
+                var appName = validPackages[pkg]
+                if (appName == null) {
+                    try {
+                        val appInfo = pm.getApplicationInfo(pkg, 0)
+                        appName = pm.getApplicationLabel(appInfo).toString()
+                    } catch (e: Exception) {
+                        appName = pkg.substringAfterLast('.')
+                    }
                 }
 
                 val map = WritableNativeMap().apply {
