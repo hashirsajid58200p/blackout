@@ -134,6 +134,17 @@ export const NativeBridge = {
     ];
   },
 
+  async uninstallPackage(packageName: string): Promise<boolean> {
+    if (Platform.OS === "android" && BlackoutModule?.uninstallPackage) {
+      try {
+        return await BlackoutModule.uninstallPackage(packageName);
+      } catch {
+        return false;
+      }
+    }
+    return false;
+  },
+
   async getInstalledApps(): Promise<Array<{ packageName: string; appName: string; category?: string; iconBase64?: string }>> {
     if (Platform.OS === "android" && BlackoutModule?.getInstalledApps) {
       try {

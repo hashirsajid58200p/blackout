@@ -77,7 +77,7 @@ export const SettingsScreen: React.FC = () => {
           </View>
         </View>
 
-        {/* Section 2: Auto-Clean Feature */}
+        {/* Section 2: Auto-Clean & Self-Destruct Feature */}
         <View className="flex-col gap-3 mb-8">
           <Text className="font-bold text-xs text-secondary dark:text-zinc-400 uppercase tracking-widest">
             AUTOMATION & CLEANUP
@@ -93,13 +93,13 @@ export const SettingsScreen: React.FC = () => {
                 numberOfLines={1}
                 className="font-bold text-sm uppercase tracking-wider text-primary dark:text-white flex-1 leading-5"
               >
-                AUTO-REMOVE UNINSTALLED APPS
+                DELETE LOCKED APPS ON UNINSTALL
               </Text>
             </View>
 
             {/* 2. Description Paragraph: Left-aligned with heading text (30px offset) */}
             <Text className="text-xs text-secondary dark:text-zinc-400 ml-[30px] leading-4 mb-3">
-              Automatically delete app lock profiles if the app is uninstalled from your phone
+              If enabled, uninstalling Blackout will automatically uninstall all locked applications from your phone as well.
             </Text>
 
             {/* 3. Action Button: Aligned on the Right Side at Bottom */}
@@ -174,7 +174,7 @@ export const SettingsScreen: React.FC = () => {
             onPress={() => setCurrentScreen("permissions")}
             className="border-2 border-primary dark:border-white bg-surface-container-lowest dark:bg-black p-4 flex-col rounded-none"
           >
-            <View className="flex-row items-center gap-2.5 mb-1">
+            <View className="flex-row items-center gap-2.5 mb-1.5">
               <View className="w-5 h-5 items-center justify-center">
                 <ShieldCheck size={20} color={iconColor} />
               </View>
@@ -185,7 +185,7 @@ export const SettingsScreen: React.FC = () => {
                 SYSTEM PERMISSIONS
               </Text>
             </View>
-            <Text className="text-[11px] font-bold text-secondary dark:text-zinc-400 uppercase tracking-wider leading-4">
+            <Text className="text-xs text-secondary dark:text-zinc-400 ml-[30px] leading-4">
               {permissions.usageStats && permissions.overlay && permissions.accessibility
                 ? "ALL 3 PERMISSIONS GRANTED"
                 : "ACTION REQUIRED — TAP TO REVIEW"}

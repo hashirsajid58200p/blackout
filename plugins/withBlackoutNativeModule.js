@@ -392,6 +392,20 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
             promise.reject("DAY_STATS_ERROR", e.message)
         }
     }
+
+    @ReactMethod
+    fun uninstallPackage(packageName: String, promise: Promise) {
+        try {
+            val intent = android.content.Intent(android.content.Intent.ACTION_DELETE).apply {
+                data = android.net.Uri.parse("package:$packageName")
+                flags = android.content.Intent.FLAG_ACTIVITY_NEW_TASK
+            }
+            reactApplicationContext.startActivity(intent)
+            promise.resolve(true)
+        } catch (e: Exception) {
+            promise.reject("UNINSTALL_ERROR", e.message)
+        }
+    }
 }
 `;
       fs.writeFileSync(
