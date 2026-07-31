@@ -335,7 +335,7 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
 
                 val map = WritableNativeMap().apply {
                     putString("day", dayName)
-                    putString("dateStr", "${dayCal.get(Calendar.MONTH) + 1}/${dayCal.get(Calendar.DAY_OF_MONTH)}")
+                    putString("dateStr", "\${dayCal.get(Calendar.MONTH) + 1}/\${dayCal.get(Calendar.DAY_OF_MONTH)}")
                     putDouble("totalUsageMs", dayTotalMs.toDouble())
                 }
                 array.pushMap(map)
