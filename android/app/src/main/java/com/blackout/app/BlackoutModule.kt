@@ -353,7 +353,7 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
             promise.reject("DAY_STATS_ERROR", e.message)
         }
     }
-}
+
     @ReactMethod
     fun uninstallPackage(packageName: String, promise: Promise) {
         try {
