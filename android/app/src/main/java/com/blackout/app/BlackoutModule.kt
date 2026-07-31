@@ -362,6 +362,7 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
             } catch (e: Exception) {}
 
             val packageUsageMap = mutableMapOf<String, Long>()
+            val globalOpenCountMap = mutableMapOf<String, Int>()
 
             // queryAndAggregateUsageStats removed due to UTC bounds timezone inaccuracy.
             // We solely rely on precise local UsageEvents.
@@ -370,7 +371,6 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
             try {
                 val events = usageStatsManager.queryEvents(startTime, endTime)
                 val eventMap = mutableMapOf<String, Long>()
-                val openCountMap = mutableMapOf<String, Int>()
                 val event = UsageEvents.Event()
                 var currentPkg: String? = null
                 var currentStart = 0L
@@ -383,7 +383,7 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
 
                     if (type == 1 /* RESUMED */) {
                         if (currentPkg != pkg) {
-                            openCountMap[pkg] = (openCountMap[pkg] ?: 0) + 1
+                            globalOpenCountMap[pkg] = (globalOpenCountMap[pkg] ?: 0) + 1
                         }
                         if (currentPkg != null) {
                             val duration = time - currentStart
@@ -451,7 +451,7 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
                     putString("packageName", pkg)
                     putString("appName", appName)
                     putDouble("usedMs", timeMs.toDouble())
-                    putInt("openCount", openCountMap[pkg] ?: 0)
+                    putInt("openCount", globalOpenCountMap[pkg] ?: 0)
                 }
                 array.pushMap(map)
             }
