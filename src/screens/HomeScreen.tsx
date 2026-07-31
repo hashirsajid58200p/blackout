@@ -8,16 +8,16 @@ import { Card } from "../components/ui/Card";
 import { ProgressBar } from "../components/ui/ProgressBar";
 import { StatusPill } from "../components/ui/StatusPill";
 import { NativeBridge } from "../services/nativeBridge";
-import { Plus, ShieldAlert, Lock, ArrowRight } from "lucide-react-native";
+import { Plus, ShieldAlert, Lock } from "lucide-react-native";
 
 export const HomeScreen: React.FC = () => {
   const { trackedApps, setCurrentScreen, permissions, effectiveTheme } = useApp();
+  const [selectedAppPackage, setSelectedAppPackage] = useState<string | null>(null);
+  const [deviceUsage, setDeviceUsage] = useState<Array<{ packageName: string; appName: string; usedMs: number }>>([]);
+
   const isDark = effectiveTheme === "dark";
   const iconColor = isDark ? "#ffffff" : "#000000";
   const fabIconColor = isDark ? "#000000" : "#ffffff";
-
-  const [selectedAppPackage, setSelectedAppPackage] = useState<string | null>(null);
-  const [deviceUsage, setDeviceUsage] = useState<Array<{ packageName: string; appName: string; usedMs: number }>>([]);
 
   useEffect(() => {
     let isMounted = true;
@@ -53,7 +53,6 @@ export const HomeScreen: React.FC = () => {
     return `${minsRem}m`;
   };
 
-  // Determine chart apps: use trackedApps if set, otherwise use device real usage apps
   const isUsingTracked = trackedApps.length > 0;
   const chartApps = isUsingTracked
     ? trackedApps.map((a) => ({
@@ -133,26 +132,13 @@ export const HomeScreen: React.FC = () => {
 
       <ScrollView contentContainerStyle={{ paddingBottom: 120 }} className="px-margin-page pt-4 flex-1">
         {/* Date Header */}
-        <View className="flex-row justify-between items-end mb-6">
-          <View className="flex-col gap-1">
-            <Text className="font-bold text-3xl text-primary dark:text-white uppercase tracking-tight">
-              FOCUS
-            </Text>
-            <Text className="font-bold text-xs text-secondary dark:text-zinc-400 uppercase tracking-widest">
-              {getTodayFormatted()}
-            </Text>
-          </View>
-
-          <TouchableOpacity
-            activeOpacity={0.8}
-            onPress={() => setCurrentScreen("add_app")}
-            className="flex-row items-center gap-1.5 bg-primary dark:bg-white px-3 py-2 border border-primary dark:border-white"
-          >
-            <Plus size={16} color={fabIconColor} />
-            <Text className="text-xs font-bold text-white dark:text-black uppercase">
-              ADD LOCK
-            </Text>
-          </TouchableOpacity>
+        <View className="flex-col gap-1 mb-6">
+          <Text className="font-bold text-3xl text-primary dark:text-white uppercase tracking-tight">
+            FOCUS
+          </Text>
+          <Text className="font-bold text-xs text-secondary dark:text-zinc-400 uppercase tracking-widest">
+            {getTodayFormatted()}
+          </Text>
         </View>
 
         {/* Permission Notice if missing */}
@@ -190,7 +176,6 @@ export const HomeScreen: React.FC = () => {
           {/* Circular SVG Chart */}
           <View className="relative w-48 h-48 items-center justify-center mb-4">
             <Svg width={192} height={192} viewBox="0 0 160 160">
-              {/* Track Base Circle */}
               <Circle
                 cx="80"
                 cy="80"
@@ -200,7 +185,6 @@ export const HomeScreen: React.FC = () => {
                 fill="none"
               />
 
-              {/* Per-App Segments */}
               {totalUsedTodayMs > 0 ? (
                 appSegments.map((seg, idx) => {
                   if (seg.usedTodayMs <= 0) return null;
@@ -235,7 +219,6 @@ export const HomeScreen: React.FC = () => {
               )}
             </Svg>
 
-            {/* Center Text inside Donut Circle */}
             <View className="absolute items-center justify-center pointer-events-none px-2 text-center">
               <Text numberOfLines={1} className="font-bold text-2xl text-primary dark:text-white">
                 {activeFocusApp ? formatMs(activeFocusApp.usedTodayMs) : formatMs(totalUsedTodayMs)}
@@ -284,26 +267,15 @@ export const HomeScreen: React.FC = () => {
           </View>
         </Card>
 
-        {/* Tracked Apps List / Add Lock Callout */}
+        {/* Tracked Apps List */}
         {trackedApps.length === 0 ? (
-          <Card className="py-8 px-5 items-center justify-center text-center bg-surface-container dark:bg-black border-2 border-dashed border-primary/30 dark:border-white/30">
-            <Lock size={36} color={iconColor} className="mb-3" />
-            <Text className="font-bold text-base uppercase text-primary dark:text-white mb-1.5">
+          <Card className="py-12 items-center justify-center text-center">
+            <Text className="font-bold text-lg uppercase text-primary dark:text-white mb-2">
               NO APP LOCKS ACTIVE
             </Text>
-            <Text className="text-xs text-secondary dark:text-zinc-400 text-center max-w-[260px] leading-4 mb-5">
-              Pick an app from your device and set a daily screen time limit to enforce blackout.
+            <Text className="text-sm text-secondary dark:text-zinc-400 text-center max-w-[240px]">
+              Tap the (+) button below to pick an app and set a daily limit.
             </Text>
-            <TouchableOpacity
-              activeOpacity={0.8}
-              onPress={() => setCurrentScreen("add_app")}
-              className="bg-primary dark:bg-white px-5 py-2.5 flex-row items-center justify-center gap-2 border border-primary dark:border-white"
-            >
-              <Plus size={18} color={fabIconColor} />
-              <Text className="font-bold text-xs text-white dark:text-black uppercase">
-                ADD APP TO LOCK
-              </Text>
-            </TouchableOpacity>
           </Card>
         ) : (
           <View className="flex-col gap-3.5">
@@ -324,7 +296,6 @@ export const HomeScreen: React.FC = () => {
                   variant={app.isLocked ? "locked" : "default"}
                   className="flex-col gap-2.5 p-4"
                 >
-                  {/* Top Row: Icon Center-Aligned Vertically with App Name + StatusPill Right */}
                   <View className="flex-row items-center justify-between">
                     <View className="flex-row items-center gap-2.5 flex-1 pr-2">
                       <View className="w-5 h-5 items-center justify-center">
@@ -341,7 +312,6 @@ export const HomeScreen: React.FC = () => {
                     <StatusPill isLocked={app.isLocked} />
                   </View>
 
-                  {/* Progress Row */}
                   <View className="flex-col gap-1.5 w-full mt-1">
                     <View className="flex-row justify-between items-end">
                       <Text className="font-bold text-xs text-secondary dark:text-zinc-300">

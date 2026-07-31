@@ -27,7 +27,8 @@
       "permissions": [
         "PACKAGE_USAGE_STATS",
         "SYSTEM_ALERT_WINDOW",
-        "BIND_ACCESSIBILITY_SERVICE"
+        "BIND_ACCESSIBILITY_SERVICE",
+        "QUERY_ALL_PACKAGES"
       ]
     },
     "web": {

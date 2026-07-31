@@ -125,10 +125,14 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
             val resolveInfos = pm.queryIntentActivities(intent, 0)
             val array = WritableNativeArray()
             val addedPackages = mutableSetOf<String>()
+            val selfPkg = reactApplicationContext.packageName
 
             for (resolveInfo in resolveInfos) {
                 val packageName = resolveInfo.activityInfo.packageName
-                if (packageName != reactApplicationContext.packageName && !addedPackages.contains(packageName)) {
+                if (packageName != selfPkg && !addedPackages.contains(packageName)) {
+                    if (packageName.startsWith("com.android.systemui") || packageName == "android") {
+                        continue
+                    }
                     addedPackages.add(packageName)
                     val appName = resolveInfo.loadLabel(pm).toString()
                     var iconBase64 = ""
@@ -158,6 +162,30 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
                     array.pushMap(map)
                 }
             }
+
+            // Fallback for any user app with launch intent missed by queryIntentActivities
+            try {
+                val installedAppsList = pm.getInstalledApplications(0)
+                for (appInfo in installedAppsList) {
+                    val packageName = appInfo.packageName
+                    if (packageName != selfPkg && !addedPackages.contains(packageName)) {
+                        val launchIntent = pm.getLaunchIntentForPackage(packageName)
+                        if (launchIntent != null) {
+                            addedPackages.add(packageName)
+                            val appName = pm.getApplicationLabel(appInfo).toString()
+                            val map = WritableNativeMap().apply {
+                                putString("packageName", packageName)
+                                putString("appName", appName)
+                                putString("category", "Installed App")
+                            }
+                            array.pushMap(map)
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                // ignore secondary list error
+            }
+
             promise.resolve(array)
         } catch (e: Exception) {
             promise.reject("GET_APPS_ERROR", e.message)
@@ -231,9 +259,18 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
                 }
             }
 
+            val systemIgnores = setOf(
+                "com.android.systemui",
+                "android",
+                "com.google.android.inputmethod.latin",
+                reactApplicationContext.packageName
+            )
+
             for ((pkg, timeMs) in packageUsageMap.entries) {
+                if (systemIgnores.contains(pkg) || pkg.contains("launcher") || pkg.contains("systemui")) continue
                 try {
                     val appInfo = pm.getApplicationInfo(pkg, 0)
+                    if (pm.getLaunchIntentForPackage(pkg) == null) continue
                     val appName = pm.getApplicationLabel(appInfo).toString()
                     val map = WritableNativeMap().apply {
                         putString("packageName", pkg)

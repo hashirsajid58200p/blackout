@@ -5,6 +5,26 @@ const path = require("path");
 const withBlackoutNativeModule = (config) => {
   // 1. Android Manifest changes
   config = withAndroidManifest(config, (config) => {
+    const manifest = config.modResults.manifest;
+    if (!manifest["uses-permission"]) {
+      manifest["uses-permission"] = [];
+    }
+
+    const permissionsToAdd = [
+      "android.permission.PACKAGE_USAGE_STATS",
+      "android.permission.SYSTEM_ALERT_WINDOW",
+      "android.permission.BIND_ACCESSIBILITY_SERVICE",
+      "android.permission.QUERY_ALL_PACKAGES",
+    ];
+
+    for (const perm of permissionsToAdd) {
+      if (!manifest["uses-permission"].some((p) => p["$"]["android:name"] === perm)) {
+        manifest["uses-permission"].push({
+          $: { "android:name": perm },
+        });
+      }
+    }
+
     const mainApplication = config.modResults.manifest.application[0];
 
     // Ensure accessibility service is declared
@@ -319,10 +339,14 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
             val resolveInfos = pm.queryIntentActivities(intent, 0)
             val array = WritableNativeArray()
             val addedPackages = mutableSetOf<String>()
+            val selfPkg = reactApplicationContext.packageName
 
             for (resolveInfo in resolveInfos) {
                 val packageName = resolveInfo.activityInfo.packageName
-                if (packageName != reactApplicationContext.packageName && !addedPackages.contains(packageName)) {
+                if (packageName != selfPkg && !addedPackages.contains(packageName)) {
+                    if (packageName.startsWith("com.android.systemui") || packageName == "android") {
+                        continue
+                    }
                     addedPackages.add(packageName)
                     val appName = resolveInfo.loadLabel(pm).toString()
                     var iconBase64 = ""
@@ -352,6 +376,29 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
                     array.pushMap(map)
                 }
             }
+
+            try {
+                val installedAppsList = pm.getInstalledApplications(0)
+                for (appInfo in installedAppsList) {
+                    val packageName = appInfo.packageName
+                    if (packageName != selfPkg && !addedPackages.contains(packageName)) {
+                        val launchIntent = pm.getLaunchIntentForPackage(packageName)
+                        if (launchIntent != null) {
+                            addedPackages.add(packageName)
+                            val appName = pm.getApplicationLabel(appInfo).toString()
+                            val map = WritableNativeMap().apply {
+                                putString("packageName", packageName)
+                                putString("appName", appName)
+                                putString("category", "Installed App")
+                            }
+                            array.pushMap(map)
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                // ignore secondary list error
+            }
+
             promise.resolve(array)
         } catch (e: Exception) {
             promise.reject("GET_APPS_ERROR", e.message)
@@ -425,9 +472,18 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
                 }
             }
 
+            val systemIgnores = setOf(
+                "com.android.systemui",
+                "android",
+                "com.google.android.inputmethod.latin",
+                reactApplicationContext.packageName
+            )
+
             for ((pkg, timeMs) in packageUsageMap.entries) {
+                if (systemIgnores.contains(pkg) || pkg.contains("launcher") || pkg.contains("systemui")) continue
                 try {
                     val appInfo = pm.getApplicationInfo(pkg, 0)
+                    if (pm.getLaunchIntentForPackage(pkg) == null) continue
                     val appName = pm.getApplicationLabel(appInfo).toString()
                     val map = WritableNativeMap().apply {
                         putString("packageName", pkg)
