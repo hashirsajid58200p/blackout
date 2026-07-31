@@ -12,7 +12,6 @@ export const BottomNavBar: React.FC = () => {
   const navItems = [
     { id: "home", icon: LayoutGrid, label: "Home" },
     { id: "stats", icon: BarChart2, label: "Stats" },
-    { id: "permissions", icon: ShieldAlert, label: "Permissions" },
     { id: "settings", icon: SettingsIcon, label: "Settings" },
   ];
 
