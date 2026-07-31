@@ -492,6 +492,19 @@ class BlackoutPackage : ReactPackage {
     },
   ]);
 
+  // 3. MainApplication changes to register BlackoutPackage
+  config = withMainApplication(config, (config) => {
+    let contents = config.modResults.contents;
+    if (!contents.includes("BlackoutPackage()")) {
+      contents = contents.replace(
+        "val packages = PackageList(this).packages",
+        "val packages = PackageList(this).packages.toMutableList()\n            packages.add(BlackoutPackage())"
+      );
+      config.modResults.contents = contents;
+    }
+    return config;
+  });
+
   return config;
 };
 

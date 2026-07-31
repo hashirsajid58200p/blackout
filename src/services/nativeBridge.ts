@@ -9,8 +9,8 @@ export interface NativePermissionsStatus {
   accessibility: boolean;
 }
 
-// Web / Simulator mock state ONLY (never used on real Android)
-let webMockPermissions: NativePermissionsStatus = {
+// Dev / Simulator fallback mock state (used when BlackoutModule is not registered/linked)
+let devMockPermissions: NativePermissionsStatus = {
   usageStats: false,
   overlay: false,
   accessibility: false,
@@ -18,17 +18,14 @@ let webMockPermissions: NativePermissionsStatus = {
 
 export const NativeBridge = {
   async checkUsageStatsPermission(): Promise<boolean> {
-    if (Platform.OS === "android") {
-      if (BlackoutModule?.hasUsageStatsPermission) {
-        try {
-          return await BlackoutModule.hasUsageStatsPermission();
-        } catch {
-          return false;
-        }
+    if (Platform.OS === "android" && BlackoutModule?.hasUsageStatsPermission) {
+      try {
+        return await BlackoutModule.hasUsageStatsPermission();
+      } catch {
+        return false;
       }
-      return false;
     }
-    return webMockPermissions.usageStats;
+    return devMockPermissions.usageStats;
   },
 
   openUsageStatsSettings(): void {
@@ -37,24 +34,22 @@ export const NativeBridge = {
         BlackoutModule.openUsageStatsSettings();
       } else {
         IntentLauncher.startActivityAsync("android.settings.USAGE_ACCESS_SETTINGS").catch(() => {});
+        devMockPermissions.usageStats = !devMockPermissions.usageStats;
       }
     } else {
-      webMockPermissions.usageStats = !webMockPermissions.usageStats;
+      devMockPermissions.usageStats = !devMockPermissions.usageStats;
     }
   },
 
   async checkOverlayPermission(): Promise<boolean> {
-    if (Platform.OS === "android") {
-      if (BlackoutModule?.hasOverlayPermission) {
-        try {
-          return await BlackoutModule.hasOverlayPermission();
-        } catch {
-          return false;
-        }
+    if (Platform.OS === "android" && BlackoutModule?.hasOverlayPermission) {
+      try {
+        return await BlackoutModule.hasOverlayPermission();
+      } catch {
+        return false;
       }
-      return false;
     }
-    return webMockPermissions.overlay;
+    return devMockPermissions.overlay;
   },
 
   openOverlaySettings(): void {
@@ -63,24 +58,22 @@ export const NativeBridge = {
         BlackoutModule.openOverlaySettings();
       } else {
         IntentLauncher.startActivityAsync("android.settings.action.MANAGE_OVERLAY_PERMISSION").catch(() => {});
+        devMockPermissions.overlay = !devMockPermissions.overlay;
       }
     } else {
-      webMockPermissions.overlay = !webMockPermissions.overlay;
+      devMockPermissions.overlay = !devMockPermissions.overlay;
     }
   },
 
   async checkAccessibilityPermission(): Promise<boolean> {
-    if (Platform.OS === "android") {
-      if (BlackoutModule?.hasAccessibilityPermission) {
-        try {
-          return await BlackoutModule.hasAccessibilityPermission();
-        } catch {
-          return false;
-        }
+    if (Platform.OS === "android" && BlackoutModule?.hasAccessibilityPermission) {
+      try {
+        return await BlackoutModule.hasAccessibilityPermission();
+      } catch {
+        return false;
       }
-      return false;
     }
-    return webMockPermissions.accessibility;
+    return devMockPermissions.accessibility;
   },
 
   openAccessibilitySettings(): void {
@@ -89,9 +82,10 @@ export const NativeBridge = {
         BlackoutModule.openAccessibilitySettings();
       } else {
         IntentLauncher.startActivityAsync("android.settings.ACCESSIBILITY_SETTINGS").catch(() => {});
+        devMockPermissions.accessibility = !devMockPermissions.accessibility;
       }
     } else {
-      webMockPermissions.accessibility = !webMockPermissions.accessibility;
+      devMockPermissions.accessibility = !devMockPermissions.accessibility;
     }
   },
 
