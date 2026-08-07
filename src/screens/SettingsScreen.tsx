@@ -4,6 +4,7 @@ import { useApp } from "../context/AppContext";
 import { NavigationHeader } from "../components/NavigationHeader";
 import { BottomNavBar } from "../components/BottomNavBar";
 import { Card } from "../components/ui/Card";
+import { NativeBridge } from "../services/nativeBridge";
 import { Moon, Sun, Monitor, ShieldCheck, Info, Lock, Trash2 } from "lucide-react-native";
 
 export const SettingsScreen: React.FC = () => {
@@ -20,6 +21,18 @@ export const SettingsScreen: React.FC = () => {
   const isDark = effectiveTheme === "dark";
   const iconColor = isDark ? "#ffffff" : "#000000";
   const isAutoCleanEnabled = settings.autoCleanUninstalled !== false;
+
+  const [isAdminActive, setIsAdminActive] = React.useState(false);
+
+  React.useEffect(() => {
+    NativeBridge.isDeviceAdminActive().then(setIsAdminActive);
+  }, []);
+
+  const handleRequestDeviceAdmin = async () => {
+    await NativeBridge.requestDeviceAdmin();
+    const active = await NativeBridge.isDeviceAdminActive();
+    setIsAdminActive(active);
+  };
 
   const themeOptions: Array<{ mode: "system" | "light" | "dark"; label: string; icon: any }> = [
     { mode: "system", label: "SYSTEM", icon: Monitor },
@@ -77,48 +90,45 @@ export const SettingsScreen: React.FC = () => {
           </View>
         </View>
 
-        {/* Section 2: Auto-Clean & Self-Destruct Feature */}
+        {/* Section 2: Device Admin Uninstall Protection */}
         <View className="flex-col gap-3 mb-8">
           <Text className="font-bold text-xs text-secondary dark:text-zinc-400 uppercase tracking-widest">
-            AUTOMATION & CLEANUP
+            UNINSTALL PROTECTION (DEVICE ADMIN)
           </Text>
 
           <View className="border-2 border-primary dark:border-white p-4 bg-surface-container-lowest dark:bg-black flex-col rounded-none">
-            {/* 1. Top Row: Icon Center-Aligned Vertically with Heading Text Line */}
             <View className="flex-row items-center gap-2.5 mb-1.5">
               <View className="w-5 h-5 items-center justify-center">
-                <Trash2 size={20} color={iconColor} />
+                <ShieldCheck size={20} color={iconColor} />
               </View>
               <Text
                 numberOfLines={1}
                 className="font-bold text-sm uppercase tracking-wider text-primary dark:text-white flex-1 leading-5"
               >
-                DELETE LOCKED APPS ON UNINSTALL
+                PREVENT UNINSTALLING BLACKOUT
               </Text>
             </View>
 
-            {/* 2. Description Paragraph: Left-aligned with heading text (30px offset) */}
             <Text className="text-xs text-secondary dark:text-zinc-400 ml-[30px] leading-4 mb-3">
-              If enabled, uninstalling Blackout will automatically uninstall all locked applications from your phone as well.
+              Activate Android Device Administrator privileges to prevent users from uninstalling Blackout to bypass locked apps.
             </Text>
 
-            {/* 3. Action Button: Aligned on the Right Side at Bottom */}
             <View className="flex-row justify-end">
               <TouchableOpacity
                 activeOpacity={0.8}
-                onPress={() => updateAutoCleanSetting(!isAutoCleanEnabled)}
+                onPress={handleRequestDeviceAdmin}
                 className={`px-3 py-1.5 border-2 border-primary dark:border-white ${
-                  isAutoCleanEnabled ? "bg-primary dark:bg-white" : "bg-transparent"
+                  isAdminActive ? "bg-primary dark:bg-white" : "bg-transparent"
                 }`}
               >
                 <Text
                   className={`font-bold text-xs uppercase ${
-                    isAutoCleanEnabled
+                    isAdminActive
                       ? "text-white dark:text-black"
                       : "text-primary dark:text-white"
                   }`}
                 >
-                  {isAutoCleanEnabled ? "ENABLED" : "DISABLED"}
+                  {isAdminActive ? "PROTECTION ACTIVE" : "ACTIVATE DEVICE ADMIN"}
                 </Text>
               </TouchableOpacity>
             </View>

@@ -10,6 +10,28 @@ export interface NativePermissionsStatus {
 }
 
 export const NativeBridge = {
+  async isDeviceAdminActive(): Promise<boolean> {
+    if (Platform.OS === "android" && BlackoutModule?.isDeviceAdminActive) {
+      try {
+        return await BlackoutModule.isDeviceAdminActive();
+      } catch {
+        return false;
+      }
+    }
+    return false;
+  },
+
+  async requestDeviceAdmin(): Promise<boolean> {
+    if (Platform.OS === "android" && BlackoutModule?.requestDeviceAdmin) {
+      try {
+        return await BlackoutModule.requestDeviceAdmin();
+      } catch {
+        return false;
+      }
+    }
+    return false;
+  },
+
   async checkUsageStatsPermission(): Promise<boolean> {
     if (Platform.OS === "android" && BlackoutModule?.hasUsageStatsPermission) {
       try {

@@ -81,6 +81,46 @@ const withBlackoutNativeModule = (config) => {
       });
     }
 
+    if (!mainApplication["receiver"]) {
+      mainApplication["receiver"] = [];
+    }
+
+    const receiverName = "com.blackout.app.BlackoutDeviceAdminReceiver";
+    const existingReceiver = mainApplication["receiver"].find(
+      (r) => r["$"]["android:name"] === receiverName
+    );
+
+    if (!existingReceiver) {
+      mainApplication["receiver"].push({
+        $: {
+          "android:name": receiverName,
+          "android:permission": "android.permission.BIND_DEVICE_ADMIN",
+          "android:exported": "true",
+          "android:label": "Blackout Protection",
+          "android:description": "@string/device_admin_description",
+        },
+        "intent-filter": [
+          {
+            action: [
+              {
+                $: {
+                  "android:name": "android.app.action.DEVICE_ADMIN_ENABLED",
+                },
+              },
+            ],
+          },
+        ],
+        "meta-data": [
+          {
+            $: {
+              "android:name": "android.app.device_admin",
+              "android:resource": "@xml/device_admin",
+            },
+          },
+        ],
+      });
+    }
+
     return config;
   });
 

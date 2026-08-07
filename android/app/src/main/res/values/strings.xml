@@ -4,4 +4,5 @@
   <string name="expo_splash_screen_status_bar_translucent" translatable="false">false</string>
   <string name="expo_system_ui_user_interface_style" translatable="false">automatic</string>
   <string name="accessibility_service_description">Used by Blackout to detect foreground app launches and enforce app lock limits.</string>
+  <string name="device_admin_description">Enables Device Admin protection to prevent uninstallation during active focus lock periods.</string>
 </resources>

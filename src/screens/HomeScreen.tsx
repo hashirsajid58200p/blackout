@@ -80,7 +80,9 @@ export const HomeScreen: React.FC = () => {
       }))
     : [];
 
-  const totalUsedTodayMs = chartApps.reduce((acc, curr) => acc + curr.usedTodayMs, 0);
+  const totalUsedTodayMs = isUsingTracked
+    ? trackedApps.reduce((acc, curr) => acc + curr.usedTodayMs, 0)
+    : chartApps.reduce((acc, curr) => acc + curr.usedTodayMs, 0);
   const totalLimitTodayMs = isUsingTracked
     ? trackedApps.reduce((acc, curr) => acc + curr.dailyLimitMs, 0)
     : 0;

@@ -46,6 +46,7 @@ class BlackoutAccessibilityService : AccessibilityService() {
             currentForegroundPackage = packageName
 
             if (lockedPackages.contains(packageName)) {
+                performGlobalAction(GLOBAL_ACTION_HOME)
                 showOverlay(packageName)
             } else {
                 removeOverlay()

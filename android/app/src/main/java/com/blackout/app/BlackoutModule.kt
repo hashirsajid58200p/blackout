@@ -1,8 +1,10 @@
 package com.blackout.app
 
 import android.app.AppOpsManager
+import android.app.admin.DevicePolicyManager
 import android.app.usage.UsageEvents
 import android.app.usage.UsageStatsManager
+import android.content.ComponentName
 import android.content.Context
 import android.content.Intent
 import android.content.pm.ApplicationInfo
@@ -18,6 +20,36 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
 
     override fun getName(): String {
         return "BlackoutModule"
+    }
+
+    @ReactMethod
+    fun isDeviceAdminActive(promise: Promise) {
+        try {
+            val dpm = reactApplicationContext.getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
+            val adminComponent = ComponentName(reactApplicationContext, BlackoutDeviceAdminReceiver::class.java)
+            promise.resolve(dpm.isAdminActive(adminComponent))
+        } catch (e: Exception) {
+            promise.resolve(false)
+        }
+    }
+
+    @ReactMethod
+    fun requestDeviceAdmin(promise: Promise) {
+        try {
+            val dpm = reactApplicationContext.getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
+            val adminComponent = ComponentName(reactApplicationContext, BlackoutDeviceAdminReceiver::class.java)
+            if (!dpm.isAdminActive(adminComponent)) {
+                val intent = Intent(DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN).apply {
+                    putExtra(DevicePolicyManager.EXTRA_DEVICE_ADMIN, adminComponent)
+                    putExtra(DevicePolicyManager.EXTRA_ADD_EXPLANATION, "Activate Device Admin to prevent uninstalling Blackout during active focus lock periods.")
+                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                }
+                reactApplicationContext.startActivity(intent)
+            }
+            promise.resolve(true)
+        } catch (e: Exception) {
+            promise.reject("DEVICE_ADMIN_ERROR", e.message)
+        }
     }
 
     @ReactMethod
