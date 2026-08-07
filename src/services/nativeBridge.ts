@@ -102,6 +102,12 @@ export const NativeBridge = {
     }
   },
 
+  syncLockedAppsToNative(lockedAppsJson: string): void {
+    if (Platform.OS === "android" && BlackoutModule?.syncLockedAppsToNative) {
+      BlackoutModule.syncLockedAppsToNative(lockedAppsJson);
+    }
+  },
+
   async getTodayUsageStats(packageName: string): Promise<number> {
     if (Platform.OS === "android" && BlackoutModule?.getTodayUsage) {
       try {

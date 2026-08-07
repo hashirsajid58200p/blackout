@@ -129,6 +129,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       .map((a) => a.packageName);
 
     NativeBridge.syncLockedPackages(lockedPkgs);
+    NativeBridge.syncLockedAppsToNative(JSON.stringify(loadedApps));
 
     // Check permissions
     await refreshPermissions();
@@ -188,6 +189,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       if (hasUpdates) {
         setTrackedApps(updatedApps);
         await StorageService.saveTrackedApps(updatedApps);
+        NativeBridge.syncLockedAppsToNative(JSON.stringify(updatedApps));
       }
     };
 

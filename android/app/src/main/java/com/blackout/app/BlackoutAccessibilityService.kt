@@ -15,6 +15,7 @@ import android.view.accessibility.AccessibilityEvent
 import android.widget.Button
 import android.widget.LinearLayout
 import android.widget.TextView
+import org.json.JSONArray
 
 class BlackoutAccessibilityService : AccessibilityService() {
 
@@ -39,19 +40,57 @@ class BlackoutAccessibilityService : AccessibilityService() {
         if (event == null) return
         if (event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
             val packageName = event.packageName?.toString() ?: return
-            
-            if (lockedPackages.contains(packageName)) {
+            currentForegroundPackage = packageName
+
+            if (isAppBlocked(packageName)) {
                 performGlobalAction(GLOBAL_ACTION_HOME)
                 showOverlay(packageName)
-            } else if (!packageName.startsWith("com.blackout.app") && 
-                       !packageName.contains("launcher") && 
-                       !packageName.contains("systemui") && 
+            } else if (!packageName.startsWith("com.blackout.app") &&
+                       !packageName.contains("launcher") &&
+                       !packageName.contains("systemui") &&
                        !packageName.contains("home") &&
                        !packageName.contains("trebuchet") &&
                        !packageName.contains("quickstep")) {
                 removeOverlay()
             }
         }
+    }
+
+    private fun isAppBlocked(packageName: String): Boolean {
+        // 1. Check in-memory set if populated
+        if (lockedPackages.contains(packageName)) {
+            return true
+        }
+
+        // 2. Read synced locked apps from SharedPreferences
+        try {
+            val prefs = getSharedPreferences("BlackoutPrefs", Context.MODE_PRIVATE)
+            val jsonString = prefs.getString("locked_apps_json", null) ?: return false
+
+            val jsonArray = JSONArray(jsonString)
+            for (i in 0 until jsonArray.length()) {
+                val itemObj = jsonArray.optJSONObject(i)
+                if (itemObj != null) {
+                    val pkg = itemObj.optString("packageName")
+                    if (pkg == packageName) {
+                        val isLocked = itemObj.optBoolean("isLocked", false)
+                        val usedTodayMs = itemObj.optDouble("usedTodayMs", 0.0)
+                        val dailyLimitMs = itemObj.optDouble("dailyLimitMs", 0.0)
+                        if (isLocked || (dailyLimitMs > 0 && usedTodayMs >= dailyLimitMs)) {
+                            return true
+                        }
+                    }
+                } else {
+                    val pkgStr = jsonArray.optString(i)
+                    if (pkgStr == packageName) {
+                        return true
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            Log.e("BlackoutAccessibility", "Error checking blocked app status", e)
+        }
+        return false
     }
 
     private fun showOverlay(packageName: String) {
@@ -117,8 +156,8 @@ class BlackoutAccessibilityService : AccessibilityService() {
                 WindowManager.LayoutParams.MATCH_PARENT,
                 WindowManager.LayoutParams.MATCH_PARENT,
                 layoutType,
-                WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
-                        WindowManager.LayoutParams.FLAG_FULLSCREEN or
+                WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or
+                        WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
                         WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN,
                 PixelFormat.TRANSLUCENT
             )

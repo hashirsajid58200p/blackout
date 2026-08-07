@@ -132,6 +132,43 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
     }
 
     @ReactMethod
+    fun syncLockedAppsToNative(lockedAppsJson: String) {
+        try {
+            val prefs = reactApplicationContext.getSharedPreferences("BlackoutPrefs", Context.MODE_PRIVATE)
+            prefs.edit().putString("locked_apps_json", lockedAppsJson).apply()
+
+            val lockedSet = mutableSetOf<String>()
+            try {
+                val jsonArray = org.json.JSONArray(lockedAppsJson)
+                for (i in 0 until jsonArray.length()) {
+                    val item = jsonArray.optJSONObject(i)
+                    if (item != null) {
+                        val pkg = item.optString("packageName")
+                        val isLocked = item.optBoolean("isLocked", false)
+                        val usedTodayMs = item.optDouble("usedTodayMs", 0.0)
+                        val dailyLimitMs = item.optDouble("dailyLimitMs", 0.0)
+                        if (pkg.isNotEmpty() && (isLocked || (dailyLimitMs > 0 && usedTodayMs >= dailyLimitMs))) {
+                            lockedSet.add(pkg)
+                        }
+                    } else {
+                        val pkgStr = jsonArray.optString(i)
+                        if (pkgStr.isNotEmpty()) {
+                            lockedSet.add(pkgStr)
+                        }
+                    }
+                }
+            } catch (e: Exception) {
+                // If it's a simple array of strings
+            }
+            if (lockedSet.isNotEmpty()) {
+                BlackoutAccessibilityService.lockedPackages = lockedSet
+            }
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    @ReactMethod
     fun getTodayUsage(packageName: String, promise: Promise) {
         try {
             val pm = reactApplicationContext.packageManager
