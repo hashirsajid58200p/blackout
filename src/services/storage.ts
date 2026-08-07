@@ -122,6 +122,24 @@ export const StorageService = {
     return updatedApps;
   },
 
+  /**
+   * Compares stored locked apps against installed app package names.
+   * If a locked app is no longer installed, removes it from AsyncStorage.
+   */
+  async cleanUninstalledTrackedApps(installedPackageNames: string[]): Promise<TrackedApp[]> {
+    const apps = await StorageService.getTrackedApps();
+    const installedSet = new Set(installedPackageNames);
+
+    const validApps = apps.filter(
+      (app) => app.packageName.startsWith("custom.") || installedSet.has(app.packageName)
+    );
+
+    if (validApps.length !== apps.length) {
+      await StorageService.saveTrackedApps(validApps);
+    }
+    return validApps;
+  },
+
   async addTrackedApp(
     packageName: string,
     appName: string,

@@ -1,6 +1,6 @@
 import "./global.css";
 import React from "react";
-import { View, StatusBar } from "react-native";
+import { View, StatusBar, Appearance } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { AppProvider, useApp } from "./src/context/AppContext";
 import { OnboardingScreen } from "./src/screens/OnboardingScreen";
@@ -38,7 +38,7 @@ const MainContent: React.FC = () => {
   const isDark = effectiveTheme === "dark";
 
   return (
-    <View className={`flex-1 ${isDark ? "dark bg-black" : "bg-background"}`}>
+    <View key={effectiveTheme} className={`flex-1 ${isDark ? "dark bg-black" : "bg-background"}`}>
       <StatusBar
         translucent
         backgroundColor="transparent"
