@@ -21,6 +21,7 @@ export interface InstalledAppInfo {
   iconName?: string;
   category?: string;
   iconBase64?: string;
+  usedTodayMs?: number;
 }
 
 export interface WeeklyStats {

@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
-import { Appearance } from "react-native";
+import { Appearance, AppState } from "react-native";
 import { useColorScheme as useNativeWindColorScheme } from "nativewind";
 import { TrackedApp, Settings } from "../types";
 import { StorageService } from "../services/storage";
@@ -149,6 +149,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
 
     init();
+
+    const appStateSub = AppState.addEventListener("change", (nextState) => {
+      if (nextState === "active") {
+        refreshData();
+      }
+    });
+
+    return () => {
+      appStateSub.remove();
+    };
   }, [refreshPermissions, refreshData]);
 
   // Periodically fetch real device usage stats from Native Android for each tracked app

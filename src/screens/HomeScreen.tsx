@@ -67,6 +67,7 @@ export const HomeScreen: React.FC = () => {
         usedTodayMs: a.usedTodayMs,
         dailyLimitMs: a.dailyLimitMs,
         isLocked: a.isLocked,
+        openCount: undefined as number | undefined,
       }))
     : deviceUsage.length > 0
     ? deviceUsage.map((d) => ({
@@ -119,6 +120,7 @@ export const HomeScreen: React.FC = () => {
       appName: app.appName,
       usedTodayMs: app.usedTodayMs,
       dailyLimitMs: app.dailyLimitMs,
+      openCount: app.openCount,
       usageFraction,
       strokeDash: Math.max(4, strokeDash),
       startAngle,

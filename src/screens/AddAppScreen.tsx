@@ -190,15 +190,24 @@ export const AddAppScreen: React.FC = () => {
                     ) : null}
                   </View>
 
-                  {/* Category / Package Sub-text: Left-aligned at 30px offset */}
+                  {/* Screen Time Sub-text: Left-aligned at 30px offset */}
                   <Text
-                    className={`text-xs ml-[30px] leading-4 ${
+                    className={`text-xs ml-[30px] leading-4 font-bold ${
                       isSelected
                         ? "text-zinc-300 dark:text-zinc-700"
                         : "text-secondary dark:text-zinc-400"
                     }`}
                   >
-                    {app.category || app.packageName}
+                    {(() => {
+                      if (!app.usedTodayMs || app.usedTodayMs <= 0) return "No usage today";
+                      const minutes = Math.floor(app.usedTodayMs / (1000 * 60));
+                      const hours = Math.floor(minutes / 60);
+                      const minsRem = minutes % 60;
+                      if (hours > 0) {
+                        return `Used for ${hours}h ${minsRem}m today`;
+                      }
+                      return `Used for ${minsRem}m today`;
+                    })()}
                   </Text>
                 </TouchableOpacity>
               );

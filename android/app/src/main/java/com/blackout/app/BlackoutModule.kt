@@ -174,9 +174,67 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
     fun getInstalledApps(promise: Promise) {
         try {
             val pm = reactApplicationContext.packageManager
+            val usageStatsManager = reactApplicationContext.getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
             val array = WritableNativeArray()
             val addedPackages = mutableSetOf<String>()
             val selfPkg = reactApplicationContext.packageName
+
+            // Pre-fetch today's usage map from UsageEvents for accurate per-app screen time
+            val todayUsageMap = mutableMapOf<String, Long>()
+            try {
+                val calendar = Calendar.getInstance().apply {
+                    set(Calendar.HOUR_OF_DAY, 0)
+                    set(Calendar.MINUTE, 0)
+                    set(Calendar.SECOND, 0)
+                    set(Calendar.MILLISECOND, 0)
+                }
+                val startTime = calendar.timeInMillis
+                val endTime = System.currentTimeMillis()
+                val events = usageStatsManager.queryEvents(startTime, endTime)
+                val event = UsageEvents.Event()
+                var currentPkg: String? = null
+                var currentStart = 0L
+
+                while (events.hasNextEvent()) {
+                    events.getNextEvent(event)
+                    val pkg = event.packageName
+                    val time = event.timeStamp
+                    val type = event.eventType
+
+                    if (type == 1 /* RESUMED */) {
+                        if (currentPkg != null) {
+                            val duration = time - currentStart
+                            if (duration > 0) {
+                                todayUsageMap[currentPkg] = (todayUsageMap[currentPkg] ?: 0L) + duration
+                            }
+                        }
+                        currentPkg = pkg
+                        currentStart = time
+                    } else if (type == 2 /* PAUSED */ || type == 23 /* STOPPED */) {
+                        if (currentPkg == pkg) {
+                            val duration = time - currentStart
+                            if (duration > 0) {
+                                todayUsageMap[pkg] = (todayUsageMap[pkg] ?: 0L) + duration
+                            }
+                            currentPkg = null
+                        }
+                    } else if (type == 16 || type == 17 || type == 26) {
+                        if (currentPkg != null) {
+                            val duration = time - currentStart
+                            if (duration > 0) {
+                                todayUsageMap[currentPkg] = (todayUsageMap[currentPkg] ?: 0L) + duration
+                            }
+                            currentPkg = null
+                        }
+                    }
+                }
+                if (currentPkg != null) {
+                    val duration = endTime - currentStart
+                    if (duration > 0) {
+                        todayUsageMap[currentPkg] = (todayUsageMap[currentPkg] ?: 0L) + duration
+                    }
+                }
+            } catch (e: Exception) {}
 
             // 1. Query launcher intent activities
             val intent = Intent(Intent.ACTION_MAIN, null).apply {
@@ -219,6 +277,7 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
                         putString("packageName", packageName)
                         putString("appName", appName)
                         putString("category", "Installed App")
+                        putDouble("usedTodayMs", (todayUsageMap[packageName] ?: 0L).toDouble())
                         if (iconBase64.isNotEmpty()) {
                             putString("iconBase64", iconBase64)
                         }
@@ -227,7 +286,7 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
                 }
             }
 
-            // 2. Query ALL installed packages to ensure apps like Instagram, MovieBox, WhatsApp are included
+            // 2. Query ALL installed packages to ensure all launchable user apps are included
             try {
                 val installedPackages = pm.getInstalledPackages(PackageManager.GET_META_DATA)
                 for (pkgInfo in installedPackages) {
@@ -260,6 +319,7 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
                                 putString("packageName", packageName)
                                 putString("appName", appName)
                                 putString("category", "Installed App")
+                                putDouble("usedTodayMs", (todayUsageMap[packageName] ?: 0L).toDouble())
                                 if (iconBase64.isNotEmpty()) {
                                     putString("iconBase64", iconBase64)
                                 }
@@ -442,9 +502,18 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
             val array = WritableNativeArray()
             val selfPkg = reactApplicationContext.packageName
 
-            // Sort by duration descending (highest usage apps first, e.g. MovieBox, Instagram)
+            // Sort by duration descending (highest usage apps first), ensuring package is currently installed
             val sortedList = packageUsageMap.entries
-                .filter { it.value >= 30000 && it.key != "com.android.systemui" && it.key != "android" && it.key != selfPkg && !homePackages.contains(it.key) }
+                .filter { entry ->
+                    val pkg = entry.key
+                    val isInstalled = try {
+                        pm.getApplicationInfo(pkg, 0)
+                        true
+                    } catch (e: Exception) {
+                        false
+                    }
+                    entry.value >= 30000 && pkg != "com.android.systemui" && pkg != "android" && pkg != selfPkg && !homePackages.contains(pkg) && isInstalled
+                }
                 .sortedByDescending { it.value }
 
             for (entry in sortedList) {

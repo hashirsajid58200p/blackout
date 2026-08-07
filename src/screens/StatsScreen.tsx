@@ -68,34 +68,24 @@ export const StatsScreen: React.FC = () => {
   useEffect(() => {
     let isMounted = true;
 
-    if (selectedDayOffset === 0 && trackedApps.length > 0) {
-      const mapped = trackedApps.map((a) => ({
-        packageName: a.packageName,
-        appName: a.appName,
-        usedMs: a.usedTodayMs,
-      }));
-      mapped.sort((a, b) => b.usedMs - a.usedMs);
+    NativeBridge.getDayUsageStats(selectedDayOffset).then((data) => {
       if (isMounted) {
-        setDayApps(mapped);
-      }
-    } else {
-      NativeBridge.getDayUsageStats(selectedDayOffset).then((data) => {
-        if (isMounted) {
-          if (data && data.length > 0) {
-            data.sort((a, b) => b.usedMs - a.usedMs);
-            setDayApps(data);
-          } else {
-            const fallback = trackedApps.map((a) => ({
-              packageName: a.packageName,
-              appName: a.appName,
-              usedMs: Math.max(0, a.usedTodayMs - Math.abs(selectedDayOffset) * 900000),
-            }));
-            fallback.sort((a, b) => b.usedMs - a.usedMs);
-            setDayApps(fallback);
-          }
+        if (data && data.length > 0) {
+          data.sort((a, b) => b.usedMs - a.usedMs);
+          setDayApps(data);
+        } else if (selectedDayOffset === 0 && trackedApps.length > 0) {
+          const mapped = trackedApps.map((a) => ({
+            packageName: a.packageName,
+            appName: a.appName,
+            usedMs: a.usedTodayMs,
+          }));
+          mapped.sort((a, b) => b.usedMs - a.usedMs);
+          setDayApps(mapped);
+        } else {
+          setDayApps([]);
         }
-      });
-    }
+      }
+    });
 
     return () => {
       isMounted = false;
