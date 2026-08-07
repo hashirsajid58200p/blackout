@@ -54,6 +54,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     usageStats: false,
     overlay: false,
     accessibility: false,
+    deviceAdmin: false,
   });
   const [activeBlockApp, setActiveBlockApp] = useState<TrackedApp | null>(null);
 
@@ -90,11 +91,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const usageStats = await NativeBridge.checkUsageStatsPermission();
     const overlay = await NativeBridge.checkOverlayPermission();
     const accessibility = await NativeBridge.checkAccessibilityPermission();
+    const deviceAdmin = await NativeBridge.isDeviceAdminActive();
 
-    const newPerms = { usageStats, overlay, accessibility };
+    const newPerms = { usageStats, overlay, accessibility, deviceAdmin };
     setPermissions(newPerms);
 
-    const allGranted = usageStats && overlay && accessibility;
+    const allGranted = usageStats && overlay && accessibility && deviceAdmin;
     return allGranted;
   }, []);
 

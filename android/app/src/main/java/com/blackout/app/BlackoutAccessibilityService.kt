@@ -39,16 +39,16 @@ class BlackoutAccessibilityService : AccessibilityService() {
         if (event == null) return
         if (event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
             val packageName = event.packageName?.toString() ?: return
-            if (packageName.startsWith("com.blackout.app") || packageName.contains("launcher") || packageName.contains("systemui")) {
-                removeOverlay()
-                return
-            }
-            currentForegroundPackage = packageName
-
+            
             if (lockedPackages.contains(packageName)) {
                 performGlobalAction(GLOBAL_ACTION_HOME)
                 showOverlay(packageName)
-            } else {
+            } else if (!packageName.startsWith("com.blackout.app") && 
+                       !packageName.contains("launcher") && 
+                       !packageName.contains("systemui") && 
+                       !packageName.contains("home") &&
+                       !packageName.contains("trebuchet") &&
+                       !packageName.contains("quickstep")) {
                 removeOverlay()
             }
         }
@@ -83,7 +83,7 @@ class BlackoutAccessibilityService : AccessibilityService() {
 
             // Subtitle / Strict Warning Message
             val warningText = TextView(this).apply {
-                text = "This app is blacked out until 12 AM tomorrow."
+                text = "App is blocked until midnight."
                 setTextColor(Color.parseColor("#A1A1AA"))
                 setTextSize(TypedValue.COMPLEX_UNIT_SP, 15f)
                 gravity = Gravity.CENTER

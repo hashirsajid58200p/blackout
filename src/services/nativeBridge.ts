@@ -7,6 +7,7 @@ export interface NativePermissionsStatus {
   usageStats: boolean;
   overlay: boolean;
   accessibility: boolean;
+  deviceAdmin: boolean;
 }
 
 export const NativeBridge = {

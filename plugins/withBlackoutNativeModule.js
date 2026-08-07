@@ -197,6 +197,44 @@ const withBlackoutNativeModule = (config) => {
         xmlContent
       );
 
+      // Create device_admin.xml
+      const deviceAdminXmlContent = `<?xml version="1.0" encoding="utf-8"?>
+<device-admin xmlns:android="http://schemas.android.com/apk/res/android">
+    <uses-policies>
+        <force-lock />
+    </uses-policies>
+</device-admin>
+`;
+      fs.writeFileSync(
+        path.join(resXmlDir, "device_admin.xml"),
+        deviceAdminXmlContent
+      );
+
+      // BlackoutDeviceAdminReceiver.kt
+      const deviceAdminReceiverContent = `package com.blackout.app
+
+import android.app.admin.DeviceAdminReceiver
+import android.content.Context
+import android.content.Intent
+import android.widget.Toast
+
+class BlackoutDeviceAdminReceiver : DeviceAdminReceiver() {
+    override fun onEnabled(context: Context, intent: Intent) {
+        super.onEnabled(context, intent)
+        Toast.makeText(context, "Blackout Device Protection Enabled", Toast.LENGTH_SHORT).show()
+    }
+
+    override fun onDisabled(context: Context, intent: Intent) {
+        super.onDisabled(context, intent)
+        Toast.makeText(context, "Blackout Device Protection Disabled", Toast.LENGTH_SHORT).show()
+    }
+}
+`;
+      fs.writeFileSync(
+        path.join(androidSrcDir, "BlackoutDeviceAdminReceiver.kt"),
+        deviceAdminReceiverContent
+      );
+
       // BlackoutAccessibilityService.kt
       const accessibilityServiceContent = `package com.blackout.app
 

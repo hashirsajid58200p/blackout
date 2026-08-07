@@ -4,7 +4,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useApp } from "../context/AppContext";
 import { NativeBridge } from "../services/nativeBridge";
 import { Button } from "../components/ui/Button";
-import { Shield, CheckCircle2, CircleAlert, AppWindow, Eye } from "lucide-react-native";
+import { Shield, CheckCircle2, CircleAlert, AppWindow, Eye, Lock } from "lucide-react-native";
 
 export const PermissionsScreen: React.FC = () => {
   const { permissions, refreshPermissions, setCurrentScreen, effectiveTheme } = useApp();
@@ -40,8 +40,9 @@ export const PermissionsScreen: React.FC = () => {
   const isUsageStatsGranted = permissions.usageStats;
   const isOverlayGranted = permissions.overlay;
   const isAccessibilityGranted = permissions.accessibility;
+  const isDeviceAdminGranted = permissions.deviceAdmin;
 
-  const allGranted = isUsageStatsGranted && isOverlayGranted && isAccessibilityGranted;
+  const allGranted = isUsageStatsGranted && isOverlayGranted && isAccessibilityGranted && isDeviceAdminGranted;
 
   const handleGrantUsageStats = () => {
     NativeBridge.openUsageStatsSettings();
@@ -53,6 +54,10 @@ export const PermissionsScreen: React.FC = () => {
 
   const handleGrantAccessibility = () => {
     NativeBridge.openAccessibilitySettings();
+  };
+
+  const handleGrantDeviceAdmin = () => {
+    NativeBridge.requestDeviceAdmin();
   };
 
   const permissionItems = [
@@ -79,6 +84,14 @@ export const PermissionsScreen: React.FC = () => {
       icon: CircleAlert,
       isGranted: isAccessibilityGranted,
       onGrant: handleGrantAccessibility,
+    },
+    {
+      id: "deviceAdmin",
+      title: "DEVICE ADMINISTRATOR",
+      description: "Prevents unauthorized uninstallation of Blackout",
+      icon: Lock,
+      isGranted: isDeviceAdminGranted,
+      onGrant: handleGrantDeviceAdmin,
     },
   ];
 
@@ -164,6 +177,7 @@ export const PermissionsScreen: React.FC = () => {
                 if (!isUsageStatsGranted) handleGrantUsageStats();
                 else if (!isOverlayGranted) handleGrantOverlay();
                 else if (!isAccessibilityGranted) handleGrantAccessibility();
+                else if (!isDeviceAdminGranted) handleGrantDeviceAdmin();
               }
             }}
           />

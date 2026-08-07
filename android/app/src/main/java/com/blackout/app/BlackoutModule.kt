@@ -129,6 +129,11 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
     @ReactMethod
     fun getTodayUsage(packageName: String, promise: Promise) {
         try {
+            val pm = reactApplicationContext.packageManager
+            if (pm.getLaunchIntentForPackage(packageName) == null) {
+                promise.resolve(0.0)
+                return
+            }
             val usageStatsManager = reactApplicationContext.getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
             val calendar = Calendar.getInstance(TimeZone.getDefault()).apply {
                 set(Calendar.HOUR_OF_DAY, 0)
