@@ -43,7 +43,7 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
                     putExtra(DevicePolicyManager.EXTRA_DEVICE_ADMIN, adminComponent)
                     putExtra(DevicePolicyManager.EXTRA_ADD_EXPLANATION, "Blackout needs this to prevent unauthorized uninstallation of locked apps.")
                 }
-                val activity = currentActivity
+                val activity = reactApplicationContext.currentActivity
                 if (activity != null) {
                     activity.startActivity(intent)
                 } else {
