@@ -41,10 +41,15 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
             if (!dpm.isAdminActive(adminComponent)) {
                 val intent = Intent(DevicePolicyManager.ACTION_ADD_DEVICE_ADMIN).apply {
                     putExtra(DevicePolicyManager.EXTRA_DEVICE_ADMIN, adminComponent)
-                    putExtra(DevicePolicyManager.EXTRA_ADD_EXPLANATION, "Activate Device Admin to prevent uninstalling Blackout during active focus lock periods.")
-                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    putExtra(DevicePolicyManager.EXTRA_ADD_EXPLANATION, "Blackout needs this to prevent unauthorized uninstallation of locked apps.")
                 }
-                reactApplicationContext.startActivity(intent)
+                val activity = currentActivity
+                if (activity != null) {
+                    activity.startActivity(intent)
+                } else {
+                    intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    reactApplicationContext.startActivity(intent)
+                }
             }
             promise.resolve(true)
         } catch (e: Exception) {
