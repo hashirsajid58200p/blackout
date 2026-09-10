@@ -1,19 +1,23 @@
 # Active Context
 
 ## Current Status
-- Completed Critical Bug Fixes (Bug 1 & Bug 2):
-  1. Bug 1: Real-Time Usage Tracking & Blocking Fix:
-     - `BlackoutAccessibilityService.kt`: Added real-time tracking via `currentForegroundPackage`, `currentSessionStartTime`, `sessionUsageMap`, and `saveRealTimeUsage` saving to `BlackoutPrefs`. Added a 1-second foreground monitor runnable to track active continuous sessions in real time and trigger immediate lock + 10s countdown if daily limit is reached while actively using an app.
-     - `BlackoutAccessibilityService.kt`: Rewrote `isAppBlocked` to sum `baseUsage` (from synced JSON) + `realTimeUsage` (from `BlackoutPrefs` including active session elapsed time). Added `resetDailyUsage()` clearing `realtime_usage_` keys.
-     - `BlackoutModule.kt`: Rewrote `getTodayUsage` to combine `UsageStatsManager.queryUsageStats` base + `realtime_usage_$packageName` (+ live delta if currently active in foreground). Updated `syncLockedAppsToNative` to write to both `SecurityHelper` and `BlackoutPrefs`.
-     - `SecurityHelper.kt`: Updated `saveLockedApps` and `resetMidnightLocks` to mirror `locked_apps_json` to `BlackoutPrefs` and invoke `resetDailyUsage()`.
-     - `AppContext.tsx`: Changed usage polling interval from 5000ms to 3000ms, and ensured `syncLockedAppsToNative` runs on all usage updates.
-  2. Bug 2: App Icons Display Fix:
-     - `BlackoutModule.kt`: In `getInstalledApps` and `getAppIconBase64`, extracted 96x96 PNG ARGB_8888 bitmap at 100% quality into Base64, and guaranteed `iconBase64` is always present in output map.
-     - `HomeScreen.tsx`, `StatsScreen.tsx`, and `AddAppScreen.tsx`: Updated fallback views when an icon is absent to `bg-gray-200 dark:bg-gray-700` and letter styling `text-lg font-bold text-gray-500 dark:text-gray-400`.
-     - `AppContext.tsx`: Hydrates missing `iconBase64` on existing `trackedApps` from `NativeBridge.getInstalledApps()` on load.
-- Validated with `npm run tsc` (clean) and `./gradlew :app:compileDebugKotlin` (BUILD SUCCESSFUL).
-- Deployed and installed updated APK directly onto connected device (`Infinix X6833B - 14`).
+- Completed Critical Bug Fixes (Overlay Glitch, Real-time Tracking, Icon URI & Screen Time):
+  1. Bug 1 & 3: Apps Closing Instantly & Lock Screen Glitching:
+     - `BlackoutAccessibilityService.kt`: Removed `performGlobalAction(GLOBAL_ACTION_HOME)` from all blocking code. When an app is blocked, it now remains running behind an untouchable full-screen overlay.
+     - Added package deduplication check in `showBlockingOverlay`: if `overlayView != null` and current foreground package is already showing the overlay, do nothing to prevent glitching/infinite loops.
+     - Added touch consumer (`setOnTouchListener { _, _ -> true }`) on the full-screen layout so touches cannot reach the locked app.
+     - Fixed `removeBlockingOverlay` to safely remove the view from `WindowManager` and reset flags.
+     - Fixed anti-uninstall protection on Settings/PackageInstaller: displays the full-screen blocking overlay without calling `GLOBAL_ACTION_BACK`.
+  2. Bug 2a: App Icons Showing Alphabets Instead of Real Icons:
+     - Root cause: Passing Base64 strings across the React Native bridge for all installed apps exceeded the 1MB Android IPC Binder buffer limit.
+     - `BlackoutModule.kt`: Switched from Base64 strings to disk caching in `reactApplicationContext.cacheDir` (`icon_${pkg}.png`), returning lightweight `file://` URIs in `iconUri`.
+     - `types/index.ts`, `nativeBridge.ts`, `storage.ts`, `AppContext.tsx`: Added `iconUri` support and hydration.
+     - `HomeScreen.tsx`, `StatsScreen.tsx`, `AddAppScreen.tsx`, `SettingsScreen.tsx`: Render `<Image source={{ uri: app.iconUri }} />` with clean fallbacks.
+  3. Bug 2b: Screen Time Inflation:
+     - `BlackoutModule.kt`: Removed all `realtime_usage_` additions from `getTodayUsage`, `getDayUsageStats`, and `getInstalledApps`. UI now strictly reflects `UsageStatsManager.queryUsageStats()` matching Digital Wellbeing.
+     - `BlackoutAccessibilityService.kt`: In `isAppBlocked`, computes active session duration in-memory (`baseUsage + currentSessionTime >= dailyLimitMs`) without writing back to SharedPreferences.
+- Validated with `npm run tsc` (0 errors), `./gradlew :app:compileDebugKotlin` (BUILD SUCCESSFUL in 28s).
+- Installed on device (`Infinix X6833B - 14`) via `./gradlew installDebug`.
 
 ## Key Files & Structure
 - `App.tsx`: Root application with NativeWind v4 theme binding.

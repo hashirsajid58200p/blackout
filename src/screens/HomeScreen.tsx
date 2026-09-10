@@ -296,7 +296,13 @@ export const HomeScreen: React.FC = () => {
                 >
                   <View className="flex-row items-center justify-between">
                     <View className="flex-row items-center gap-2.5 flex-1 pr-2">
-                      {app.iconBase64 ? (
+                      {app.iconUri ? (
+                        <Image
+                          source={{ uri: app.iconUri }}
+                          className="w-10 h-10 rounded-lg"
+                          resizeMode="cover"
+                        />
+                      ) : app.iconBase64 ? (
                         <Image
                           source={{ uri: `data:image/png;base64,${app.iconBase64}` }}
                           className="w-10 h-10 rounded-lg"

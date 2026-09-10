@@ -20,6 +20,7 @@ export interface DeviceAppUsage {
   usedMs: number;
   openCount?: number;
   iconBase64?: string;
+  iconUri?: string;
 }
 
 interface AppContextType {
@@ -37,7 +38,8 @@ interface AppContextType {
     dailyLimitMs: number,
     category?: string,
     iconName?: string,
-    iconBase64?: string
+    iconBase64?: string,
+    iconUri?: string
   ) => Promise<{ success: boolean; error?: string }>;
   activeBlockApp: TrackedApp | null;
   setActiveBlockApp: (app: TrackedApp | null) => void;
@@ -184,16 +186,21 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
     }
 
-    // Hydrate missing iconBase64 on trackedApps if not present
+    // Hydrate missing iconUri and iconBase64 on trackedApps if not present
     let appsUpdatedWithIcons = false;
     loadedApps = loadedApps.map((app) => {
       const installed = installedMap.get(app.packageName);
-      if (installed && installed.iconBase64 && !app.iconBase64) {
-        appsUpdatedWithIcons = true;
-        return {
-          ...app,
-          iconBase64: installed.iconBase64,
-        };
+      if (installed) {
+        const needsUri = installed.iconUri && !app.iconUri;
+        const needsBase64 = installed.iconBase64 && !app.iconBase64;
+        if (needsUri || needsBase64) {
+          appsUpdatedWithIcons = true;
+          return {
+            ...app,
+            iconUri: app.iconUri || installed.iconUri,
+            iconBase64: app.iconBase64 || installed.iconBase64,
+          };
+        }
       }
       return app;
     });
@@ -310,7 +317,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     dailyLimitMs: number,
     category?: string,
     iconName?: string,
-    iconBase64?: string
+    iconBase64?: string,
+    iconUri?: string
   ) => {
     const result = await StorageService.addTrackedApp(
       packageName,
@@ -318,7 +326,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       dailyLimitMs,
       category,
       iconName,
-      iconBase64
+      iconBase64,
+      iconUri
     );
     if (result.success) {
       await refreshData();

@@ -8,6 +8,7 @@ export interface TrackedApp {
   category?: string;
   iconName?: string;
   iconBase64?: string;
+  iconUri?: string;
 }
 
 export interface Settings {
@@ -21,6 +22,7 @@ export interface InstalledAppInfo {
   iconName?: string;
   category?: string;
   iconBase64?: string;
+  iconUri?: string;
   usedTodayMs?: number;
 }
 

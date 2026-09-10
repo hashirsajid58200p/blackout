@@ -155,7 +155,13 @@ export const SettingsScreen: React.FC = () => {
               <Card key={app.packageName} className="flex-row justify-between items-center py-3.5 px-4 rounded-none">
                 <View className="flex-row items-center gap-2.5 flex-1 pr-2">
                   <View className="w-6 h-6 items-center justify-center">
-                    {app.iconBase64 ? (
+                    {app.iconUri ? (
+                      <Image
+                        source={{ uri: app.iconUri }}
+                        style={{ width: 22, height: 22 }}
+                        resizeMode="contain"
+                      />
+                    ) : app.iconBase64 ? (
                       <Image
                         source={{ uri: `data:image/png;base64,${app.iconBase64}` }}
                         style={{ width: 22, height: 22 }}

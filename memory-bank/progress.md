@@ -33,21 +33,24 @@
   - Enterprise anti-uninstall protection intercepting `com.android.settings` and `packageinstaller` with `GLOBAL_ACTION_BACK` and overlay.
   - Daily 12:00 AM midnight reset using `AlarmManager` and `MidnightResetReceiver`.
 
-- [x] **Critical Bug Fixes (Bug 1 & Bug 2)**:
-  - [x] **Bug 1: Real-Time Usage Tracking & Immediate App Blocking**:
-    - Tracked foreground sessions in `BlackoutAccessibilityService.kt` with a 1-second continuous foreground monitor runnable.
-    - Persisted session deltas to `realtime_usage_$packageName` in `BlackoutPrefs`.
-    - Computed total usage as `baseUsage` (from `UsageStatsManager`) + `realTimeUsage` across Accessibility blocking and `BlackoutModule.getTodayUsage`.
-    - Reduced `AppContext.tsx` polling interval to 3 seconds (`3000ms`) and ensured `syncLockedAppsToNative` fires whenever usage changes.
-    - Synchronized `locked_apps_json` between `SecurityHelper` and `BlackoutPrefs` and added midnight reset for real-time tracking.
-  - [x] **Bug 2: Real App Icons Display**:
-    - Converted application drawables to 96x96 ARGB_8888 Bitmaps compressed as PNG at 100% quality and Base64 encoded.
-    - Always returned `iconBase64` in `getInstalledApps` and `getDayUsageStats`.
-    - Rendered `<Image source={{ uri: "data:image/png;base64," + app.iconBase64 }} />` with clean `bg-gray-200 dark:bg-gray-700` fallbacks across Home, Stats, and Add App screens.
-    - Automatically hydrated missing `iconBase64` for previously configured `trackedApps` in `AppContext.tsx`.
+- [x] **Critical Bug Fixes (Overlay Glitch, Real-time Tracking, Icon URI & Screen Time)**:
+  - [x] **Bug 1 & 3: Apps Closing Instantly & Lock Screen Glitching**:
+    - Removed `performGlobalAction(GLOBAL_ACTION_HOME)` from all blocking code. When an app is locked, it remains open covered by an untouchable full-screen overlay.
+    - Added check in `showBlockingOverlay` to ignore duplicate events if the overlay is already showing for the package.
+    - Ensured overlay consumes all touch events with `setOnTouchListener { _, _ -> true }` so user cannot tap the app underneath.
+    - Added clean `removeBlockingOverlay` removing views safely and resetting state.
+    - Fixed Settings / PackageInstaller anti-uninstall protection to display the full blocking overlay without calling `GLOBAL_ACTION_BACK`.
+  - [x] **Bug 2a: Real App Icons with Cached File URIs**:
+    - Replaced Base64 strings across the React Native bridge with local file caching in `cacheDir` (`icon_${pkg}.png`), eliminating the 1MB Android IPC Binder buffer limit.
+    - Updated `InstalledAppInfo`, `TrackedApp`, and `DayAppUsage` to include `iconUri`.
+    - Rendered `<Image source={{ uri: app.iconUri }} />` with fallbacks across Home, Stats, Add App, and Settings screens.
+  - [x] **Bug 2b: Screen Time Accuracy (Eliminated Inflation)**:
+    - Removed `realtime_usage_` SharedPreferences addition from `BlackoutModule.kt` methods (`getTodayUsage`, `getDayUsageStats`, `getInstalledApps`). UI strictly displays `UsageStatsManager` foreground time.
+    - In `BlackoutAccessibilityService.kt`, computed active session duration in-memory strictly for blocking logic without saving it to SharedPreferences.
   - [x] **Compilation & Verification**:
     - `npm run tsc` exited with 0 errors.
-    - `./gradlew :app:compileDebugKotlin` and `./gradlew installDebug` built and installed on connected device (`Infinix X6833B - 14`).
+    - `./gradlew :app:compileDebugKotlin` passed in 28s.
+    - `./gradlew installDebug` built and installed on connected device (`Infinix X6833B - 14`).
 
 ## What's Next / Pending
 - App fully ready for user testing.

@@ -207,21 +207,34 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
         return totalTimeMap
     }
 
-    private fun getAppIconBase64(pm: PackageManager, packageName: String): String {
+    private fun getAppIconUri(pm: PackageManager, appInfo: ApplicationInfo): String {
+        return try {
+            val packageName = appInfo.packageName
+            val cacheDir = reactApplicationContext.cacheDir
+            val iconFile = java.io.File(cacheDir, "icon_${packageName.replace(".", "_")}.png")
+            if (!iconFile.exists()) {
+                val iconDrawable = pm.getApplicationIcon(appInfo)
+                val bitmap = Bitmap.createBitmap(96, 96, Bitmap.Config.ARGB_8888)
+                val canvas = Canvas(bitmap)
+                iconDrawable.setBounds(0, 0, 96, 96)
+                iconDrawable.draw(canvas)
+                val outputStream = java.io.FileOutputStream(iconFile)
+                bitmap.compress(Bitmap.CompressFormat.PNG, 100, outputStream)
+                outputStream.flush()
+                outputStream.close()
+            }
+            "file://" + iconFile.absolutePath
+        } catch (e: Exception) {
+            Log.e(TAG, "Icon error for ${appInfo.packageName}", e)
+            ""
+        }
+    }
+
+    private fun getAppIconUriByPackage(pm: PackageManager, packageName: String): String {
         return try {
             val appInfo = pm.getApplicationInfo(packageName, 0)
-            val iconDrawable = pm.getApplicationIcon(appInfo)
-            val width = 96
-            val height = 96
-            val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
-            val canvas = Canvas(bitmap)
-            iconDrawable.setBounds(0, 0, width, height)
-            iconDrawable.draw(canvas)
-            val outputStream = ByteArrayOutputStream()
-            bitmap.compress(Bitmap.CompressFormat.PNG, 100, outputStream)
-            Base64.encodeToString(outputStream.toByteArray(), Base64.NO_WRAP)
+            getAppIconUri(pm, appInfo)
         } catch (e: Exception) {
-            Log.e(TAG, "Error generating icon in getAppIconBase64 for $packageName", e)
             ""
         }
     }
@@ -244,30 +257,14 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
             val startTime = calendar.timeInMillis
             val endTime = System.currentTimeMillis()
 
-            // Get base usage from queryUsageStats
+            // Get base usage strictly from queryUsageStats
             val usageStatsManager = reactApplicationContext.getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
             val stats = usageStatsManager.queryUsageStats(UsageStatsManager.INTERVAL_DAILY, startTime, endTime)
             val appStat = stats?.find { it.packageName == packageName }
             val baseUsageMs = appStat?.totalTimeInForeground ?: 0L
 
-            // Get real-time usage from Accessibility Service
-            val prefs = reactApplicationContext.getSharedPreferences("BlackoutPrefs", Context.MODE_PRIVATE)
-            val realTimeKey = "realtime_usage_$packageName"
-            var realTimeUsageMs = prefs.getLong(realTimeKey, 0L)
-
-            // Include live continuous foreground session if active
-            if (BlackoutAccessibilityService.currentForegroundPackage == packageName && BlackoutAccessibilityService.currentSessionStartTime > 0) {
-                val live = System.currentTimeMillis() - BlackoutAccessibilityService.currentSessionStartTime
-                if (live > 0) {
-                    realTimeUsageMs = (BlackoutAccessibilityService.sessionUsageMap[packageName] ?: 0L) + live
-                }
-            }
-
-            // Total = base + real-time
-            val totalUsageMs = baseUsageMs + realTimeUsageMs
-
-            Log.d(TAG, "getTodayUsage for $packageName: base=$baseUsageMs, realTime=$realTimeUsageMs, total=$totalUsageMs")
-            promise.resolve(totalUsageMs.toDouble())
+            Log.d(TAG, "getTodayUsage for $packageName: base=$baseUsageMs")
+            promise.resolve(baseUsageMs.toDouble())
         } catch (e: Exception) {
             Log.e(TAG, "getTodayUsage error for $packageName", e)
             promise.resolve(0.0)
@@ -292,7 +289,6 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
             val endTime = System.currentTimeMillis()
 
             val usageMap = getForegroundUsageStatsMap(startTime, endTime)
-            val prefs = reactApplicationContext.getSharedPreferences("BlackoutPrefs", Context.MODE_PRIVATE)
 
             // Detect home launcher apps
             val homeIntent = Intent(Intent.ACTION_MAIN, null).apply { addCategory(Intent.CATEGORY_HOME) }
@@ -330,33 +326,16 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
 
                 addedPackages.add(packageName)
                 val appName = resolveInfo.loadLabel(pm).toString()
-                val baseUsage = usageMap[packageName] ?: 0L
-                val realTimeKey = "realtime_usage_$packageName"
-                val realTimeUsage = prefs.getLong(realTimeKey, 0L)
-                val usedTodayMs = baseUsage + realTimeUsage
-
-                var iconBase64 = ""
-                try {
-                    val iconDrawable = pm.getApplicationIcon(appInfo)
-                    val width = 96
-                    val height = 96
-                    val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
-                    val canvas = Canvas(bitmap)
-                    iconDrawable.setBounds(0, 0, width, height)
-                    iconDrawable.draw(canvas)
-                    val outputStream = ByteArrayOutputStream()
-                    bitmap.compress(Bitmap.CompressFormat.PNG, 100, outputStream)
-                    iconBase64 = Base64.encodeToString(outputStream.toByteArray(), Base64.NO_WRAP)
-                } catch (e: Exception) {
-                    Log.e(TAG, "Error generating icon for $packageName", e)
-                }
+                val usedTodayMs = usageMap[packageName] ?: 0L
+                val iconUri = getAppIconUri(pm, appInfo)
 
                 val map = WritableNativeMap().apply {
                     putString("packageName", packageName)
                     putString("appName", appName)
                     putString("category", "Installed App")
                     putDouble("usedTodayMs", usedTodayMs.toDouble())
-                    putString("iconBase64", iconBase64) // ALWAYS include this, even if empty
+                    putString("iconUri", iconUri)
+                    putString("iconBase64", "")
                 }
                 array.pushMap(map)
             }
@@ -479,19 +458,15 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
                     continue
                 }
 
-                val iconBase64 = getAppIconBase64(pm, pkg)
-                var effectiveTimeMs = timeMs
-                if (dayOffset == 0) {
-                    val prefs = reactApplicationContext.getSharedPreferences("BlackoutPrefs", Context.MODE_PRIVATE)
-                    effectiveTimeMs += prefs.getLong("realtime_usage_$pkg", 0L)
-                }
+                val iconUri = getAppIconUriByPackage(pm, pkg)
 
                 val map = WritableNativeMap().apply {
                     putString("packageName", pkg)
                     putString("appName", appName)
-                    putDouble("usedMs", effectiveTimeMs.toDouble())
+                    putDouble("usedMs", timeMs.toDouble())
                     putInt("openCount", 0)
-                    putString("iconBase64", iconBase64)
+                    putString("iconUri", iconUri)
+                    putString("iconBase64", "")
                 }
                 array.pushMap(map)
             }
