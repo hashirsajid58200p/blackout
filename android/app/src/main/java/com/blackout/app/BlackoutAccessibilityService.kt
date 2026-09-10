@@ -76,6 +76,10 @@ class BlackoutAccessibilityService : AccessibilityService() {
 
     private val foregroundMonitorRunnable = object : Runnable {
         override fun run() {
+            if (isTransitioningToHome) {
+                mainHandler.postDelayed(this, 1000L)
+                return
+            }
             val pkg = currentForegroundPackage
             if (pkg != null) {
                 if (pkg == "com.blackout.app" || pkg.startsWith("com.blackout") ||
@@ -86,18 +90,27 @@ class BlackoutAccessibilityService : AccessibilityService() {
                                           pkg.contains("trebuchet") || pkg.contains("quickstep") ||
                                           pkg.contains("android.settings") || pkg.contains("packageinstaller")
                     if (isHomeOrLauncher) {
-                        hideOverlay()
-                        removeCountdownOverlay()
-                        cancelLockedAppNotification()
+                        if (!isTransitioningToHome && overlayView?.visibility == View.VISIBLE) {
+                            hideOverlay()
+                            overlayView?.visibility = View.GONE
+                            removeCountdownOverlay()
+                            cancelLockedAppNotification()
+                        }
                     } else if (isAppBlocked(pkg)) {
                         removeCountdownOverlay()
                         showOverlay(pkg)
+                        overlayView?.visibility = View.VISIBLE
                         notifyLockedAppIfApplicable(pkg)
+                        isTransitioningToHome = true
                         performGlobalAction(GLOBAL_ACTION_HOME)
-                        currentForegroundPackage = null
+                        mainHandler.removeCallbacks(hideOverlayRunnable)
+                        mainHandler.postDelayed(hideOverlayRunnable, 3000)
                     } else {
-                        hideOverlay()
-                        cancelLockedAppNotification()
+                        if (!isTransitioningToHome && overlayView?.visibility == View.VISIBLE) {
+                            hideOverlay()
+                            overlayView?.visibility = View.GONE
+                            cancelLockedAppNotification()
+                        }
                         checkCountdownIfAboutToBlock(pkg)
                     }
                 }
@@ -123,9 +136,9 @@ class BlackoutAccessibilityService : AccessibilityService() {
 
     fun resetDailyUsage() {
         try {
-            sessionUsageMap.clear()
             currentSessionStartTime = 0L
             currentForegroundPackage = null
+            isTransitioningToHome = false
             hideOverlay()
             cancelLockedAppNotification()
         } catch (e: Exception) {
@@ -145,48 +158,56 @@ class BlackoutAccessibilityService : AccessibilityService() {
                 packageName == "com.android.settings"
     }
 
+    private var isTransitioningToHome = false
+    private val hideOverlayRunnable = Runnable {
+        hideOverlay()
+        overlayView?.visibility = View.GONE
+        cancelLockedAppNotification()
+        isTransitioningToHome = false
+    }
+
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
         if (event?.eventType != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) return
         val pkg = event.packageName?.toString() ?: return
 
-        // 1. CRITICAL: Ignore events from our own app to prevent infinite loop
-        if (pkg == "com.blackout.app" || pkg.startsWith("com.blackout")) return
+        // Ignore our own app and system UI
+        if (pkg == "com.blackout.app" || pkg.startsWith("com.blackout") || 
+            pkg.contains("systemui") || pkg.contains("navigationbar")) return
 
-        // 2. Ignore System UI
-        if (pkg.contains("systemui") || pkg.contains("navigationbar")) return
-
-        // 3. If user goes to Home/Launcher, HIDE overlay and return
-        val isHomeOrLauncher = pkg.contains("launcher") || pkg.contains("home") || 
-                               pkg.contains("trebuchet") || pkg.contains("quickstep") ||
-                               pkg.contains("android.settings") || pkg.contains("packageinstaller")
-
-        if (isHomeOrLauncher) {
-            hideOverlay()
-            removeCountdownOverlay()
-            cancelLockedAppNotification()
-            currentForegroundPackage = pkg
+        // If we just sent user to home, keep overlay visible for 3 seconds then hide
+        if (isTransitioningToHome) {
+            mainHandler.removeCallbacks(hideOverlayRunnable)
+            mainHandler.postDelayed(hideOverlayRunnable, 3000)
             return
         }
 
         currentForegroundPackage = pkg
         currentSessionStartTime = System.currentTimeMillis()
 
-        // 4. Check if app is locked
+        // Check if app is locked
         if (isAppBlocked(pkg)) {
-            // Show overlay IMMEDIATELY
+            // 1. Show overlay IMMEDIATELY
             showOverlay(pkg)
+            overlayView?.visibility = View.VISIBLE
             notifyLockedAppIfApplicable(pkg)
             removeCountdownOverlay()
 
-            // CRITICAL: Force the user to Home screen so the app stops running in foreground
-            // This solves the "app running behind" issue
+            // 2. Set flag BEFORE calling home (prevents immediate hide)
+            isTransitioningToHome = true
+
+            // 3. Push app to background (THIS STOPS IT FROM RUNNING IN FOREGROUND)
             performGlobalAction(GLOBAL_ACTION_HOME)
-            currentForegroundPackage = null
+
+            mainHandler.removeCallbacks(hideOverlayRunnable)
+            mainHandler.postDelayed(hideOverlayRunnable, 3000)
         } else {
-            // If it's a normal app (not locked, not home), hide overlay
-            hideOverlay()
-            cancelLockedAppNotification()
-            checkCountdownIfAboutToBlock(pkg)
+            // Normal app, hide overlay if visible
+            if (!isTransitioningToHome && overlayView?.visibility == View.VISIBLE) {
+                hideOverlay()
+                overlayView?.visibility = View.GONE
+                cancelLockedAppNotification()
+                checkCountdownIfAboutToBlock(pkg)
+            }
         }
     }
 
@@ -336,8 +357,10 @@ class BlackoutAccessibilityService : AccessibilityService() {
             letterSpacing = 0.08f
             setPadding(32, 20, 32, 20)
             setOnClickListener {
+                isTransitioningToHome = true
                 performGlobalAction(GLOBAL_ACTION_HOME)
-                hideOverlay()
+                mainHandler.removeCallbacks(hideOverlayRunnable)
+                mainHandler.postDelayed(hideOverlayRunnable, 500)
             }
         }
         layout.addView(homeButton)

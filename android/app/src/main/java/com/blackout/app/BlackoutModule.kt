@@ -273,11 +273,18 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
 
             for (resolveInfo in resolveInfos) {
                 val packageName = resolveInfo.activityInfo?.packageName ?: continue
-                if (addedPackages.contains(packageName) || packageName == selfPkg || homePackages.contains(packageName)) {
+                if (addedPackages.contains(packageName) || 
+                    packageName == selfPkg || 
+                    packageName == "com.blackout.app" || 
+                    packageName.startsWith("com.blackout") || 
+                    homePackages.contains(packageName)) {
                     continue
                 }
 
-                if (packageName.startsWith("com.android.systemui") || packageName == "android") {
+                if (packageName.contains("systemui") || 
+                    packageName.contains("launcher") || 
+                    packageName.contains("navigationbar") || 
+                    packageName == "android") {
                     continue
                 }
 
@@ -353,7 +360,9 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
                     for (stat in stats) {
                         val pkg = stat.packageName ?: continue
                         if (seenPackages.contains(pkg)) continue
-                        if (pkg == selfPkg || pkg == "android" || pkg.startsWith("com.android.systemui") || homePackages.contains(pkg)) {
+                        if (pkg == selfPkg || pkg == "com.blackout.app" || pkg.startsWith("com.blackout") ||
+                            pkg == "android" || pkg.contains("systemui") || pkg.contains("launcher") ||
+                            pkg.contains("navigationbar") || homePackages.contains(pkg)) {
                             continue
                         }
                         if (stat.totalTimeInForeground <= 0) continue
@@ -416,7 +425,13 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
                 val seenPackages = mutableSetOf<String>()
                 val filteredStats = stats.filter { stat ->
                     val pkg = stat.packageName ?: return@filter false
-                    if (pkg == "com.android.systemui" || pkg == "android" || pkg == selfPkg || homePackages.contains(pkg)) {
+                    // 1. Exclude Blackout itself
+                    if (pkg == selfPkg || pkg == "com.blackout.app" || pkg.startsWith("com.blackout")) {
+                        return@filter false
+                    }
+                    // 2. Exclude system UI, launcher, navigation bar, and pure android framework
+                    if (pkg.contains("systemui") || pkg.contains("launcher") || pkg.contains("navigationbar") ||
+                        pkg == "android" || homePackages.contains(pkg)) {
                         return@filter false
                     }
                     if (stat.totalTimeInForeground <= 0) {
