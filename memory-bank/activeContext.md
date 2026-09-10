@@ -1,13 +1,12 @@
 # Active Context
 
 ## Current Status
-- Completed 5 enterprise-grade architectural fixes across Android Kotlin and React Native:
-  1. Screen-time tracking rewrite: Live elapsed session tracking via `BlackoutAccessibilityService` with deltas in `BlackoutUsagePrefs`, combined with historical `UsageStatsManager` fallback, polling every 5s.
-  2. App listing filters: Authoritative `ApplicationInfo.FLAG_SYSTEM` checks via `PackageManager` to filter out system utilities (Settings, Calculator, etc.) and complete removal of hardcoded fallback mock arrays.
-  3. Real-time theme sync: Native `onConfigurationChanged` emission in `MainActivity.kt` and `NativeEventEmitter` listener in `AppContext.tsx` for instantaneous Quick Settings synchronization.
-  4. Enterprise anti-uninstall protection: Immediate `GLOBAL_ACTION_BACK` intercept and full-screen blocking overlay on `com.android.settings` and package installers while any app is locked.
-  5. Automated midnight reset: `AlarmManager` exact midnight alarm (`12:00 AM`) and `MidnightResetReceiver` clearing daily usage totals and reset locked flags.
+- Executed critical rescue mission resolving all 3 UI and tracking bugs:
+  1. UI Freeze & Infinite Theme Loop: Removed `key={effectiveTheme}` from root View in `App.tsx` and removed interval polling in `AppContext.tsx`. NativeWind v4 controls dark mode seamlessly without unmounting the React tree.
+  2. Screen Time Inflation: Removed Accessibility Service time delta accumulation. Replaced with pure `UsageStatsManager.queryUsageStats(INTERVAL_DAILY)` in `BlackoutModule.kt` (exact Digital Wellbeing API) and deleted all `queryEvents` loops.
+  3. Navigation & Context Stability: Added 1000ms update delta threshold in `AppContext.tsx` background usage interval to prevent unnecessary re-renders and JS thread freezing.
 - Both `npm run tsc` and `./gradlew :app:compileDebugKotlin` pass with zero errors.
+- Debug APK successfully built and installed on connected device (`Infinix X6833B - 14`).
 
 ## Key Files & Structure
 - `App.tsx`: Root application cleanly driven by NativeWind v4 `setColorScheme(effectiveTheme)`.

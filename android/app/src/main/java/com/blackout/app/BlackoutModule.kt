@@ -2,7 +2,6 @@ package com.blackout.app
 
 import android.app.AppOpsManager
 import android.app.admin.DevicePolicyManager
-import android.app.usage.UsageEvents
 import android.app.usage.UsageStats
 import android.app.usage.UsageStatsManager
 import android.content.ComponentName
@@ -176,30 +175,16 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
     }
 
     /**
-     * Robust UsageStats aggregation using Android's official UsageStatsManager API.
-     * Combines queryAndAggregateUsageStats and queryUsageStats (INTERVAL_DAILY)
-     * to ensure foreground time (getTotalTimeInForeground()) is completely and accurately captured.
+     * Accurate UsageStats aggregation using Android's official UsageStatsManager.queryUsageStats().
      */
     private fun getForegroundUsageStatsMap(startTime: Long, endTime: Long): Map<String, Long> {
         val usageStatsManager = reactApplicationContext.getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
         val totalTimeMap = mutableMapOf<String, Long>()
 
         try {
-            // 1. Primary: queryAndAggregateUsageStats combines all usage records in the interval
-            val aggregatedStats: Map<String, UsageStats>? = usageStatsManager.queryAndAggregateUsageStats(startTime, endTime)
-            if (aggregatedStats != null) {
-                for ((pkg, stat) in aggregatedStats) {
-                    val fgTime = stat.totalTimeInForeground
-                    if (fgTime > 0) {
-                        totalTimeMap[pkg] = fgTime
-                    }
-                }
-            }
-
-            // 2. Secondary: queryUsageStats INTERVAL_DAILY ensures freshly closed apps are reflected
-            val dailyStats = usageStatsManager.queryUsageStats(UsageStatsManager.INTERVAL_DAILY, startTime, endTime)
-            if (dailyStats != null) {
-                for (stat in dailyStats) {
+            val stats = usageStatsManager.queryUsageStats(UsageStatsManager.INTERVAL_DAILY, startTime, endTime)
+            if (stats != null) {
+                for (stat in stats) {
                     val fgTime = stat.totalTimeInForeground
                     if (fgTime > 0) {
                         val existing = totalTimeMap[stat.packageName] ?: 0L
@@ -219,21 +204,6 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
     @ReactMethod
     fun getTodayUsage(packageName: String, promise: Promise) {
         try {
-            // 1. Read real-time accumulated usage from SharedPreferences (populated by Accessibility Service)
-            val prefs = reactApplicationContext.getSharedPreferences(BlackoutAccessibilityService.USAGE_PREFS_NAME, Context.MODE_PRIVATE)
-            val accumulatedUsage = prefs.getLong("usage_$packageName", 0L)
-
-            // If the package is currently in foreground, add live active session time
-            var liveSessionTime = 0L
-            if (BlackoutAccessibilityService.currentForegroundPackage == packageName && BlackoutAccessibilityService.lastResumeTime > 0) {
-                val delta = System.currentTimeMillis() - BlackoutAccessibilityService.lastResumeTime
-                if (delta in 1..86400000) {
-                    liveSessionTime = delta
-                }
-            }
-            val realTimeTotal = accumulatedUsage + liveSessionTime
-
-            // 2. Query UsageStatsManager as fallback / historical baseline for today
             val calendar = Calendar.getInstance(TimeZone.getDefault()).apply {
                 set(Calendar.HOUR_OF_DAY, 0)
                 set(Calendar.MINUTE, 0)
@@ -243,12 +213,13 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
             val startTime = calendar.timeInMillis
             val endTime = System.currentTimeMillis()
 
-            val usageMap = getForegroundUsageStatsMap(startTime, endTime)
-            val historicalTimeMs = usageMap[packageName] ?: 0L
+            val usageStatsManager = reactApplicationContext.getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
+            val stats = usageStatsManager.queryUsageStats(UsageStatsManager.INTERVAL_DAILY, startTime, endTime)
+            val appStat = stats?.find { it.packageName == packageName }
+            val totalTimeMs = appStat?.totalTimeInForeground ?: 0L
 
-            val finalUsageMs = Math.max(realTimeTotal, historicalTimeMs)
-            Log.d(TAG, "getTodayUsage for $packageName: realTime=$realTimeTotal ms, historical=$historicalTimeMs ms -> resolved=$finalUsageMs ms")
-            promise.resolve(finalUsageMs.toDouble())
+            Log.d(TAG, "getTodayUsage for $packageName: $totalTimeMs ms (${totalTimeMs / 60000} mins)")
+            promise.resolve(totalTimeMs.toDouble())
         } catch (e: Exception) {
             Log.e(TAG, "getTodayUsage error for $packageName", e)
             promise.resolve(0.0)
@@ -428,26 +399,7 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
             // 1. Get precise foreground time from UsageStatsManager
             val foregroundUsageMap = getForegroundUsageStatsMap(startTime, endTime)
 
-            // 2. Count launch/resume events for open counts
-            val globalOpenCountMap = mutableMapOf<String, Int>()
-            try {
-                val events = usageStatsManager.queryEvents(startTime, endTime)
-                val event = UsageEvents.Event()
-                var currentPkg: String? = null
 
-                while (events.hasNextEvent()) {
-                    events.getNextEvent(event)
-                    val pkg = event.packageName ?: continue
-                    if (event.eventType == UsageEvents.Event.ACTIVITY_RESUMED) {
-                        if (currentPkg != pkg) {
-                            globalOpenCountMap[pkg] = (globalOpenCountMap[pkg] ?: 0) + 1
-                        }
-                        currentPkg = pkg
-                    }
-                }
-            } catch (e: Exception) {
-                Log.w(TAG, "Could not count open events", e)
-            }
 
             val array = WritableNativeArray()
             val selfPkg = reactApplicationContext.packageName
@@ -482,7 +434,7 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
                     putString("packageName", pkg)
                     putString("appName", appName)
                     putDouble("usedMs", timeMs.toDouble())
-                    putInt("openCount", globalOpenCountMap[pkg] ?: 0)
+                    putInt("openCount", 0)
                 }
                 array.pushMap(map)
             }

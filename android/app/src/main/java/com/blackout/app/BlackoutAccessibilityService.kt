@@ -23,10 +23,8 @@ class BlackoutAccessibilityService : AccessibilityService() {
 
     companion object {
         private const val TAG = "BlackoutAccessibility"
-        const val USAGE_PREFS_NAME = "BlackoutUsagePrefs"
         var lockedPackages: Set<String> = emptySet()
         var currentForegroundPackage: String = ""
-        var lastResumeTime: Long = 0L
         var instance: BlackoutAccessibilityService? = null
     }
 
@@ -48,23 +46,7 @@ class BlackoutAccessibilityService : AccessibilityService() {
 
         if (event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
             val packageName = event.packageName?.toString() ?: return
-            val now = System.currentTimeMillis()
-
-            // Real-time usage tracking: If a previously tracked app is PAUSED (new app takes foreground), calculate delta
-            if (currentForegroundPackage.isNotEmpty() && currentForegroundPackage != packageName && lastResumeTime > 0) {
-                val delta = now - lastResumeTime
-                if (delta in 1..86400000) {
-                    val prefs = getSharedPreferences(USAGE_PREFS_NAME, Context.MODE_PRIVATE)
-                    val key = "usage_$currentForegroundPackage"
-                    val currentTotal = prefs.getLong(key, 0L)
-                    prefs.edit().putLong(key, currentTotal + delta).apply()
-                    Log.d(TAG, "Accumulated $delta ms usage for $currentForegroundPackage (total: ${currentTotal + delta} ms)")
-                }
-            }
-
-            // Record packageName and event time as Resume Time
             currentForegroundPackage = packageName
-            lastResumeTime = now
 
             // Never block Blackout itself
             if (packageName == applicationContext.packageName) {

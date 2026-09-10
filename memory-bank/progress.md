@@ -33,5 +33,12 @@
   - Enterprise anti-uninstall protection intercepting `com.android.settings` and `packageinstaller` with `GLOBAL_ACTION_BACK` and overlay.
   - Daily 12:00 AM midnight reset using `AlarmManager` and `MidnightResetReceiver`.
 
+- [x] **Rescue Mission & Stability Fixes**:
+  - Removed `key={effectiveTheme}` and `setInterval` appearance polling, preventing infinite re-mounting loops.
+  - Stopped Accessibility Service usage calculation; transitioned entirely to `UsageStatsManager.queryUsageStats()` (identical to Digital Wellbeing).
+  - Deleted `queryEvents` loop and removed Accessibility delta additions.
+  - Added 1000ms threshold check in usage state updates to eliminate UI freezing and thread thrashing.
+  - Verified build and installed APK directly on connected Android test device.
+
 ## What's Next / Pending
-- All requested architectural flaws resolved and verified. Ready for deployment and device testing.
+- Testing on connected device by user.

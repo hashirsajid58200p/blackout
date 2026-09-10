@@ -93,17 +93,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
     });
 
-    const interval = setInterval(() => {
-      const current = Appearance.getColorScheme();
-      if (current) {
-        const next: "light" | "dark" = current === "dark" ? "dark" : "light";
-        setSysScheme((prev) => (prev !== next ? next : prev));
-      }
-    }, 1000);
-
     return () => {
       subscription.remove();
-      clearInterval(interval);
     };
   }, []);
 
@@ -248,9 +239,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         trackedApps.map(async (app) => {
           if (app.packageName.startsWith("custom.")) return app;
           const realUsedMs = await NativeBridge.getTodayUsageStats(app.packageName);
-          if (realUsedMs !== app.usedTodayMs) {
+          const timeDiff = Math.abs(realUsedMs - app.usedTodayMs);
+          const isNowLocked = realUsedMs >= app.dailyLimitMs;
+          const lockChanged = !app.isLocked && isNowLocked;
+
+          if (timeDiff >= 1000 || lockChanged) {
             hasUpdates = true;
-            const isNowLocked = realUsedMs >= app.dailyLimitMs;
             return {
               ...app,
               usedTodayMs: realUsedMs,

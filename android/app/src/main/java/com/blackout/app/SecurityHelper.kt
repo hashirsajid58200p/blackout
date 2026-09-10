@@ -162,14 +162,8 @@ object SecurityHelper {
                     .apply()
             }
 
-            // Clear real-time usage SharedPreferences
-            context.getSharedPreferences(BlackoutAccessibilityService.USAGE_PREFS_NAME, Context.MODE_PRIVATE)
-                .edit()
-                .clear()
-                .apply()
-
             BlackoutAccessibilityService.lockedPackages = emptySet()
-            Log.d(TAG, "Midnight reset successfully completed: usage and lock flags cleared.")
+            Log.d(TAG, "Midnight reset successfully completed: lock flags cleared.")
         } catch (e: Exception) {
             Log.e(TAG, "Failed to reset midnight locks", e)
         }
