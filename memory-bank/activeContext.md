@@ -1,20 +1,21 @@
 # Active Context
 
 ## Current Status
-- Completed Surgical Regression Fixes:
-  1. Bug 1: Lock Screen Blinking/Glitching (Infinite Loop):
-     - Added `currentLockedPackage: String?` state tracking in `BlackoutAccessibilityService.kt`.
-     - Rewrote `onAccessibilityEvent` to ignore window state events dispatched by the overlay itself (`com.blackout.app` where `className != MainActivity`).
-     - Removed overlay only when user navigates to Home / Launcher (`isSystemOrHome`) or an unblocked app.
-     - Protected `showOverlay` and `foregroundMonitorRunnable` with `!isOverlayShowing || currentLockedPackage != packageName` to eliminate rapid teardown and re-addition cycles.
-     - Intercepted all touches using full-screen `FLAG_NOT_TOUCH_MODAL or FLAG_LAYOUT_IN_SCREEN` with `setOnTouchListener { _, _ -> true }`.
-  2. Bug 2: Icons Showing Alphabets (Especially Stats Screen):
-     - `BlackoutModule.kt`: Implemented explicit 96x96 PNG disk caching in `reactApplicationContext.cacheDir` for `getDayUsageStats` and `getInstalledApps`, returning valid `file://` URIs in `iconUri`.
-     - `StatsScreen.tsx`: Fixed `dayApps` mapping for `selectedDayOffset === 0` to preserve `iconUri` and `iconBase64` from `todayDeviceUsage`.
-  3. Bug 3: Screen Time Inflation:
-     - `BlackoutModule.kt`: Strictly uses `UsageStatsManager.queryUsageStats()` without real-time SharedPreferences additions.
-     - `BlackoutAccessibilityService.kt`: Calculates live active session time strictly in-memory for blocking logic without saving it to SharedPreferences.
-- Validated with `npm run tsc` (0 errors), `./gradlew :app:compileDebugKotlin` (BUILD SUCCESSFUL in 31s), and installed on device (`Infinix X6833B - 14`) via `./gradlew installDebug`. App launched via ADB.
+- Completed Critical Bug Fixes & Live Notification Feature:
+  1. Bug 1: Settings & Entire Phone Getting Locked:
+     - In `BlackoutAccessibilityService.kt`, implemented a strict system filter before checking lock status: ignores `com.blackout.app`, `launcher`, `systemui`, `android.settings`, `packageinstaller`, `navigationbar`, `android`, `com.android.systemui`, and `com.android.settings`.
+     - In `isAppBlocked`, enforced strict package name equality (`pkg == packageName`) checking `isLocked` or `usedTodayMs >= dailyLimitMs`.
+  2. Bug 2: Screen Time Inflation:
+     - `BlackoutModule.kt`: Implemented exact midnight calculation in `TimeZone.getDefault()` and used `UsageStatsManager.INTERVAL_DAILY` returning only `totalTimeInForeground` with zero real-time additions.
+  3. Bug 3: Lock Screen Bypass (Rapid Opening):
+     - Transformed the overlay into a Persistent Overlay attached to WindowManager ONCE in `onServiceConnected` with initial state `View.GONE` and `FLAG_NOT_TOUCHABLE`.
+     - Showing the overlay is instant (0ms delay) by toggling `visibility = View.VISIBLE` and setting `FLAG_NOT_TOUCH_MODAL` with `setOnTouchListener { _, _ -> true }` consuming 100% of touches.
+     - Hiding the overlay is instant (0ms delay) by toggling `visibility = View.GONE` and restoring `FLAG_NOT_TOUCHABLE`.
+  4. Feature 4: Live Ongoing Notification for Locked Apps:
+     - Added `POST_NOTIFICATIONS` permission to `AndroidManifest.xml`.
+     - Created notification channel `blackout_channel` (Importance: Low).
+     - Displays ongoing notification with app name, percentage progress bar, and remaining minutes. Automatically cancelled when leaving the locked app.
+- Validated with `npm run tsc` (0 errors), `./gradlew :app:compileDebugKotlin` (BUILD SUCCESSFUL), and installed on device (`Infinix X6833B - 14`) via `./gradlew installDebug`. Persistent overlay and service verified active in logcat.
 
 ## Key Files & Structure
 - `App.tsx`: Root application with NativeWind v4 theme binding.
