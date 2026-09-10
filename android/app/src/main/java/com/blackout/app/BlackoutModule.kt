@@ -242,12 +242,6 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
     @ReactMethod
     fun getTodayUsage(packageName: String, promise: Promise) {
         try {
-            val pm = reactApplicationContext.packageManager
-            if (pm.getLaunchIntentForPackage(packageName) == null) {
-                promise.resolve(0.0)
-                return
-            }
-
             val calendar = Calendar.getInstance(TimeZone.getDefault()).apply {
                 set(Calendar.HOUR_OF_DAY, 0)
                 set(Calendar.MINUTE, 0)
@@ -257,14 +251,12 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
             val startTime = calendar.timeInMillis
             val endTime = System.currentTimeMillis()
 
-            // Get base usage strictly from queryUsageStats
             val usageStatsManager = reactApplicationContext.getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
             val stats = usageStatsManager.queryUsageStats(UsageStatsManager.INTERVAL_DAILY, startTime, endTime)
-            val appStat = stats?.find { it.packageName == packageName }
-            val baseUsageMs = appStat?.totalTimeInForeground ?: 0L
+            val totalTimeMs = stats?.find { it.packageName == packageName }?.totalTimeInForeground ?: 0L
 
-            Log.d(TAG, "getTodayUsage for $packageName: base=$baseUsageMs")
-            promise.resolve(baseUsageMs.toDouble())
+            Log.d(TAG, "getTodayUsage for $packageName: $totalTimeMs ms")
+            promise.resolve(totalTimeMs.toDouble())
         } catch (e: Exception) {
             Log.e(TAG, "getTodayUsage error for $packageName", e)
             promise.resolve(0.0)
