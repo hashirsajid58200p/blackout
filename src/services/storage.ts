@@ -1,5 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { TrackedApp, Settings } from "../types";
+import { NativeBridge } from "./nativeBridge";
 
 const TRACKED_APPS_KEY = "tracked_apps";
 const SETTINGS_KEY = "settings";
@@ -12,45 +13,6 @@ export const getTodayDateString = (): string => {
   const day = String(d.getDate()).padStart(2, "0");
   return `${year}-${month}-${day}`;
 };
-
-const DEMO_APPS: TrackedApp[] = [
-  {
-    packageName: "com.instagram.android",
-    appName: "INSTAGRAM",
-    dailyLimitMs: 2 * 3600 * 1000,
-    usedTodayMs: 1 * 3600 * 1000 + 45 * 60 * 1000, // 1h 45m
-    isLocked: false,
-    lockDate: getTodayDateString(),
-    category: "Social",
-  },
-  {
-    packageName: "com.google.android.youtube",
-    appName: "YOUTUBE",
-    dailyLimitMs: 2 * 3600 * 1000,
-    usedTodayMs: 2 * 3600 * 1000 + 15 * 60 * 1000, // 2h 15m (LOCKED)
-    isLocked: true,
-    lockDate: getTodayDateString(),
-    category: "Video",
-  },
-  {
-    packageName: "com.zhiliaoapp.musically",
-    appName: "TIKTOK",
-    dailyLimitMs: 1 * 3600 * 1000 + 30 * 60 * 1000,
-    usedTodayMs: 45 * 60 * 1000, // 45m
-    isLocked: false,
-    lockDate: getTodayDateString(),
-    category: "Social",
-  },
-  {
-    packageName: "com.whatsapp",
-    appName: "WHATSAPP",
-    dailyLimitMs: 1 * 3600 * 1000,
-    usedTodayMs: 20 * 60 * 1000, // 20m
-    isLocked: false,
-    lockDate: getTodayDateString(),
-    category: "Messaging",
-  },
-];
 
 export const StorageService = {
   async getSettings(): Promise<Settings> {
@@ -159,12 +121,22 @@ export const StorageService = {
       };
     }
 
+    let initialUsage = 0;
+    if (!packageName.startsWith("custom.")) {
+      try {
+        initialUsage = await NativeBridge.getTodayUsageStats(packageName);
+      } catch {
+        initialUsage = 0;
+      }
+    }
+    const isInitiallyLocked = dailyLimitMs > 0 && initialUsage >= dailyLimitMs;
+
     const newApp: TrackedApp = {
       packageName,
       appName,
       dailyLimitMs,
-      usedTodayMs: 0,
-      isLocked: false,
+      usedTodayMs: initialUsage,
+      isLocked: isInitiallyLocked,
       lockDate: today,
       category,
       iconName,

@@ -130,16 +130,19 @@ export const NativeBridge = {
         // fallback
       }
     }
-    // Fallback if not on Android or native module unavailable
-    return [
-      { day: "SUN", dateStr: "Oct 25", totalUsageMs: 0 },
-      { day: "MON", dateStr: "Oct 26", totalUsageMs: 0 },
-      { day: "TUE", dateStr: "Oct 27", totalUsageMs: 0 },
-      { day: "WED", dateStr: "Oct 28", totalUsageMs: 0 },
-      { day: "THU", dateStr: "Oct 29", totalUsageMs: 0 },
-      { day: "FRI", dateStr: "Oct 30", totalUsageMs: 0 },
-      { day: "SAT", dateStr: "Oct 31", totalUsageMs: 0 },
-    ];
+    // Dynamic fallback for the last 7 days (today is index 6)
+    const dayNames = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
+    const fallback = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      fallback.push({
+        day: dayNames[d.getDay()],
+        dateStr: `${d.getMonth() + 1}/${d.getDate()}`,
+        totalUsageMs: 0,
+      });
+    }
+    return fallback;
   },
 
   async getDayUsageStats(dayOffset: number): Promise<Array<{ packageName: string; appName: string; usedMs: number; openCount?: number }>> {
@@ -174,33 +177,14 @@ export const NativeBridge = {
         if (Array.isArray(apps) && apps.length > 0) {
           return apps.sort((a, b) => a.appName.localeCompare(b.appName));
         }
-      } catch {
-        // Fallback to default list
+        console.error("BlackoutModule.getInstalledApps returned empty or invalid data");
+        return [];
+      } catch (error) {
+        console.error("Failed to fetch installed apps from native module:", error);
+        return [];
       }
     }
-    return DEFAULT_APPS;
+    console.error("BlackoutModule.getInstalledApps is not available on this platform");
+    return [];
   },
 };
-
-const DEFAULT_APPS: Array<{ packageName: string; appName: string; category?: string }> = [
-  { packageName: "com.instagram.android", appName: "Instagram", category: "Social" },
-  { packageName: "com.google.android.youtube", appName: "YouTube", category: "Media & Video" },
-  { packageName: "com.zhiliaoapp.musically", appName: "TikTok", category: "Social & Short Video" },
-  { packageName: "com.whatsapp", appName: "WhatsApp", category: "Messaging" },
-  { packageName: "com.facebook.katana", appName: "Facebook", category: "Social" },
-  { packageName: "com.facebook.orca", appName: "Messenger", category: "Messaging" },
-  { packageName: "com.snapchat.android", appName: "Snapchat", category: "Social" },
-  { packageName: "com.twitter.android", appName: "X / Twitter", category: "Social" },
-  { packageName: "com.reddit.frontpage", appName: "Reddit", category: "News & Community" },
-  { packageName: "com.android.chrome", appName: "Google Chrome", category: "Browser" },
-  { packageName: "com.netflix.mediaclient", appName: "Netflix", category: "Entertainment" },
-  { packageName: "com.spotify.music", appName: "Spotify", category: "Music & Audio" },
-  { packageName: "org.telegram.messenger", appName: "Telegram", category: "Messaging" },
-  { packageName: "com.pinterest", appName: "Pinterest", category: "Social & Lifestyle" },
-  { packageName: "com.linkedin.android", appName: "LinkedIn", category: "Professional" },
-  { packageName: "com.discord", appName: "Discord", category: "Gaming & Chat" },
-  { packageName: "com.tencent.ig", appName: "PUBG Mobile", category: "Gaming" },
-  { packageName: "com.dts.freefireth", appName: "Free Fire", category: "Gaming" },
-  { packageName: "com.roblox.client", appName: "Roblox", category: "Gaming" },
-  { packageName: "com.kiloo.subwaysurfers", appName: "Subway Surfers", category: "Gaming" },
-];

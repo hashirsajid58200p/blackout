@@ -62,4 +62,15 @@ class MainActivity : ReactActivity() {
       // because it's doing more than [Activity.moveTaskToBack] in fact.
       super.invokeDefaultOnBackPressed()
   }
+
+  override fun onConfigurationChanged(newConfig: android.content.res.Configuration) {
+      super.onConfigurationChanged(newConfig)
+      val currentNightMode = newConfig.uiMode and android.content.res.Configuration.UI_MODE_NIGHT_MASK
+      val isDark = currentNightMode == android.content.res.Configuration.UI_MODE_NIGHT_YES
+      val params = com.facebook.react.bridge.Arguments.createMap()
+      params.putBoolean("isDark", isDark)
+      reactInstanceManager.currentReactContext
+          ?.getJSModule(com.facebook.react.modules.core.DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
+          ?.emit("onSystemThemeChanged", params)
+  }
 }

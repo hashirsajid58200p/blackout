@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
-import { Appearance, AppState } from "react-native";
+import { useColorScheme as useRNColorScheme, Appearance, AppState, NativeEventEmitter, Platform } from "react-native";
 import { useColorScheme as useNativeWindColorScheme } from "nativewind";
-import { TrackedApp, Settings } from "../types";
+import { TrackedApp, Settings, WeeklyStats } from "../types";
 import { StorageService } from "../services/storage";
 import { NativeBridge, NativePermissionsStatus } from "../services/nativeBridge";
 
@@ -13,6 +13,13 @@ type ScreenType =
   | "blackout"
   | "stats"
   | "settings";
+
+export interface DeviceAppUsage {
+  packageName: string;
+  appName: string;
+  usedMs: number;
+  openCount?: number;
+}
 
 interface AppContextType {
   currentScreen: ScreenType;
@@ -36,16 +43,21 @@ interface AppContextType {
   colorScheme: "light" | "dark";
   effectiveTheme: "light" | "dark";
   refreshData: () => Promise<void>;
+  todayDeviceUsage: DeviceAppUsage[];
+  todayTotalUsageMs: number;
+  weeklyUsageStats: WeeklyStats[];
+  refreshUsageStats: () => Promise<void>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const { setColorScheme } = useNativeWindColorScheme();
+  const rnColorScheme = useRNColorScheme();
 
-  // ── All useState calls first — order must NEVER change ──────────────────────
+  // ── State declarations ───────────────────────────────────────────────────────
   const [sysScheme, setSysScheme] = useState<"light" | "dark">(
-    Appearance.getColorScheme() === "dark" ? "dark" : "light"
+    rnColorScheme === "dark" ? "dark" : Appearance.getColorScheme() === "dark" ? "dark" : "light"
   );
   const [currentScreen, setCurrentScreen] = useState<ScreenType>("home");
   const [trackedApps, setTrackedApps] = useState<TrackedApp[]>([]);
@@ -58,22 +70,35 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   });
   const [activeBlockApp, setActiveBlockApp] = useState<TrackedApp | null>(null);
 
-  // Compute effective theme: manual override, or follow the OS
+  // Synchronized real device screen time state (consumed by HomeScreen & StatsScreen)
+  const [todayDeviceUsage, setTodayDeviceUsage] = useState<DeviceAppUsage[]>([]);
+  const [todayTotalUsageMs, setTodayTotalUsageMs] = useState<number>(0);
+  const [weeklyUsageStats, setWeeklyUsageStats] = useState<WeeklyStats[]>([]);
+
+  // ── Compute effective theme ──────────────────────────────────────────────────
   const effectiveTheme: "light" | "dark" =
     settings.themeMode === "system" ? sysScheme : settings.themeMode;
 
-  // ── Listen to live OS dark/light changes ────────────────────────────────────
-  // Appearance.addChangeListener doesn't fire on all Android devices (e.g. Infinix),
-  // so we also poll Appearance.getColorScheme() every second as a fallback.
+  // ── Real-time system theme change handling ──────────────────────────────────
+  useEffect(() => {
+    if (rnColorScheme) {
+      setSysScheme(rnColorScheme === "dark" ? "dark" : "light");
+    }
+  }, [rnColorScheme]);
+
   useEffect(() => {
     const subscription = Appearance.addChangeListener(({ colorScheme }) => {
-      setSysScheme(colorScheme === "dark" ? "dark" : "light");
+      if (colorScheme) {
+        setSysScheme(colorScheme === "dark" ? "dark" : "light");
+      }
     });
 
     const interval = setInterval(() => {
       const current = Appearance.getColorScheme();
-      const next: "light" | "dark" = current === "dark" ? "dark" : "light";
-      setSysScheme((prev) => (prev !== next ? next : prev));
+      if (current) {
+        const next: "light" | "dark" = current === "dark" ? "dark" : "light";
+        setSysScheme((prev) => (prev !== next ? next : prev));
+      }
     }, 1000);
 
     return () => {
@@ -82,11 +107,32 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
   }, []);
 
-  // ── Keep NativeWind colour-scheme in sync with effectiveTheme ───────────────
+  // ── Native System Theme Change Listener (Android Quick Settings) ─────────────
+  useEffect(() => {
+    if (Platform.OS !== "android") return;
+    try {
+      const eventEmitter = new NativeEventEmitter();
+      const subscription = eventEmitter.addListener(
+        "onSystemThemeChanged",
+        (event: { isDark: boolean }) => {
+          if (event && typeof event.isDark === "boolean") {
+            setSysScheme(event.isDark ? "dark" : "light");
+          }
+        }
+      );
+      return () => {
+        subscription.remove();
+      };
+    } catch (e) {
+      console.warn("Could not register onSystemThemeChanged listener", e);
+    }
+  }, []);
+
   useEffect(() => {
     setColorScheme(effectiveTheme);
   }, [effectiveTheme, setColorScheme]);
 
+  // ── Synchronized permissions check ──────────────────────────────────────────
   const refreshPermissions = useCallback(async (): Promise<boolean> => {
     const usageStats = await NativeBridge.checkUsageStatsPermission();
     const overlay = await NativeBridge.checkOverlayPermission();
@@ -96,10 +142,37 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const newPerms = { usageStats, overlay, accessibility, deviceAdmin };
     setPermissions(newPerms);
 
-    const allGranted = usageStats && overlay && accessibility && deviceAdmin;
-    return allGranted;
+    return usageStats && overlay && accessibility && deviceAdmin;
   }, []);
 
+  // ── Synchronized usage stats query (UsageStatsManager) ───────────────────────
+  const refreshUsageStats = useCallback(async () => {
+    try {
+      const hasPerm = await NativeBridge.checkUsageStatsPermission();
+      if (!hasPerm) {
+        return;
+      }
+
+      const [dayStats, weekly] = await Promise.all([
+        NativeBridge.getDayUsageStats(0),
+        NativeBridge.getWeeklyUsageStats(),
+      ]);
+
+      if (Array.isArray(dayStats)) {
+        setTodayDeviceUsage(dayStats);
+        const total = dayStats.reduce((acc, curr) => acc + curr.usedMs, 0);
+        setTodayTotalUsageMs(total);
+      }
+
+      if (Array.isArray(weekly) && weekly.length > 0) {
+        setWeeklyUsageStats(weekly);
+      }
+    } catch (err) {
+      console.error("Error refreshing usage stats", err);
+    }
+  }, []);
+
+  // ── Refresh all application data ─────────────────────────────────────────────
   const refreshData = useCallback(async () => {
     const loadedSettings = await StorageService.getSettings();
     setSettings(loadedSettings);
@@ -123,7 +196,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     setTrackedApps(loadedApps);
 
-    // Sync locked packages list to Native Accessibility Service
+    // Sync locked packages list to Native Accessibility Service & EncryptedSharedPreferences
     const lockedPkgs = loadedApps
       .filter((a) => a.isLocked || a.usedTodayMs >= a.dailyLimitMs)
       .map((a) => a.packageName);
@@ -131,9 +204,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     NativeBridge.syncLockedPackages(lockedPkgs);
     NativeBridge.syncLockedAppsToNative(JSON.stringify(loadedApps));
 
-    // Check permissions
     await refreshPermissions();
-  }, [refreshPermissions]);
+    await refreshUsageStats();
+  }, [refreshPermissions, refreshUsageStats]);
 
   useEffect(() => {
     const init = async () => {
@@ -164,9 +237,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     };
   }, [refreshPermissions, refreshData]);
 
-  // Periodically fetch real device usage stats from Native Android for each tracked app
+  // Periodically fetch real device usage stats from Native Android
   useEffect(() => {
     const fetchUsage = async () => {
+      await refreshUsageStats();
+
       if (trackedApps.length === 0) return;
       let hasUpdates = false;
       const updatedApps = await Promise.all(
@@ -193,10 +268,9 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
     };
 
-    fetchUsage();
     const interval = setInterval(fetchUsage, 5000);
     return () => clearInterval(interval);
-  }, [trackedApps]);
+  }, [trackedApps, refreshUsageStats]);
 
   const updateThemeMode = async (mode: "system" | "light" | "dark") => {
     const newSettings = { ...settings, themeMode: mode };
@@ -252,6 +326,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         colorScheme: sysScheme,
         effectiveTheme,
         refreshData,
+        todayDeviceUsage,
+        todayTotalUsageMs,
+        weeklyUsageStats,
+        refreshUsageStats,
       }}
     >
       {children}

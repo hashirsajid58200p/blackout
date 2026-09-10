@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, ScrollView, TouchableOpacity } from "react-native";
+import { View, Text, ScrollView, TouchableOpacity, Image } from "react-native";
 import { useApp } from "../context/AppContext";
 import { NavigationHeader } from "../components/NavigationHeader";
 import { BottomNavBar } from "../components/BottomNavBar";
@@ -154,10 +154,18 @@ export const SettingsScreen: React.FC = () => {
             trackedApps.map((app) => (
               <Card key={app.packageName} className="flex-row justify-between items-center py-3.5 px-4 rounded-none">
                 <View className="flex-row items-center gap-2.5 flex-1 pr-2">
-                  <View className="w-5 h-5 items-center justify-center">
-                    <View className="w-4 h-4 bg-primary dark:bg-white rounded-none" />
+                  <View className="w-6 h-6 items-center justify-center">
+                    {app.iconBase64 ? (
+                      <Image
+                        source={{ uri: `data:image/png;base64,${app.iconBase64}` }}
+                        style={{ width: 22, height: 22 }}
+                        resizeMode="contain"
+                      />
+                    ) : (
+                      <View className="w-4 h-4 bg-primary dark:bg-white rounded-none" />
+                    )}
                   </View>
-                  <Text numberOfLines={1} className="font-bold text-sm text-primary dark:text-white uppercase tracking-wider">
+                  <Text numberOfLines={1} className="font-bold text-sm text-primary dark:text-white uppercase tracking-wider flex-1">
                     {app.appName}
                   </Text>
                 </View>

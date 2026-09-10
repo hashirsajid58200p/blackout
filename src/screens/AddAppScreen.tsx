@@ -156,16 +156,24 @@ export const AddAppScreen: React.FC = () => {
                   {/* Top Row: Icon Center-Aligned Vertically with App Name + Selection Indicator on Right */}
                   <View className="flex-row items-center justify-between">
                     <View className="flex-row items-center gap-2.5 flex-1 pr-2">
-                      <View className="w-5 h-5 items-center justify-center">
-                        <View
-                          className={`w-4 h-4 rounded-none ${
-                            isSelected
-                              ? isDark
-                                ? "bg-black"
-                                : "bg-white"
-                              : "bg-primary dark:bg-white"
-                          }`}
-                        />
+                      <View className="w-6 h-6 items-center justify-center">
+                        {app.iconBase64 ? (
+                          <Image
+                            source={{ uri: `data:image/png;base64,${app.iconBase64}` }}
+                            style={{ width: 22, height: 22 }}
+                            resizeMode="contain"
+                          />
+                        ) : (
+                          <View
+                            className={`w-4 h-4 rounded-none ${
+                              isSelected
+                                ? isDark
+                                  ? "bg-black"
+                                  : "bg-white"
+                                : "bg-primary dark:bg-white"
+                            }`}
+                          />
+                        )}
                       </View>
                       <Text
                         numberOfLines={1}
@@ -242,8 +250,16 @@ export const AddAppScreen: React.FC = () => {
 
             {/* Selected App Header */}
             <View className="flex-row items-center gap-2.5 pb-2 border-b border-primary/20 dark:border-white/20">
-              <View className="w-5 h-5 items-center justify-center">
-                <View className="w-4 h-4 bg-primary dark:bg-white rounded-none" />
+              <View className="w-6 h-6 items-center justify-center">
+                {selectedApp.iconBase64 ? (
+                  <Image
+                    source={{ uri: `data:image/png;base64,${selectedApp.iconBase64}` }}
+                    style={{ width: 22, height: 22 }}
+                    resizeMode="contain"
+                  />
+                ) : (
+                  <View className="w-4 h-4 bg-primary dark:bg-white rounded-none" />
+                )}
               </View>
               <Text numberOfLines={1} className="font-bold text-sm text-primary dark:text-white uppercase tracking-wider flex-1">
                 {selectedApp.appName}

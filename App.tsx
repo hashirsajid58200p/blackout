@@ -38,7 +38,7 @@ const MainContent: React.FC = () => {
   const isDark = effectiveTheme === "dark";
 
   return (
-    <View key={effectiveTheme} className={`flex-1 ${isDark ? "dark bg-black" : "bg-background"}`}>
+    <View key={effectiveTheme} className={`flex-1 ${isDark ? "bg-black" : "bg-background"}`}>
       <StatusBar
         translucent
         backgroundColor="transparent"

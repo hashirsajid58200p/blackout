@@ -7,38 +7,29 @@ import { BottomNavBar } from "../components/BottomNavBar";
 import { Card } from "../components/ui/Card";
 import { ProgressBar } from "../components/ui/ProgressBar";
 import { StatusPill } from "../components/ui/StatusPill";
-import { NativeBridge } from "../services/nativeBridge";
-import { Plus, ShieldAlert, Lock } from "lucide-react-native";
+import { Plus, ShieldAlert } from "lucide-react-native";
 
 export const HomeScreen: React.FC = () => {
-  const { trackedApps, setCurrentScreen, permissions, effectiveTheme } = useApp();
+  const {
+    trackedApps,
+    setCurrentScreen,
+    permissions,
+    effectiveTheme,
+    todayDeviceUsage,
+    todayTotalUsageMs,
+    refreshUsageStats,
+  } = useApp();
   const [selectedAppPackage, setSelectedAppPackage] = useState<string | null>(null);
-  const [deviceUsage, setDeviceUsage] = useState<Array<{ packageName: string; appName: string; usedMs: number; openCount?: number }>>([]);
 
   const isDark = effectiveTheme === "dark";
   const iconColor = isDark ? "#ffffff" : "#000000";
   const fabIconColor = isDark ? "#000000" : "#ffffff";
 
   useEffect(() => {
-    let isMounted = true;
-    const loadUsage = () => {
-      NativeBridge.getDayUsageStats(0)
-        .then((stats) => {
-          if (isMounted && Array.isArray(stats)) {
-            setDeviceUsage(stats);
-          }
-        })
-        .catch(() => {});
-    };
-
-    loadUsage();
-    const interval = setInterval(loadUsage, 5000);
-
-    return () => {
-      isMounted = false;
-      clearInterval(interval);
-    };
-  }, []);
+    refreshUsageStats();
+    const interval = setInterval(refreshUsageStats, 4000);
+    return () => clearInterval(interval);
+  }, [refreshUsageStats]);
 
   const getTodayFormatted = () => {
     const options: Intl.DateTimeFormatOptions = {
@@ -59,46 +50,45 @@ export const HomeScreen: React.FC = () => {
     return `${minsRem}m`;
   };
 
-  const isUsingTracked = trackedApps.length > 0;
-  const chartApps = isUsingTracked
-    ? trackedApps.map((a) => ({
-        packageName: a.packageName,
-        appName: a.appName,
-        usedTodayMs: a.usedTodayMs,
-        dailyLimitMs: a.dailyLimitMs,
-        isLocked: a.isLocked,
-        openCount: undefined as number | undefined,
-      }))
-    : deviceUsage.length > 0
-    ? deviceUsage.map((d) => ({
-        packageName: d.packageName,
-        appName: d.appName,
-        usedTodayMs: d.usedMs,
-        openCount: d.openCount,
-        dailyLimitMs: 0,
-        isLocked: false,
-      }))
-    : [];
+  // Build unified chart apps list merging device usage with tracked limits
+  const chartApps = todayDeviceUsage.map((d) => {
+    const tracked = trackedApps.find((ta) => ta.packageName === d.packageName);
+    return {
+      packageName: d.packageName,
+      appName: d.appName,
+      usedTodayMs: d.usedMs,
+      openCount: d.openCount,
+      dailyLimitMs: tracked?.dailyLimitMs || 0,
+      isLocked: tracked?.isLocked || (tracked && tracked.dailyLimitMs > 0 && d.usedMs >= tracked.dailyLimitMs) || false,
+    };
+  });
 
-  const totalUsedTodayMs = isUsingTracked
-    ? trackedApps.reduce((acc, curr) => acc + curr.usedTodayMs, 0)
+  // Include any tracked apps not in device usage yet
+  trackedApps.forEach((ta) => {
+    if (!chartApps.some((ca) => ca.packageName === ta.packageName)) {
+      chartApps.push({
+        packageName: ta.packageName,
+        appName: ta.appName,
+        usedTodayMs: ta.usedTodayMs || 0,
+        openCount: 0,
+        dailyLimitMs: ta.dailyLimitMs,
+        isLocked: ta.isLocked,
+      });
+    }
+  });
+
+  const totalUsedTodayMs = todayTotalUsageMs > 0
+    ? todayTotalUsageMs
     : chartApps.reduce((acc, curr) => acc + curr.usedTodayMs, 0);
-  const totalLimitTodayMs = isUsingTracked
-    ? trackedApps.reduce((acc, curr) => acc + curr.dailyLimitMs, 0)
-    : 0;
-
-  const overallPercent = totalLimitTodayMs > 0
-    ? Math.min(100, Math.round((totalUsedTodayMs / totalLimitTodayMs) * 100))
-    : 100;
 
   const circleCircumference = 408.4;
 
-  const getDynamicMonochromeShade = (index: number, total: number, isDark: boolean): string => {
+  const getDynamicMonochromeShade = (index: number, total: number, isDarkTheme: boolean): string => {
     if (total <= 1) {
-      return isDark ? "hsl(0, 0%, 100%)" : "hsl(0, 0%, 0%)";
+      return isDarkTheme ? "hsl(0, 0%, 100%)" : "hsl(0, 0%, 0%)";
     }
     const ratio = index / (total - 1);
-    if (isDark) {
+    if (isDarkTheme) {
       const lightness = Math.round(100 - ratio * 65);
       return `hsl(0, 0%, ${lightness}%)`;
     } else {
@@ -148,7 +138,7 @@ export const HomeScreen: React.FC = () => {
         </View>
 
         {/* Permission Notice if missing */}
-        {(!permissions.usageStats || !permissions.overlay || !permissions.accessibility) && (
+        {(!permissions.usageStats || !permissions.overlay || !permissions.accessibility || !permissions.deviceAdmin) && (
           <TouchableOpacity
             activeOpacity={0.8}
             onPress={() => setCurrentScreen("permissions")}
@@ -163,19 +153,19 @@ export const HomeScreen: React.FC = () => {
               </Text>
             </View>
             <Text className="text-xs text-secondary dark:text-zinc-400 leading-4">
-              Tap to grant accessibility & overlay permissions
+              Tap to grant Usage Access, Overlay, Accessibility & Device Admin privileges
             </Text>
           </TouchableOpacity>
         )}
 
-        {/* Multi-Segment Monochrome Donut Chart (ALWAYS VISIBLE) */}
+        {/* Multi-Segment Monochrome Donut Chart (ALWAYS ACCURATE & VISIBLE) */}
         <Card className="p-5 mb-6 items-center justify-center flex-col rounded-none bg-surface-container-lowest dark:bg-black">
           <View className="w-full flex-row justify-between items-center mb-4">
             <Text className="font-bold text-xs text-secondary dark:text-zinc-400 uppercase tracking-widest">
-              {isUsingTracked ? "LOCKED APPS USAGE OVERVIEW" : "TODAY'S USAGE OVERVIEW"}
+              TODAY'S USAGE OVERVIEW
             </Text>
             <Text className="font-bold text-xs text-primary dark:text-white uppercase">
-              {isUsingTracked ? `${overallPercent}%` : formatMs(totalUsedTodayMs)}
+              {formatMs(totalUsedTodayMs)}
             </Text>
           </View>
 
@@ -236,41 +226,43 @@ export const HomeScreen: React.FC = () => {
           </View>
 
           {/* App Usage Segment Legend Breakdown */}
-          <View className="w-full flex-col gap-2 pt-2 border-t border-primary/20 dark:border-white/20">
-            <Text className="text-[10px] font-bold text-secondary dark:text-zinc-500 uppercase tracking-widest mb-1">
-              APP USAGE BREAKDOWN (TAP TO HIGHLIGHT)
-            </Text>
-            {appSegments.map((seg) => {
-              const percentOfTotal = totalUsedTodayMs > 0
-                ? Math.round((seg.usedTodayMs / totalUsedTodayMs) * 100)
-                : 0;
-              const isSelected = selectedAppPackage === seg.packageName;
+          {appSegments.length > 0 && (
+            <View className="w-full flex-col gap-2 pt-2 border-t border-primary/20 dark:border-white/20">
+              <Text className="text-[10px] font-bold text-secondary dark:text-zinc-500 uppercase tracking-widest mb-1">
+                APP USAGE BREAKDOWN (TAP TO HIGHLIGHT)
+              </Text>
+              {appSegments.slice(0, 8).map((seg) => {
+                const percentOfTotal = totalUsedTodayMs > 0
+                  ? Math.round((seg.usedTodayMs / totalUsedTodayMs) * 100)
+                  : 0;
+                const isSelected = selectedAppPackage === seg.packageName;
 
-              return (
-                <TouchableOpacity
-                  key={seg.packageName}
-                  activeOpacity={0.8}
-                  onPress={() => setSelectedAppPackage(isSelected ? null : seg.packageName)}
-                  className={`flex-row justify-between items-center py-1.5 px-2 border ${
-                    isSelected
-                      ? "border-primary dark:border-white bg-primary/10 dark:bg-white/10"
-                      : "border-transparent"
-                  }`}
-                >
-                  <View className="flex-row items-center gap-2 flex-1 pr-2">
-                    <View style={{ backgroundColor: seg.shadeColor }} className="w-3.5 h-3.5 rounded-none border border-primary dark:border-white" />
-                    <Text numberOfLines={1} className="font-bold text-xs text-primary dark:text-white uppercase flex-1">
-                      {seg.appName}
+                return (
+                  <TouchableOpacity
+                    key={seg.packageName}
+                    activeOpacity={0.8}
+                    onPress={() => setSelectedAppPackage(isSelected ? null : seg.packageName)}
+                    className={`flex-row justify-between items-center py-1.5 px-2 border ${
+                      isSelected
+                        ? "border-primary dark:border-white bg-primary/10 dark:bg-white/10"
+                        : "border-transparent"
+                    }`}
+                  >
+                    <View className="flex-row items-center gap-2 flex-1 pr-2">
+                      <View style={{ backgroundColor: seg.shadeColor }} className="w-3.5 h-3.5 rounded-none border border-primary dark:border-white" />
+                      <Text numberOfLines={1} className="font-bold text-xs text-primary dark:text-white uppercase flex-1">
+                        {seg.appName}
+                      </Text>
+                    </View>
+
+                    <Text className="font-bold text-[11px] text-secondary dark:text-zinc-300 uppercase">
+                      {formatMs(seg.usedTodayMs)} ({percentOfTotal}%){seg.openCount ? ` • ${seg.openCount} OPENS` : ""}
                     </Text>
-                  </View>
-
-                  <Text className="font-bold text-[11px] text-secondary dark:text-zinc-300 uppercase">
-                    {formatMs(seg.usedTodayMs)} ({percentOfTotal}%){seg.openCount ? ` • ${seg.openCount} OPENS` : ""}
-                  </Text>
-                </TouchableOpacity>
-              );
-            })}
-          </View>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          )}
         </Card>
 
         {/* Tracked Apps List */}
@@ -280,7 +272,7 @@ export const HomeScreen: React.FC = () => {
               NO APP LOCKS ACTIVE
             </Text>
             <Text className="text-sm text-secondary dark:text-zinc-400 text-center max-w-[240px]">
-              Tap the (+) button below to pick an app and set a daily limit.
+              Tap the (+) button below to pick an installed app and set a daily limit.
             </Text>
           </Card>
         ) : (

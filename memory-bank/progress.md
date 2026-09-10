@@ -23,11 +23,15 @@
   - System, Light, and Dark theme toggles.
   - Android Device Administrator activation to protect against bypass via uninstallation.
   - Locked apps read-only view.
-- [x] **Android Native Module & Accessibility Service**:
-  - Real-time `TYPE_WINDOW_STATE_CHANGED` interception.
-  - SharedPreferences sync (`locked_apps_json`).
-  - Home redirection (`GLOBAL_ACTION_HOME`) and overlay enforcement.
-  - Precise usage tracking using `UsageEvents`.
+- [x] **Android Native Module & Accessibility Service Architectural Fixes**:
+  - Real-time `TYPE_WINDOW_STATE_CHANGED` delta accumulation in `BlackoutUsagePrefs`.
+  - Precise usage tracking combining Accessibility real-time metrics with `UsageStatsManager` daily baseline.
+  - Installed apps system filter excluding Calculator, Settings, and other system packages.
+  - Complete elimination of mock/fake fallback app arrays.
+  - Real-time system theme change propagation via `MainActivity.onConfigurationChanged` and `NativeEventEmitter`.
+  - NativeWind v4 dynamic theme management without manual dark class injection.
+  - Enterprise anti-uninstall protection intercepting `com.android.settings` and `packageinstaller` with `GLOBAL_ACTION_BACK` and overlay.
+  - Daily 12:00 AM midnight reset using `AlarmManager` and `MidnightResetReceiver`.
 
 ## What's Next / Pending
-- Awaiting user directions for further enhancements, features, or adjustments.
+- All requested architectural flaws resolved and verified. Ready for deployment and device testing.

@@ -1,29 +1,24 @@
 # Active Context
 
 ## Current Status
-- Initial project codebase onboarding and deep-dive analysis completed.
-- Codebase is cleanly structured with Expo SDK 54, React Native 0.81.5, TypeScript, NativeWind, and custom Android Kotlin native modules.
-- TypeScript compiler (`npm run tsc`) passes with zero diagnostics/errors.
-- Git working directory is clean on `main` branch.
+- Completed 5 enterprise-grade architectural fixes across Android Kotlin and React Native:
+  1. Screen-time tracking rewrite: Live elapsed session tracking via `BlackoutAccessibilityService` with deltas in `BlackoutUsagePrefs`, combined with historical `UsageStatsManager` fallback, polling every 5s.
+  2. App listing filters: Authoritative `ApplicationInfo.FLAG_SYSTEM` checks via `PackageManager` to filter out system utilities (Settings, Calculator, etc.) and complete removal of hardcoded fallback mock arrays.
+  3. Real-time theme sync: Native `onConfigurationChanged` emission in `MainActivity.kt` and `NativeEventEmitter` listener in `AppContext.tsx` for instantaneous Quick Settings synchronization.
+  4. Enterprise anti-uninstall protection: Immediate `GLOBAL_ACTION_BACK` intercept and full-screen blocking overlay on `com.android.settings` and package installers while any app is locked.
+  5. Automated midnight reset: `AlarmManager` exact midnight alarm (`12:00 AM`) and `MidnightResetReceiver` clearing daily usage totals and reset locked flags.
+- Both `npm run tsc` and `./gradlew :app:compileDebugKotlin` pass with zero errors.
 
 ## Key Files & Structure
-- `App.tsx`: Root application with `SafeAreaProvider`, `AppProvider`, and screen router.
-- `src/screens/`:
-  - `HomeScreen.tsx`: Circular multi-segment monochrome usage donut chart, today's focus summary, active locks list, FAB for adding locks.
-  - `AddAppScreen.tsx`: Installed app listing/search, custom app lock input, hours/minutes duration selector, confirmation modal.
-  - `StatsScreen.tsx`: Weekly screen time bar chart, day navigation carousel, daily per-app usage breakdown.
-  - `SettingsScreen.tsx`: Theme switcher (system/light/dark), Device Admin uninstall protection toggle, active lock viewer, permission overview.
-  - `PermissionsScreen.tsx`: Live check & intent launchers for Usage Access, Overlay, Accessibility, and Device Admin.
-  - `OnboardingScreen.tsx`: Introduction slider explaining the Monolith Minimalist philosophy and immutable limits.
-  - `BlackoutScreen.tsx`: Full-screen lock display ("Application IS DARK").
-- `src/services/`:
-  - `nativeBridge.ts`: Bridge layer calling native Kotlin methods with TypeScript fallbacks.
-  - `storage.ts`: Storage service handling AsyncStorage persistence and midnight reset.
-- `src/context/AppContext.tsx`: Global context managing app state, live system theme detection, and background usage polling.
+- `App.tsx`: Root application cleanly driven by NativeWind v4 `setColorScheme(effectiveTheme)`.
+- `src/services/nativeBridge.ts`: Bridge to native Kotlin APIs with error logging and zero fake fallbacks.
+- `src/context/AppContext.tsx`: Real-time system theme event handling and 5s usage polling loop.
 - `android/app/src/main/java/com/blackout/app/`:
-  - `BlackoutAccessibilityService.kt`: Native accessibility service intercepting window transitions and enforcing overlays.
-  - `BlackoutModule.kt`: React Native module querying Android `UsageEvents` and handling device admin/permission actions.
-  - `BlackoutDeviceAdminReceiver.kt`: Receiver handling Device Administrator activation/deactivation.
+  - `BlackoutAccessibilityService.kt`: Real-time window state delta accumulation, overlay enforcement, and Settings anti-uninstall intercept.
+  - `BlackoutModule.kt`: Real-time + historical usage resolution, system app filtering in `getInstalledApps`.
+  - `MidnightResetReceiver.kt`: BroadcastReceiver for exact 12:00 AM daily reset of usage and locks.
+  - `SecurityHelper.kt`: SharedPreferences security, active lock checks, and AlarmManager midnight scheduling.
+  - `MainActivity.kt`: `onConfigurationChanged` emitting `onSystemThemeChanged`.
 
 ## Next Steps
-- Waiting for user instruction on the next feature, optimization, or bug fix.
+- Deliver walkthrough and summary to user.

@@ -121,6 +121,31 @@ const withBlackoutNativeModule = (config) => {
       });
     }
 
+    const midnightReceiverName = "com.blackout.app.MidnightResetReceiver";
+    const existingMidnightReceiver = mainApplication["receiver"].find(
+      (r) => r["$"]["android:name"] === midnightReceiverName
+    );
+
+    if (!existingMidnightReceiver) {
+      mainApplication["receiver"].push({
+        $: {
+          "android:name": midnightReceiverName,
+          "android:exported": "false",
+        },
+        "intent-filter": [
+          {
+            action: [
+              {
+                $: {
+                  "android:name": "android.intent.action.BOOT_COMPLETED",
+                },
+              },
+            ],
+          },
+        ],
+      });
+    }
+
     return config;
   });
 
@@ -230,10 +255,10 @@ class BlackoutDeviceAdminReceiver : DeviceAdminReceiver() {
     }
 }
 `;
-      fs.writeFileSync(
-        path.join(androidSrcDir, "BlackoutDeviceAdminReceiver.kt"),
-        deviceAdminReceiverContent
-      );
+      const receiverPath = path.join(androidSrcDir, "BlackoutDeviceAdminReceiver.kt");
+      if (!fs.existsSync(receiverPath)) {
+        fs.writeFileSync(receiverPath, deviceAdminReceiverContent);
+      }
 
       // BlackoutAccessibilityService.kt
       const accessibilityServiceContent = `package com.blackout.app
@@ -288,10 +313,10 @@ class BlackoutAccessibilityService : AccessibilityService() {
     }
 }
 `;
-      fs.writeFileSync(
-        path.join(androidSrcDir, "BlackoutAccessibilityService.kt"),
-        accessibilityServiceContent
-      );
+      const accessibilityPath = path.join(androidSrcDir, "BlackoutAccessibilityService.kt");
+      if (!fs.existsSync(accessibilityPath)) {
+        fs.writeFileSync(accessibilityPath, accessibilityServiceContent);
+      }
 
       // BlackoutModule.kt
       const blackoutModuleContent = `package com.blackout.app
@@ -608,10 +633,10 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
     }
 }
 `;
-      fs.writeFileSync(
-        path.join(androidSrcDir, "BlackoutModule.kt"),
-        blackoutModuleContent
-      );
+      const modulePath = path.join(androidSrcDir, "BlackoutModule.kt");
+      if (!fs.existsSync(modulePath)) {
+        fs.writeFileSync(modulePath, blackoutModuleContent);
+      }
 
       // BlackoutPackage.kt
       const blackoutPackageContent = `package com.blackout.app

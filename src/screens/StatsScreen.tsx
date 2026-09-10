@@ -16,32 +16,31 @@ interface DayAppUsage {
 }
 
 export const StatsScreen: React.FC = () => {
-  const { trackedApps, effectiveTheme } = useApp();
+  const {
+    effectiveTheme,
+    todayDeviceUsage,
+    todayTotalUsageMs,
+    weeklyUsageStats,
+    refreshUsageStats,
+  } = useApp();
   const isDark = effectiveTheme === "dark";
   const iconColor = isDark ? "#ffffff" : "#000000";
 
   // dayOffset: 0 = Today, -1 = Yesterday, -2 = 2 days ago, ... up to -6
   const [selectedDayOffset, setSelectedDayOffset] = useState<number>(0);
+  const [historicalDayApps, setHistoricalDayApps] = useState<DayAppUsage[]>([]);
 
-  const [weeklyStats, setWeeklyStats] = useState<WeeklyStats[]>([
-    { day: "SUN", dateStr: "Oct 25", totalUsageMs: 0 },
-    { day: "MON", dateStr: "Oct 26", totalUsageMs: 0 },
-    { day: "TUE", dateStr: "Oct 27", totalUsageMs: 0 },
-    { day: "WED", dateStr: "Oct 28", totalUsageMs: 0 },
-    { day: "THU", dateStr: "Oct 29", totalUsageMs: 0 },
-    { day: "FRI", dateStr: "Oct 30", totalUsageMs: 0 },
-    { day: "SAT", dateStr: "Oct 31", totalUsageMs: 0 },
-  ]);
+  useEffect(() => {
+    refreshUsageStats();
+  }, [refreshUsageStats]);
 
-  const [dayApps, setDayApps] = useState<DayAppUsage[]>([]);
-
-  // Dynamic continuous monochrome lightness generator for any number of apps N
-  const getDynamicMonochromeShade = (index: number, total: number, isDark: boolean): string => {
+  // Dynamic continuous monochrome lightness generator
+  const getDynamicMonochromeShade = (index: number, total: number, isDarkTheme: boolean): string => {
     if (total <= 1) {
-      return isDark ? "hsl(0, 0%, 100%)" : "hsl(0, 0%, 0%)";
+      return isDarkTheme ? "hsl(0, 0%, 100%)" : "hsl(0, 0%, 0%)";
     }
     const ratio = index / (total - 1);
-    if (isDark) {
+    if (isDarkTheme) {
       const lightness = Math.round(100 - ratio * 65);
       return `hsl(0, 0%, ${lightness}%)`;
     } else {
@@ -50,39 +49,20 @@ export const StatsScreen: React.FC = () => {
     }
   };
 
-  // Fetch 7-day total stats
+  // Fetch specific historical day app breakdown if selectedDayOffset < 0
   useEffect(() => {
+    if (selectedDayOffset === 0) {
+      return;
+    }
+
     let isMounted = true;
-    NativeBridge.getWeeklyUsageStats().then((data) => {
-      if (isMounted && data && data.length > 0) {
-        setWeeklyStats(data);
-      }
-    });
-
-    return () => {
-      isMounted = false;
-    };
-  }, []);
-
-  // Fetch specific day app breakdown whenever selectedDayOffset changes
-  useEffect(() => {
-    let isMounted = true;
-
     NativeBridge.getDayUsageStats(selectedDayOffset).then((data) => {
       if (isMounted) {
         if (data && data.length > 0) {
-          data.sort((a, b) => b.usedMs - a.usedMs);
-          setDayApps(data);
-        } else if (selectedDayOffset === 0 && trackedApps.length > 0) {
-          const mapped = trackedApps.map((a) => ({
-            packageName: a.packageName,
-            appName: a.appName,
-            usedMs: a.usedTodayMs,
-          }));
-          mapped.sort((a, b) => b.usedMs - a.usedMs);
-          setDayApps(mapped);
+          const sorted = [...data].sort((a, b) => b.usedMs - a.usedMs);
+          setHistoricalDayApps(sorted);
         } else {
-          setDayApps([]);
+          setHistoricalDayApps([]);
         }
       }
     });
@@ -90,10 +70,39 @@ export const StatsScreen: React.FC = () => {
     return () => {
       isMounted = false;
     };
-  }, [selectedDayOffset, trackedApps]);
+  }, [selectedDayOffset]);
 
-  const totalWeeklyMs = weeklyStats.reduce((acc, curr) => acc + curr.totalUsageMs, 0);
-  const maxUsage = Math.max(1, ...weeklyStats.map((w) => w.totalUsageMs));
+  // If today (0), consume unified state from AppContext
+  const dayApps: DayAppUsage[] = selectedDayOffset === 0
+    ? todayDeviceUsage.map((d) => ({ packageName: d.packageName, appName: d.appName, usedMs: d.usedMs }))
+    : historicalDayApps;
+
+  // Compute 7 days stats
+  const activeWeeklyStats: WeeklyStats[] = weeklyUsageStats.length === 7
+    ? weeklyUsageStats.map((item, idx) => {
+        // Ensure today's bar (index 6) matches today's exact total
+        if (idx === 6 && todayTotalUsageMs > 0) {
+          return { ...item, totalUsageMs: todayTotalUsageMs };
+        }
+        return item;
+      })
+    : (() => {
+        const dayNames = ["SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT"];
+        const fallback: WeeklyStats[] = [];
+        for (let i = 6; i >= 0; i--) {
+          const d = new Date();
+          d.setDate(d.getDate() - i);
+          fallback.push({
+            day: dayNames[d.getDay()],
+            dateStr: `${d.getMonth() + 1}/${d.getDate()}`,
+            totalUsageMs: i === 0 ? todayTotalUsageMs : 0,
+          });
+        }
+        return fallback;
+      })();
+
+  const totalWeeklyMs = activeWeeklyStats.reduce((acc, curr) => acc + curr.totalUsageMs, 0);
+  const maxUsage = Math.max(1, ...activeWeeklyStats.map((w) => w.totalUsageMs));
 
   // Selected Day Label
   const getSelectedDayLabel = () => {
@@ -105,7 +114,9 @@ export const StatsScreen: React.FC = () => {
   };
 
   const selectedIndex = 6 + selectedDayOffset;
-  const selectedDayTotalMs = dayApps.reduce((acc, curr) => acc + curr.usedMs, 0);
+  const selectedDayTotalMs = selectedDayOffset === 0
+    ? todayTotalUsageMs
+    : dayApps.reduce((acc, curr) => acc + curr.usedMs, 0) || (activeWeeklyStats[selectedIndex]?.totalUsageMs ?? 0);
 
   const formatHours = (ms: number) => {
     const hours = (ms / (1000 * 3600)).toFixed(1);
@@ -173,7 +184,7 @@ export const StatsScreen: React.FC = () => {
               {getSelectedDayLabel()} TOTAL
             </Text>
             <Text className="font-bold text-3xl text-primary dark:text-white mt-1">
-              {formatHours(selectedDayTotalMs || (weeklyStats[selectedIndex]?.totalUsageMs ?? 0))}
+              {formatHours(selectedDayTotalMs)}
             </Text>
           </View>
 
@@ -201,7 +212,7 @@ export const StatsScreen: React.FC = () => {
           </View>
 
           <View className="flex-row justify-between items-end h-44 pt-2 px-1">
-            {weeklyStats.map((item, idx) => {
+            {activeWeeklyStats.map((item, idx) => {
               const heightPercent = Math.min(100, Math.max(10, Math.round((item.totalUsageMs / maxUsage) * 100)));
               const isSelected = idx === selectedIndex;
               const dayOffsetForBar = idx - 6;
@@ -231,11 +242,8 @@ export const StatsScreen: React.FC = () => {
                       <Svg width="100%" height="100%" preserveAspectRatio="none">
                         <Defs>
                           <LinearGradient id={`smoothBarGrad-${idx}`} x1="0" y1="0" x2="0" y2="1">
-                            {/* Top of bar: lighter shade */}
                             <Stop offset="0%" stopColor={isDark ? "#71717a" : "#d4d4d8"} />
-                            {/* Middle blending transition */}
                             <Stop offset="50%" stopColor={isDark ? "#d4d4d8" : "#3f3f46"} />
-                            {/* Bottom of bar: darkest / highest contrast shade */}
                             <Stop offset="100%" stopColor={isDark ? "#ffffff" : "#000000"} />
                           </LinearGradient>
                         </Defs>
@@ -280,7 +288,6 @@ export const StatsScreen: React.FC = () => {
 
               return (
                 <Card key={app.packageName} className="flex-row justify-between items-center py-3.5 px-4 rounded-none">
-                  {/* Left: Solid Minimalist Square Box with App's Dynamic Monochrome Shade + Title */}
                   <View className="flex-row items-center gap-2.5 flex-1 pr-2">
                     <View className="w-5 h-5 items-center justify-center">
                       <View style={{ backgroundColor: shadeColor }} className="w-4 h-4 rounded-none border border-primary dark:border-white" />
@@ -290,7 +297,6 @@ export const StatsScreen: React.FC = () => {
                     </Text>
                   </View>
 
-                  {/* Right: Usage Duration */}
                   <Text className="font-bold text-xs text-primary dark:text-white uppercase">
                     {formatMs(app.usedMs)} USED
                   </Text>
