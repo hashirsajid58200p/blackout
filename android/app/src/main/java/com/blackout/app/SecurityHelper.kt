@@ -185,11 +185,119 @@ object SecurityHelper {
                 return false
             }
 
-            val hasLocks = prefs.getBoolean(KEY_HAS_ACTIVE_LOCKS, false)
-            hasLocks && (expiration > now)
+            val jsonString = prefs.getString(KEY_LOCKED_APPS_JSON, null) ?: return false
+            val jsonArray = JSONArray(jsonString)
+            for (i in 0 until jsonArray.length()) {
+                val item = jsonArray.optJSONObject(i)
+                if (item != null) {
+                    val isLocked = item.optBoolean("isLocked", false)
+                    val usedTodayMs = item.optDouble("usedTodayMs", 0.0)
+                    val dailyLimitMs = item.optDouble("dailyLimitMs", 0.0)
+                    if (isLocked || (dailyLimitMs > 0 && usedTodayMs >= dailyLimitMs)) {
+                        return true
+                    }
+                } else {
+                    val pkg = jsonArray.optString(i)
+                    if (pkg.isNotEmpty()) return true
+                }
+            }
+            false
         } catch (e: Exception) {
             Log.e(TAG, "Error checking active locks", e)
             false
+        }
+    }
+
+    data class AppUsageLimitInfo(
+        val isLocked: Boolean,
+        val usedTodayMs: Long,
+        val dailyLimitMs: Long
+    )
+
+    /**
+     * Reads usedTodayMs and dailyLimitMs from locked_apps_json in SharedPreferences,
+     * cross-checking with UsageStatsManager for the most real-time data.
+     */
+    fun getPackageUsageLimit(context: Context, packageName: String): AppUsageLimitInfo? {
+        return try {
+            val prefs = getPreferences(context)
+            val jsonString = prefs.getString(KEY_LOCKED_APPS_JSON, null) ?: return null
+            val jsonArray = JSONArray(jsonString)
+            for (i in 0 until jsonArray.length()) {
+                val item = jsonArray.optJSONObject(i)
+                if (item != null && item.optString("packageName") == packageName) {
+                    val isLocked = item.optBoolean("isLocked", false)
+                    val limit = item.optDouble("dailyLimitMs", 0.0).toLong()
+                    var used = item.optDouble("usedTodayMs", 0.0).toLong()
+
+                    // Cross-check with UsageStatsManager for real-time foreground time
+                    try {
+                        val usageStatsManager = context.getSystemService(Context.USAGE_STATS_SERVICE) as? android.app.usage.UsageStatsManager
+                        if (usageStatsManager != null) {
+                            val calendar = Calendar.getInstance(TimeZone.getDefault()).apply {
+                                set(Calendar.HOUR_OF_DAY, 0)
+                                set(Calendar.MINUTE, 0)
+                                set(Calendar.SECOND, 0)
+                                set(Calendar.MILLISECOND, 0)
+                            }
+                            val stats = usageStatsManager.queryUsageStats(
+                                android.app.usage.UsageStatsManager.INTERVAL_DAILY,
+                                calendar.timeInMillis,
+                                System.currentTimeMillis()
+                            )
+                            val stat = stats?.find { it.packageName == packageName }
+                            if (stat != null && stat.totalTimeInForeground > used) {
+                                used = stat.totalTimeInForeground
+                            }
+                        }
+                    } catch (e: Exception) {
+                        // ignore
+                    }
+
+                    return AppUsageLimitInfo(
+                        isLocked = isLocked || (limit > 0 && used >= limit),
+                        usedTodayMs = used,
+                        dailyLimitMs = limit
+                    )
+                }
+            }
+            null
+        } catch (e: Exception) {
+            Log.e(TAG, "Error in getPackageUsageLimit", e)
+            null
+        }
+    }
+
+    /**
+     * Persistently marks a package as locked in SharedPreferences.
+     */
+    fun markPackageLocked(context: Context, packageName: String) {
+        try {
+            val prefs = getPreferences(context)
+            val jsonString = prefs.getString(KEY_LOCKED_APPS_JSON, null) ?: return
+            val jsonArray = JSONArray(jsonString)
+            val updated = JSONArray()
+            for (i in 0 until jsonArray.length()) {
+                val item = jsonArray.optJSONObject(i)
+                if (item != null) {
+                    if (item.optString("packageName") == packageName) {
+                        item.put("isLocked", true)
+                    }
+                    updated.put(item)
+                } else {
+                    updated.put(jsonArray.get(i))
+                }
+            }
+            val nextMidnight = getNextMidnightTimestamp()
+            prefs.edit()
+                .putString(KEY_LOCKED_APPS_JSON, updated.toString())
+                .putLong(KEY_LOCK_EXPIRATION, nextMidnight)
+                .putBoolean(KEY_HAS_ACTIVE_LOCKS, true)
+                .apply()
+            BlackoutAccessibilityService.lockedPackages = BlackoutAccessibilityService.lockedPackages + packageName
+            Log.d(TAG, "Marked package as locked: $packageName")
+        } catch (e: Exception) {
+            Log.e(TAG, "Error marking package locked", e)
         }
     }
 

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { View, Text, ScrollView, TouchableOpacity } from "react-native";
+import { View, Text, ScrollView, TouchableOpacity, Image } from "react-native";
 import Svg, { Defs, LinearGradient, Stop, Rect } from "react-native-svg";
 import { useApp } from "../context/AppContext";
 import { NavigationHeader } from "../components/NavigationHeader";
@@ -13,6 +13,7 @@ interface DayAppUsage {
   packageName: string;
   appName: string;
   usedMs: number;
+  iconBase64?: string;
 }
 
 export const StatsScreen: React.FC = () => {
@@ -289,9 +290,19 @@ export const StatsScreen: React.FC = () => {
               return (
                 <Card key={app.packageName} className="flex-row justify-between items-center py-3.5 px-4 rounded-none">
                   <View className="flex-row items-center gap-2.5 flex-1 pr-2">
-                    <View className="w-5 h-5 items-center justify-center">
-                      <View style={{ backgroundColor: shadeColor }} className="w-4 h-4 rounded-none border border-primary dark:border-white" />
-                    </View>
+                    {app.iconBase64 ? (
+                      <Image
+                        source={{ uri: `data:image/png;base64,${app.iconBase64}` }}
+                        className="w-10 h-10 rounded-lg"
+                        resizeMode="cover"
+                      />
+                    ) : (
+                      <View className="w-10 h-10 rounded-lg bg-primary/10 dark:bg-white/10 items-center justify-center border border-primary/20 dark:border-white/20">
+                        <Text className="font-bold text-sm text-primary dark:text-white">
+                          {app.appName.charAt(0).toUpperCase()}
+                        </Text>
+                      </View>
+                    )}
                     <Text numberOfLines={1} className="font-bold text-sm text-primary dark:text-white uppercase tracking-wider flex-1">
                       {app.appName}
                     </Text>

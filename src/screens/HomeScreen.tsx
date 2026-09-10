@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, ScrollView, TouchableOpacity } from "react-native";
+import { View, Text, ScrollView, TouchableOpacity, Image } from "react-native";
 import Svg, { Circle } from "react-native-svg";
 import { useApp } from "../context/AppContext";
 import { NavigationHeader } from "../components/NavigationHeader";
@@ -296,9 +296,19 @@ export const HomeScreen: React.FC = () => {
                 >
                   <View className="flex-row items-center justify-between">
                     <View className="flex-row items-center gap-2.5 flex-1 pr-2">
-                      <View className="w-5 h-5 items-center justify-center">
-                        <View style={{ backgroundColor: shadeColor }} className="w-4 h-4 rounded-none border border-primary dark:border-white" />
-                      </View>
+                      {app.iconBase64 ? (
+                        <Image
+                          source={{ uri: `data:image/png;base64,${app.iconBase64}` }}
+                          className="w-10 h-10 rounded-lg"
+                          resizeMode="cover"
+                        />
+                      ) : (
+                        <View className="w-10 h-10 rounded-lg bg-primary/10 dark:bg-white/10 items-center justify-center border border-primary/20 dark:border-white/20">
+                          <Text className="font-bold text-sm text-primary dark:text-white">
+                            {app.appName.charAt(0).toUpperCase()}
+                          </Text>
+                        </View>
+                      )}
                       <Text
                         numberOfLines={1}
                         className="font-bold text-sm uppercase tracking-wider text-primary dark:text-white flex-1 leading-5"

@@ -19,6 +19,7 @@ export interface DeviceAppUsage {
   appName: string;
   usedMs: number;
   openCount?: number;
+  iconBase64?: string;
 }
 
 interface AppContextType {
@@ -270,8 +271,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const newSettings = { ...settings, themeMode: mode };
     setSettings(newSettings);
     await StorageService.saveSettings(newSettings);
-    const targetTheme = mode === "system" ? sysScheme : mode;
-    setColorScheme(targetTheme);
+    if (mode === "system") {
+      const current = Appearance.getColorScheme();
+      const scheme = current === "dark" ? "dark" : "light";
+      setSysScheme(scheme);
+      setColorScheme(scheme);
+    } else {
+      setColorScheme(mode);
+    }
   };
 
   const updateAutoCleanSetting = async (enabled: boolean) => {

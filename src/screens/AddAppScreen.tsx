@@ -74,7 +74,7 @@ export const AddAppScreen: React.FC = () => {
       return;
     }
     const totalMs = (hours * 3600 + minutes * 60) * 1000;
-    if (totalMs <= 0) {
+    if (totalMs < 60000) {
       Alert.alert("Invalid Limit", "Daily limit must be at least 1 minute.");
       return;
     }
@@ -134,205 +134,257 @@ export const AddAppScreen: React.FC = () => {
         ) : (
           <View className="flex-col gap-2 mb-8">
             {filteredApps.map((app) => {
-              const IconComp = getIcon(app.appName);
               const isAlreadyTracked = trackedApps.some(
                 (ta) => ta.packageName === app.packageName
               );
               const isSelected = selectedApp?.packageName === app.packageName;
 
               return (
-                <TouchableOpacity
-                  key={app.packageName}
-                  disabled={isAlreadyTracked}
-                  onPress={() => setSelectedApp(app)}
-                  className={`p-3.5 border-2 flex-col gap-1 ${
-                    isAlreadyTracked
-                      ? "border-outline opacity-40 bg-surface-container dark:bg-zinc-900"
-                      : isSelected
-                      ? "border-primary bg-primary dark:bg-white text-white"
-                      : "border-primary dark:border-white bg-surface-container-lowest dark:bg-black"
-                  }`}
-                >
-                  {/* Top Row: Icon Center-Aligned Vertically with App Name + Selection Indicator on Right */}
-                  <View className="flex-row items-center justify-between">
-                    <View className="flex-row items-center gap-2.5 flex-1 pr-2">
-                      <View className="w-6 h-6 items-center justify-center">
-                        {app.iconBase64 ? (
-                          <Image
-                            source={{ uri: `data:image/png;base64,${app.iconBase64}` }}
-                            style={{ width: 22, height: 22 }}
-                            resizeMode="contain"
-                          />
-                        ) : (
-                          <View
-                            className={`w-4 h-4 rounded-none ${
-                              isSelected
-                                ? isDark
-                                  ? "bg-black"
-                                  : "bg-white"
-                                : "bg-primary dark:bg-white"
-                            }`}
-                          />
-                        )}
-                      </View>
-                      <Text
-                        numberOfLines={1}
-                        className={`font-bold text-sm uppercase tracking-wider flex-1 leading-5 ${
-                          isSelected
-                            ? "text-white dark:text-black"
-                            : "text-primary dark:text-white"
-                        }`}
-                      >
-                        {app.appName}
-                      </Text>
-                    </View>
-
-                    {isAlreadyTracked ? (
-                      <Text className="text-xs font-bold uppercase text-secondary">
-                        LOCKED TODAY
-                      </Text>
-                    ) : isSelected ? (
-                      <View className="w-5 h-5 rounded-full bg-white dark:bg-black items-center justify-center">
-                        <Check size={12} color={isDark ? "#ffffff" : "#000000"} />
-                      </View>
-                    ) : null}
-                  </View>
-
-                  {/* Screen Time Sub-text: Left-aligned at 30px offset */}
-                  <Text
-                    className={`text-xs ml-[30px] leading-4 font-bold ${
-                      isSelected
-                        ? "text-zinc-300 dark:text-zinc-700"
-                        : "text-secondary dark:text-zinc-400"
+                <View key={app.packageName} className="flex-col">
+                  <TouchableOpacity
+                    disabled={isAlreadyTracked}
+                    onPress={() => setSelectedApp(app)}
+                    className={`p-3.5 border-2 flex-col gap-1 ${
+                      isAlreadyTracked
+                        ? "border-outline opacity-40 bg-surface-container dark:bg-zinc-900"
+                        : isSelected
+                        ? "border-primary bg-primary dark:bg-white text-white"
+                        : "border-primary dark:border-white bg-surface-container-lowest dark:bg-black"
                     }`}
                   >
-                    {(() => {
-                      if (!app.usedTodayMs || app.usedTodayMs <= 0) return "No usage today";
-                      const minutes = Math.floor(app.usedTodayMs / (1000 * 60));
-                      const hours = Math.floor(minutes / 60);
-                      const minsRem = minutes % 60;
-                      if (hours > 0) {
-                        return `Used for ${hours}h ${minsRem}m today`;
-                      }
-                      return `Used for ${minsRem}m today`;
-                    })()}
-                  </Text>
-                </TouchableOpacity>
+                    {/* Top Row: Icon Center-Aligned Vertically with App Name + Selection Indicator on Right */}
+                    <View className="flex-row items-center justify-between">
+                      <View className="flex-row items-center gap-2.5 flex-1 pr-2">
+                        <View className="w-10 h-10 items-center justify-center">
+                          {app.iconBase64 ? (
+                            <Image
+                              source={{ uri: `data:image/png;base64,${app.iconBase64}` }}
+                              className="w-10 h-10 rounded-lg"
+                              resizeMode="cover"
+                            />
+                          ) : (
+                            <View className="w-10 h-10 rounded-lg bg-primary/10 dark:bg-white/10 items-center justify-center border border-primary/20 dark:border-white/20">
+                              <Text className="font-bold text-sm text-primary dark:text-white">
+                                {app.appName.charAt(0).toUpperCase()}
+                              </Text>
+                            </View>
+                          )}
+                        </View>
+                        <Text
+                          numberOfLines={1}
+                          className={`font-bold text-sm uppercase tracking-wider flex-1 leading-5 ${
+                            isSelected
+                              ? "text-white dark:text-black"
+                              : "text-primary dark:text-white"
+                          }`}
+                        >
+                          {app.appName}
+                        </Text>
+                      </View>
+
+                      {isAlreadyTracked ? (
+                        <Text className="text-xs font-bold uppercase text-secondary">
+                          LOCKED TODAY
+                        </Text>
+                      ) : isSelected ? (
+                        <View className="w-5 h-5 rounded-full bg-white dark:bg-black items-center justify-center">
+                          <Check size={12} color={isDark ? "#ffffff" : "#000000"} />
+                        </View>
+                      ) : null}
+                    </View>
+
+                    {/* Screen Time Sub-text: Left-aligned at 50px offset */}
+                    <Text
+                      className={`text-xs ml-[50px] leading-4 font-bold ${
+                        isSelected
+                          ? "text-zinc-300 dark:text-zinc-700"
+                          : "text-secondary dark:text-zinc-400"
+                      }`}
+                    >
+                      {(() => {
+                        if (!app.usedTodayMs || app.usedTodayMs <= 0) return "No usage today";
+                        const minutes = Math.floor(app.usedTodayMs / (1000 * 60));
+                        const hours = Math.floor(minutes / 60);
+                        const minsRem = minutes % 60;
+                        if (hours > 0) {
+                          return `Used for ${hours}h ${minsRem}m today`;
+                        }
+                        return `Used for ${minsRem}m today`;
+                      })()}
+                    </Text>
+                  </TouchableOpacity>
+
+                  {/* Step 2: Time Selector directly beneath the selected app */}
+                  {isSelected && (
+                    <View className="flex-col gap-4 mt-2 mb-2 border-2 border-primary dark:border-white p-4 bg-surface-container-lowest dark:bg-black rounded-none">
+                      <Text className="font-bold text-xs text-secondary dark:text-zinc-400 uppercase tracking-widest">
+                        STEP 2 — SET DAILY ALLOWANCE
+                      </Text>
+
+                      {/* Responsive Time Pickers Row */}
+                      <View className="flex-row items-center justify-center gap-2 py-2">
+                        {/* Hours Picker Column */}
+                        <View className="flex-col items-center flex-1">
+                          <Text className="text-xs font-bold text-secondary dark:text-zinc-400 uppercase mb-2 tracking-widest">
+                            HOURS
+                          </Text>
+                          <View className="flex-row items-center gap-1.5">
+                            <TouchableOpacity
+                              activeOpacity={0.8}
+                              onPress={() => setHours(Math.max(0, hours - 1))}
+                              className="w-9 h-9 border-2 border-primary dark:border-white items-center justify-center bg-transparent active:bg-primary/10"
+                            >
+                              <Text className="font-bold text-lg text-primary dark:text-white">-</Text>
+                            </TouchableOpacity>
+                            <Text className="font-bold text-2xl text-primary dark:text-white min-w-[32px] text-center">
+                              {hours}
+                            </Text>
+                            <TouchableOpacity
+                              activeOpacity={0.8}
+                              onPress={() => setHours(Math.min(12, hours + 1))}
+                              className="w-9 h-9 border-2 border-primary dark:border-white items-center justify-center bg-transparent active:bg-primary/10"
+                            >
+                              <Text className="font-bold text-lg text-primary dark:text-white">+</Text>
+                            </TouchableOpacity>
+                          </View>
+                        </View>
+
+                        <Text className="font-bold text-xl text-primary dark:text-white self-end mb-2">:</Text>
+
+                        {/* Minutes Picker Column with +/- 1 Stepper */}
+                        <View className="flex-col items-center flex-1">
+                          <Text className="text-xs font-bold text-secondary dark:text-zinc-400 uppercase mb-2 tracking-widest">
+                            MINUTES
+                          </Text>
+                          <View className="flex-row items-center gap-1.5">
+                            <TouchableOpacity
+                              activeOpacity={0.8}
+                              onPress={() => setMinutes(Math.max(0, minutes - 1))}
+                              className="w-9 h-9 border-2 border-primary dark:border-white items-center justify-center bg-transparent active:bg-primary/10"
+                            >
+                              <Text className="font-bold text-lg text-primary dark:text-white">-</Text>
+                            </TouchableOpacity>
+                            <Text className="font-bold text-2xl text-primary dark:text-white min-w-[32px] text-center">
+                              {String(minutes).padStart(2, "0")}
+                            </Text>
+                            <TouchableOpacity
+                              activeOpacity={0.8}
+                              onPress={() => setMinutes(Math.min(59, minutes + 1))}
+                              className="w-9 h-9 border-2 border-primary dark:border-white items-center justify-center bg-transparent active:bg-primary/10"
+                            >
+                              <Text className="font-bold text-lg text-primary dark:text-white">+</Text>
+                            </TouchableOpacity>
+                          </View>
+                        </View>
+                      </View>
+
+                      {/* Confirm Action Button */}
+                      <TouchableOpacity
+                        activeOpacity={0.8}
+                        onPress={handleSetTimer}
+                        className="bg-primary dark:bg-white border-2 border-primary dark:border-white py-3 px-4 items-center justify-center mt-2 active:opacity-90"
+                      >
+                        <Text numberOfLines={1} className="font-bold text-xs text-white dark:text-black uppercase tracking-widest">
+                          SET DAILY LOCK FOR {app.appName.toUpperCase()}
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  )}
+                </View>
               );
             })}
 
             {/* Custom App Option when searching */}
             {searchQuery.trim().length > 0 && (
-              <TouchableOpacity
-                onPress={handleSelectCustomApp}
-                className="p-4 border-2 border-dashed border-primary dark:border-white bg-surface-container-lowest dark:bg-black flex-row items-center gap-3 mt-2"
-              >
-                <Plus size={20} color={iconColor} />
-                <View className="flex-col flex-1">
-                  <Text className="font-bold text-sm text-primary dark:text-white uppercase">
-                    ADD CUSTOM LOCK: "{searchQuery.trim()}"
-                  </Text>
-                  <Text className="text-xs text-secondary dark:text-zinc-400">
-                    Set a daily limit for "{searchQuery.trim()}"
-                  </Text>
-                </View>
-              </TouchableOpacity>
-            )}
-          </View>
-        )}
+              <View className="flex-col">
+                <TouchableOpacity
+                  onPress={handleSelectCustomApp}
+                  className="p-4 border-2 border-dashed border-primary dark:border-white bg-surface-container-lowest dark:bg-black flex-row items-center gap-3 mt-2"
+                >
+                  <Plus size={20} color={iconColor} />
+                  <View className="flex-col flex-1">
+                    <Text className="font-bold text-sm text-primary dark:text-white uppercase">
+                      ADD CUSTOM LOCK: "{searchQuery.trim()}"
+                    </Text>
+                    <Text className="text-xs text-secondary dark:text-zinc-400">
+                      Set a daily limit for "{searchQuery.trim()}"
+                    </Text>
+                  </View>
+                </TouchableOpacity>
 
-        {/* Step 2: Time Selector */}
-        {selectedApp && (
-          <View className="flex-col gap-4 mb-8 border-2 border-primary dark:border-white p-4 bg-surface-container-lowest dark:bg-black rounded-none">
-            <Text className="font-bold text-xs text-secondary dark:text-zinc-400 uppercase tracking-widest">
-              STEP 2 — SET DAILY ALLOWANCE
-            </Text>
+                {selectedApp?.packageName.startsWith("custom.") && (
+                  <View className="flex-col gap-4 mt-2 mb-2 border-2 border-primary dark:border-white p-4 bg-surface-container-lowest dark:bg-black rounded-none">
+                    <Text className="font-bold text-xs text-secondary dark:text-zinc-400 uppercase tracking-widest">
+                      STEP 2 — SET DAILY ALLOWANCE
+                    </Text>
 
-            {/* Selected App Header */}
-            <View className="flex-row items-center gap-2.5 pb-2 border-b border-primary/20 dark:border-white/20">
-              <View className="w-6 h-6 items-center justify-center">
-                {selectedApp.iconBase64 ? (
-                  <Image
-                    source={{ uri: `data:image/png;base64,${selectedApp.iconBase64}` }}
-                    style={{ width: 22, height: 22 }}
-                    resizeMode="contain"
-                  />
-                ) : (
-                  <View className="w-4 h-4 bg-primary dark:bg-white rounded-none" />
+                    <View className="flex-row items-center justify-center gap-2 py-2">
+                      <View className="flex-col items-center flex-1">
+                        <Text className="text-xs font-bold text-secondary dark:text-zinc-400 uppercase mb-2 tracking-widest">
+                          HOURS
+                        </Text>
+                        <View className="flex-row items-center gap-1.5">
+                          <TouchableOpacity
+                            activeOpacity={0.8}
+                            onPress={() => setHours(Math.max(0, hours - 1))}
+                            className="w-9 h-9 border-2 border-primary dark:border-white items-center justify-center bg-transparent active:bg-primary/10"
+                          >
+                            <Text className="font-bold text-lg text-primary dark:text-white">-</Text>
+                          </TouchableOpacity>
+                          <Text className="font-bold text-2xl text-primary dark:text-white min-w-[32px] text-center">
+                            {hours}
+                          </Text>
+                          <TouchableOpacity
+                            activeOpacity={0.8}
+                            onPress={() => setHours(Math.min(12, hours + 1))}
+                            className="w-9 h-9 border-2 border-primary dark:border-white items-center justify-center bg-transparent active:bg-primary/10"
+                          >
+                            <Text className="font-bold text-lg text-primary dark:text-white">+</Text>
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+
+                      <Text className="font-bold text-xl text-primary dark:text-white self-end mb-2">:</Text>
+
+                      <View className="flex-col items-center flex-1">
+                        <Text className="text-xs font-bold text-secondary dark:text-zinc-400 uppercase mb-2 tracking-widest">
+                          MINUTES
+                        </Text>
+                        <View className="flex-row items-center gap-1.5">
+                          <TouchableOpacity
+                            activeOpacity={0.8}
+                            onPress={() => setMinutes(Math.max(0, minutes - 1))}
+                            className="w-9 h-9 border-2 border-primary dark:border-white items-center justify-center bg-transparent active:bg-primary/10"
+                          >
+                            <Text className="font-bold text-lg text-primary dark:text-white">-</Text>
+                          </TouchableOpacity>
+                          <Text className="font-bold text-2xl text-primary dark:text-white min-w-[32px] text-center">
+                            {String(minutes).padStart(2, "0")}
+                          </Text>
+                          <TouchableOpacity
+                            activeOpacity={0.8}
+                            onPress={() => setMinutes(Math.min(59, minutes + 1))}
+                            className="w-9 h-9 border-2 border-primary dark:border-white items-center justify-center bg-transparent active:bg-primary/10"
+                          >
+                            <Text className="font-bold text-lg text-primary dark:text-white">+</Text>
+                          </TouchableOpacity>
+                        </View>
+                      </View>
+                    </View>
+
+                    <TouchableOpacity
+                      activeOpacity={0.8}
+                      onPress={handleSetTimer}
+                      className="bg-primary dark:bg-white border-2 border-primary dark:border-white py-3 px-4 items-center justify-center mt-2 active:opacity-90"
+                    >
+                      <Text numberOfLines={1} className="font-bold text-xs text-white dark:text-black uppercase tracking-widest">
+                        SET DAILY LOCK FOR {selectedApp.appName.toUpperCase()}
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
                 )}
               </View>
-              <Text numberOfLines={1} className="font-bold text-sm text-primary dark:text-white uppercase tracking-wider flex-1">
-                {selectedApp.appName}
-              </Text>
-            </View>
-
-            {/* Responsive Time Pickers Row */}
-            <View className="flex-row items-center justify-center gap-2 py-2">
-              {/* Hours Picker Column */}
-              <View className="flex-col items-center flex-1">
-                <Text className="text-xs font-bold text-secondary dark:text-zinc-400 uppercase mb-2 tracking-widest">
-                  HOURS
-                </Text>
-                <View className="flex-row items-center gap-1.5">
-                  <TouchableOpacity
-                    activeOpacity={0.8}
-                    onPress={() => setHours(Math.max(0, hours - 1))}
-                    className="w-9 h-9 border-2 border-primary dark:border-white items-center justify-center bg-transparent active:bg-primary/10"
-                  >
-                    <Text className="font-bold text-lg text-primary dark:text-white">-</Text>
-                  </TouchableOpacity>
-                  <Text className="font-bold text-2xl text-primary dark:text-white min-w-[32px] text-center">
-                    {hours}
-                  </Text>
-                  <TouchableOpacity
-                    activeOpacity={0.8}
-                    onPress={() => setHours(Math.min(12, hours + 1))}
-                    className="w-9 h-9 border-2 border-primary dark:border-white items-center justify-center bg-transparent active:bg-primary/10"
-                  >
-                    <Text className="font-bold text-lg text-primary dark:text-white">+</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-
-              <Text className="font-bold text-xl text-primary dark:text-white self-end mb-2">:</Text>
-
-              {/* Minutes Picker Column */}
-              <View className="flex-col items-center flex-1">
-                <Text className="text-xs font-bold text-secondary dark:text-zinc-400 uppercase mb-2 tracking-widest">
-                  MINUTES
-                </Text>
-                <View className="flex-row items-center gap-1.5">
-                  <TouchableOpacity
-                    activeOpacity={0.8}
-                    onPress={() => setMinutes(Math.max(0, minutes - 5))}
-                    className="w-9 h-9 border-2 border-primary dark:border-white items-center justify-center bg-transparent active:bg-primary/10"
-                  >
-                    <Text className="font-bold text-lg text-primary dark:text-white">-</Text>
-                  </TouchableOpacity>
-                  <Text className="font-bold text-2xl text-primary dark:text-white min-w-[32px] text-center">
-                    {String(minutes).padStart(2, "0")}
-                  </Text>
-                  <TouchableOpacity
-                    activeOpacity={0.8}
-                    onPress={() => setMinutes(Math.min(55, minutes + 5))}
-                    className="w-9 h-9 border-2 border-primary dark:border-white items-center justify-center bg-transparent active:bg-primary/10"
-                  >
-                    <Text className="font-bold text-lg text-primary dark:text-white">+</Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </View>
-
-            {/* Confirm Action Button */}
-            <TouchableOpacity
-              activeOpacity={0.8}
-              onPress={handleSetTimer}
-              className="bg-primary dark:bg-white border-2 border-primary dark:border-white py-3 px-4 items-center justify-center mt-2 active:opacity-90"
-            >
-              <Text numberOfLines={1} className="font-bold text-xs text-white dark:text-black uppercase tracking-widest">
-                SET DAILY LOCK FOR {selectedApp.appName.toUpperCase()}
-              </Text>
-            </TouchableOpacity>
+            )}
           </View>
         )}
       </ScrollView>

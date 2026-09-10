@@ -33,12 +33,15 @@
   - Enterprise anti-uninstall protection intercepting `com.android.settings` and `packageinstaller` with `GLOBAL_ACTION_BACK` and overlay.
   - Daily 12:00 AM midnight reset using `AlarmManager` and `MidnightResetReceiver`.
 
-- [x] **Rescue Mission & Stability Fixes**:
-  - Removed `key={effectiveTheme}` and `setInterval` appearance polling, preventing infinite re-mounting loops.
-  - Stopped Accessibility Service usage calculation; transitioned entirely to `UsageStatsManager.queryUsageStats()` (identical to Digital Wellbeing).
-  - Deleted `queryEvents` loop and removed Accessibility delta additions.
-  - Added 1000ms threshold check in usage state updates to eliminate UI freezing and thread thrashing.
-  - Verified build and installed APK directly on connected Android test device.
+- [x] **Complete 7-Fix Rescue & Feature Completion**:
+  - [x] **Fix 1: Theme Sync Bug**: `AppContext.tsx` immediately syncs with `Appearance.getColorScheme()` when selecting system theme. No `key={effectiveTheme}` on root View, no theme polling.
+  - [x] **Fix 2: Screen Time Accuracy**: Pure `UsageStatsManager.queryUsageStats()` with midnight start; zero delta accumulation in Accessibility Service and zero `queryEvents` loops.
+  - [x] **Fix 3: App Icons (Black Boxes)**: Base64 app icon extraction in `BlackoutModule.kt`; rendered via `<Image source={{ uri: "data:image/png;base64," + app.iconBase64 }} />` across Home, Stats, and Add App screens.
+  - [x] **Fix 4: Add App Screen UI/UX**: Step 2 Time Selector positioned inline beneath the selected app card in the ScrollView. Minute stepper increments/decrements by 1. Allowed 1-minute daily limit minimum.
+  - [x] **Fix 5: 10-Second Countdown Overlay**: Active countdown HUD displayed when foreground app is within 10s of daily limit, ticking down to 0 before executing Home action and lock overlay.
+  - [x] **Fix 6: Anti-Uninstall Protection**: Settings & PackageInstaller blocked with `GLOBAL_ACTION_BACK` and security overlay when any app is locked.
+  - [x] **Fix 7: Midnight Reset Logic**: Daily 12:00 AM alarm clears `usedTodayMs` and resets `isLocked` flags in SharedPreferences.
+  - [x] **Device Build & Verification**: TypeScript (`tsc`) and Kotlin compilation (`compileDebugKotlin`) passed; installed debug APK onto connected device.
 
 ## What's Next / Pending
-- Testing on connected device by user.
+- App fully ready for user testing.

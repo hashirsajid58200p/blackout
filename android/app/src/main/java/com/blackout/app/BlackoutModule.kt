@@ -201,6 +201,23 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
         return totalTimeMap
     }
 
+    private fun getAppIconBase64(pm: PackageManager, packageName: String): String {
+        return try {
+            val iconDrawable = pm.getApplicationIcon(packageName)
+            val width = Math.min(iconDrawable.intrinsicWidth.takeIf { it > 0 } ?: 96, 96)
+            val height = Math.min(iconDrawable.intrinsicHeight.takeIf { it > 0 } ?: 96, 96)
+            val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
+            val canvas = Canvas(bitmap)
+            iconDrawable.setBounds(0, 0, canvas.width, canvas.height)
+            iconDrawable.draw(canvas)
+            val outputStream = ByteArrayOutputStream()
+            bitmap.compress(Bitmap.CompressFormat.PNG, 85, outputStream)
+            Base64.encodeToString(outputStream.toByteArray(), Base64.NO_WRAP)
+        } catch (e: Exception) {
+            ""
+        }
+    }
+
     @ReactMethod
     fun getTodayUsage(packageName: String, promise: Promise) {
         try {
@@ -283,22 +300,7 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
                 val appName = resolveInfo.loadLabel(pm).toString()
                 val usedTodayMs = usageMap[packageName] ?: 0L
 
-                // Extract high-quality Base64 app icon
-                var iconBase64 = ""
-                try {
-                    val iconDrawable = resolveInfo.loadIcon(pm)
-                    val width = Math.min(iconDrawable.intrinsicWidth.takeIf { it > 0 } ?: 96, 96)
-                    val height = Math.min(iconDrawable.intrinsicHeight.takeIf { it > 0 } ?: 96, 96)
-                    val bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888)
-                    val canvas = Canvas(bitmap)
-                    iconDrawable.setBounds(0, 0, canvas.width, canvas.height)
-                    iconDrawable.draw(canvas)
-                    val outputStream = ByteArrayOutputStream()
-                    bitmap.compress(Bitmap.CompressFormat.PNG, 85, outputStream)
-                    iconBase64 = Base64.encodeToString(outputStream.toByteArray(), Base64.NO_WRAP)
-                } catch (e: Exception) {
-                    Log.w(TAG, "Could not encode icon for $packageName", e)
-                }
+                val iconBase64 = getAppIconBase64(pm, packageName)
 
                 val map = WritableNativeMap().apply {
                     putString("packageName", packageName)
@@ -430,11 +432,15 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
                     continue
                 }
 
+                val iconBase64 = getAppIconBase64(pm, pkg)
                 val map = WritableNativeMap().apply {
                     putString("packageName", pkg)
                     putString("appName", appName)
                     putDouble("usedMs", timeMs.toDouble())
                     putInt("openCount", 0)
+                    if (iconBase64.isNotEmpty()) {
+                        putString("iconBase64", iconBase64)
+                    }
                 }
                 array.pushMap(map)
             }

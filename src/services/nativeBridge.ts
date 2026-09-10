@@ -145,7 +145,7 @@ export const NativeBridge = {
     return fallback;
   },
 
-  async getDayUsageStats(dayOffset: number): Promise<Array<{ packageName: string; appName: string; usedMs: number; openCount?: number }>> {
+  async getDayUsageStats(dayOffset: number): Promise<Array<{ packageName: string; appName: string; usedMs: number; openCount?: number; iconBase64?: string }>> {
     if (Platform.OS === "android" && BlackoutModule?.getDayUsageStats) {
       try {
         const stats = await BlackoutModule.getDayUsageStats(dayOffset);
