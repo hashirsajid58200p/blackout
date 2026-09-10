@@ -180,33 +180,6 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
         }
     }
 
-    /**
-     * Accurate UsageStats aggregation using Android's official UsageStatsManager.queryUsageStats().
-     */
-    private fun getForegroundUsageStatsMap(startTime: Long, endTime: Long): Map<String, Long> {
-        val usageStatsManager = reactApplicationContext.getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
-        val totalTimeMap = mutableMapOf<String, Long>()
-
-        try {
-            val stats = usageStatsManager.queryUsageStats(UsageStatsManager.INTERVAL_DAILY, startTime, endTime)
-            if (stats != null) {
-                for (stat in stats) {
-                    val fgTime = stat.totalTimeInForeground
-                    if (fgTime > 0) {
-                        val existing = totalTimeMap[stat.packageName] ?: 0L
-                        if (fgTime > existing) {
-                            totalTimeMap[stat.packageName] = fgTime
-                        }
-                    }
-                }
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "Error querying UsageStatsManager", e)
-        }
-
-        return totalTimeMap
-    }
-
     private fun getAppIconUri(pm: PackageManager, appInfo: ApplicationInfo): String {
         return try {
             val packageName = appInfo.packageName
@@ -252,8 +225,12 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
             val endTime = System.currentTimeMillis()
 
             val usageStatsManager = reactApplicationContext.getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
+            // INTERVAL_DAILY gives the exact aggregated time for the day
             val stats = usageStatsManager.queryUsageStats(UsageStatsManager.INTERVAL_DAILY, startTime, endTime)
-            val totalTimeMs = stats?.find { it.packageName == packageName }?.totalTimeInForeground ?: 0L
+
+            // To get time for a specific app:
+            val appStat = stats?.find { it.packageName == packageName }
+            val totalTimeMs = appStat?.totalTimeInForeground ?: 0L
 
             Log.d(TAG, "getTodayUsage for $packageName: $totalTimeMs ms")
             promise.resolve(totalTimeMs.toDouble())
@@ -280,7 +257,8 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
             val startTime = calendar.timeInMillis
             val endTime = System.currentTimeMillis()
 
-            val usageMap = getForegroundUsageStatsMap(startTime, endTime)
+            val usageStatsManager = reactApplicationContext.getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
+            val stats = usageStatsManager.queryUsageStats(UsageStatsManager.INTERVAL_DAILY, startTime, endTime)
 
             // Detect home launcher apps
             val homeIntent = Intent(Intent.ACTION_MAIN, null).apply { addCategory(Intent.CATEGORY_HOME) }
@@ -303,13 +281,14 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
                     continue
                 }
 
-                // Filter out system apps
+                // Filter out pure system apps without launcher updates
                 val appInfo = try {
                     pm.getApplicationInfo(packageName, 0)
                 } catch (e: Exception) {
                     continue
                 }
-                val isSystem = (appInfo.flags and ApplicationInfo.FLAG_SYSTEM) != 0
+                val isSystem = (appInfo.flags and ApplicationInfo.FLAG_SYSTEM) != 0 &&
+                               (appInfo.flags and ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) == 0
                 if (isSystem) continue
 
                 if (pm.getLaunchIntentForPackage(packageName) == null) {
@@ -318,28 +297,10 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
 
                 addedPackages.add(packageName)
                 val appName = resolveInfo.loadLabel(pm).toString()
-                val usedTodayMs = usageMap[packageName] ?: 0L
+                val appStat = stats?.find { it.packageName == packageName }
+                val usedTodayMs = appStat?.totalTimeInForeground ?: 0L
 
-                var iconUri = ""
-                try {
-                    val iconDrawable = pm.getApplicationIcon(appInfo)
-                    val bitmap = android.graphics.Bitmap.createBitmap(96, 96, android.graphics.Bitmap.Config.ARGB_8888)
-                    val canvas = android.graphics.Canvas(bitmap)
-                    iconDrawable.setBounds(0, 0, 96, 96)
-                    iconDrawable.draw(canvas)
-
-                    val cacheDir = reactApplicationContext.cacheDir
-                    if (!cacheDir.exists()) cacheDir.mkdirs()
-                    val iconFile = java.io.File(cacheDir, "icon_${packageName.replace(".", "_")}.png")
-                    val outputStream = java.io.FileOutputStream(iconFile)
-                    bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, outputStream)
-                    outputStream.flush()
-                    outputStream.close()
-
-                    iconUri = "file://" + iconFile.absolutePath
-                } catch (e: Exception) {
-                    Log.e("BlackoutModule", "Icon error for $packageName", e)
-                }
+                val iconUri = getAppIconUri(pm, appInfo)
 
                 val map = WritableNativeMap().apply {
                     putString("packageName", packageName)
@@ -363,6 +324,7 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
     @ReactMethod
     fun getWeeklyUsageStats(promise: Promise) {
         try {
+            val usageStatsManager = reactApplicationContext.getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
             val pm = reactApplicationContext.packageManager
             val dayNames = arrayOf("SUN", "MON", "TUE", "WED", "THU", "FRI", "SAT")
             val array = WritableNativeArray()
@@ -373,29 +335,39 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
             val homePackages = homeApps.map { it.activityInfo.packageName }.toSet()
 
             for (i in 0..6) {
-                val dayCal = Calendar.getInstance(TimeZone.getDefault())
-                dayCal.add(Calendar.DAY_OF_YEAR, -6 + i)
-                val dayName = dayNames[dayCal.get(Calendar.DAY_OF_WEEK) - 1]
-                val dayStart = dayCal.apply {
+                val dayCal = Calendar.getInstance(TimeZone.getDefault()).apply {
+                    add(Calendar.DAY_OF_YEAR, -6 + i)
                     set(Calendar.HOUR_OF_DAY, 0)
                     set(Calendar.MINUTE, 0)
                     set(Calendar.SECOND, 0)
                     set(Calendar.MILLISECOND, 0)
-                }.timeInMillis
+                }
+                val dayName = dayNames[dayCal.get(Calendar.DAY_OF_WEEK) - 1]
+                val dayStart = dayCal.timeInMillis
                 val dayEnd = if (i == 6) System.currentTimeMillis() else (dayStart + (24 * 3600 * 1000) - 1)
 
-                val usageMap = getForegroundUsageStatsMap(dayStart, dayEnd)
+                val stats = usageStatsManager.queryUsageStats(UsageStatsManager.INTERVAL_DAILY, dayStart, dayEnd)
                 var dayTotalMs = 0L
-                for ((pkg, timeMs) in usageMap) {
-                    if (pkg == selfPkg || pkg == "android" || pkg.startsWith("com.android.systemui") || homePackages.contains(pkg)) {
-                        continue
-                    }
-                    if (timeMs <= 0) continue
-                    try {
-                        if (pm.getLaunchIntentForPackage(pkg) != null) {
-                            dayTotalMs += timeMs
+                if (stats != null) {
+                    val seenPackages = mutableSetOf<String>()
+                    for (stat in stats) {
+                        val pkg = stat.packageName ?: continue
+                        if (seenPackages.contains(pkg)) continue
+                        if (pkg == selfPkg || pkg == "android" || pkg.startsWith("com.android.systemui") || homePackages.contains(pkg)) {
+                            continue
                         }
-                    } catch (e: Exception) {}
+                        if (stat.totalTimeInForeground <= 0) continue
+                        try {
+                            val appInfo = pm.getApplicationInfo(pkg, 0)
+                            val isSystem = (appInfo.flags and ApplicationInfo.FLAG_SYSTEM) != 0 &&
+                                           (appInfo.flags and ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) == 0
+                            if (isSystem) continue
+                            if (pm.getLaunchIntentForPackage(pkg) != null) {
+                                seenPackages.add(pkg)
+                                dayTotalMs += stat.totalTimeInForeground
+                            }
+                        } catch (e: Exception) {}
+                    }
                 }
 
                 val month = dayCal.get(Calendar.MONTH) + 1
@@ -436,72 +408,59 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
             val homeApps = pm.queryIntentActivities(homeIntent, PackageManager.MATCH_DEFAULT_ONLY)
             val homePackages = homeApps.map { it.activityInfo.packageName }.toSet()
 
-            // 1. Get precise foreground time from UsageStatsManager
-            val foregroundUsageMap = getForegroundUsageStatsMap(startTime, endTime)
-
+            val stats = usageStatsManager.queryUsageStats(UsageStatsManager.INTERVAL_DAILY, startTime, endTime)
             val array = WritableNativeArray()
             val selfPkg = reactApplicationContext.packageName
 
-            val sortedList = foregroundUsageMap.entries
-                .filter { entry ->
-                    val pkg = entry.key
-                    if (pkg == "com.android.systemui" || pkg == "android" || pkg == selfPkg || homePackages.contains(pkg) || entry.value <= 0) {
+            if (stats != null) {
+                val seenPackages = mutableSetOf<String>()
+                val filteredStats = stats.filter { stat ->
+                    val pkg = stat.packageName ?: return@filter false
+                    if (pkg == "com.android.systemui" || pkg == "android" || pkg == selfPkg || homePackages.contains(pkg)) {
+                        return@filter false
+                    }
+                    if (stat.totalTimeInForeground <= 0) {
                         return@filter false
                     }
                     try {
-                        pm.getLaunchIntentForPackage(pkg) != null
+                        val appInfo = pm.getApplicationInfo(pkg, 0)
+                        val isSystem = (appInfo.flags and ApplicationInfo.FLAG_SYSTEM) != 0 &&
+                                       (appInfo.flags and ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) == 0
+                        if (isSystem) return@filter false
+                        if (pm.getLaunchIntentForPackage(pkg) == null) return@filter false
                     } catch (e: Exception) {
-                        false
+                        return@filter false
                     }
+                    true
+                }.sortedByDescending { it.totalTimeInForeground }
+
+                for (stat in filteredStats) {
+                    val pkg = stat.packageName ?: continue
+                    if (seenPackages.contains(pkg)) continue
+                    seenPackages.add(pkg)
+
+                    val timeMs = stat.totalTimeInForeground
+                    var appName = pkg
+                    try {
+                        val appInfo = pm.getApplicationInfo(pkg, 0)
+                        appName = pm.getApplicationLabel(appInfo).toString()
+                    } catch (e: Exception) {}
+
+                    val iconUri = getAppIconUriByPackage(pm, pkg)
+
+                    val map = WritableNativeMap().apply {
+                        putString("packageName", pkg)
+                        putString("appName", appName)
+                        putDouble("usedMs", timeMs.toDouble())
+                        putInt("openCount", 0)
+                        putString("iconUri", iconUri)
+                        putString("iconBase64", "")
+                    }
+                    array.pushMap(map)
                 }
-                .sortedByDescending { it.value }
-
-            for (entry in sortedList) {
-                val pkg = entry.key
-                val timeMs = entry.value
-
-                var appName: String
-                try {
-                    val appInfo = pm.getApplicationInfo(pkg, 0)
-                    appName = pm.getApplicationLabel(appInfo).toString()
-                } catch (e: Exception) {
-                    continue
-                }
-
-                var iconUri = ""
-                try {
-                    val appInfo = pm.getApplicationInfo(pkg, 0)
-                    val iconDrawable = pm.getApplicationIcon(appInfo)
-                    val bitmap = android.graphics.Bitmap.createBitmap(96, 96, android.graphics.Bitmap.Config.ARGB_8888)
-                    val canvas = android.graphics.Canvas(bitmap)
-                    iconDrawable.setBounds(0, 0, 96, 96)
-                    iconDrawable.draw(canvas)
-
-                    val cacheDir = reactApplicationContext.cacheDir
-                    if (!cacheDir.exists()) cacheDir.mkdirs()
-                    val iconFile = java.io.File(cacheDir, "icon_${pkg.replace(".", "_")}.png")
-                    val outputStream = java.io.FileOutputStream(iconFile)
-                    bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, outputStream)
-                    outputStream.flush()
-                    outputStream.close()
-
-                    iconUri = "file://" + iconFile.absolutePath
-                } catch (e: Exception) {
-                    Log.e("BlackoutModule", "Icon error for $pkg", e)
-                }
-
-                val map = WritableNativeMap().apply {
-                    putString("packageName", pkg)
-                    putString("appName", appName)
-                    putDouble("usedMs", timeMs.toDouble())
-                    putInt("openCount", 0)
-                    putString("iconUri", iconUri)
-                    putString("iconBase64", "")
-                }
-                array.pushMap(map)
             }
 
-            Log.d(TAG, "getDayUsageStats for dayOffset $dayOffset returned ${sortedList.size} apps")
+            Log.d(TAG, "getDayUsageStats for dayOffset $dayOffset returned ${array.size()} apps")
             promise.resolve(array)
         } catch (e: Exception) {
             Log.e(TAG, "getDayUsageStats error", e)

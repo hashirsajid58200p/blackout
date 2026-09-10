@@ -78,19 +78,28 @@ class BlackoutAccessibilityService : AccessibilityService() {
         override fun run() {
             val pkg = currentForegroundPackage
             if (pkg != null) {
-                // STRICT SYSTEM FILTER
-                if (isSystemPackage(pkg)) {
-                    hideOverlay()
-                    removeCountdownOverlay()
-                    cancelLockedAppNotification()
-                } else if (isAppBlocked(pkg)) {
-                    removeCountdownOverlay()
-                    showOverlay(pkg)
-                    notifyLockedAppIfApplicable(pkg)
+                if (pkg == "com.blackout.app" || pkg.startsWith("com.blackout") ||
+                    pkg.contains("systemui") || pkg.contains("navigationbar")) {
+                    // Do nothing
                 } else {
-                    hideOverlay()
-                    cancelLockedAppNotification()
-                    checkCountdownIfAboutToBlock(pkg)
+                    val isHomeOrLauncher = pkg.contains("launcher") || pkg.contains("home") || 
+                                          pkg.contains("trebuchet") || pkg.contains("quickstep") ||
+                                          pkg.contains("android.settings") || pkg.contains("packageinstaller")
+                    if (isHomeOrLauncher) {
+                        hideOverlay()
+                        removeCountdownOverlay()
+                        cancelLockedAppNotification()
+                    } else if (isAppBlocked(pkg)) {
+                        removeCountdownOverlay()
+                        showOverlay(pkg)
+                        notifyLockedAppIfApplicable(pkg)
+                        performGlobalAction(GLOBAL_ACTION_HOME)
+                        currentForegroundPackage = null
+                    } else {
+                        hideOverlay()
+                        cancelLockedAppNotification()
+                        checkCountdownIfAboutToBlock(pkg)
+                    }
                 }
             }
             mainHandler.postDelayed(this, 1000L)
@@ -137,29 +146,47 @@ class BlackoutAccessibilityService : AccessibilityService() {
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
-        if (event == null || event.eventType != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) return
-        val packageName = event.packageName?.toString() ?: return
+        if (event?.eventType != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) return
+        val pkg = event.packageName?.toString() ?: return
 
-        currentForegroundPackage = packageName
-        currentSessionStartTime = System.currentTimeMillis()
+        // 1. CRITICAL: Ignore events from our own app to prevent infinite loop
+        if (pkg == "com.blackout.app" || pkg.startsWith("com.blackout")) return
 
-        // 1. STRICT SYSTEM FILTER: Settings, launcher, system UI must NEVER be locked
-        if (isSystemPackage(packageName)) {
+        // 2. Ignore System UI
+        if (pkg.contains("systemui") || pkg.contains("navigationbar")) return
+
+        // 3. If user goes to Home/Launcher, HIDE overlay and return
+        val isHomeOrLauncher = pkg.contains("launcher") || pkg.contains("home") || 
+                               pkg.contains("trebuchet") || pkg.contains("quickstep") ||
+                               pkg.contains("android.settings") || pkg.contains("packageinstaller")
+
+        if (isHomeOrLauncher) {
             hideOverlay()
             removeCountdownOverlay()
             cancelLockedAppNotification()
+            currentForegroundPackage = pkg
             return
         }
 
-        // 2. Check if the foreground app is blocked
-        if (isAppBlocked(packageName)) {
+        currentForegroundPackage = pkg
+        currentSessionStartTime = System.currentTimeMillis()
+
+        // 4. Check if app is locked
+        if (isAppBlocked(pkg)) {
+            // Show overlay IMMEDIATELY
+            showOverlay(pkg)
+            notifyLockedAppIfApplicable(pkg)
             removeCountdownOverlay()
-            showOverlay(packageName)
-            notifyLockedAppIfApplicable(packageName)
+
+            // CRITICAL: Force the user to Home screen so the app stops running in foreground
+            // This solves the "app running behind" issue
+            performGlobalAction(GLOBAL_ACTION_HOME)
+            currentForegroundPackage = null
         } else {
+            // If it's a normal app (not locked, not home), hide overlay
             hideOverlay()
             cancelLockedAppNotification()
-            checkCountdownIfAboutToBlock(packageName)
+            checkCountdownIfAboutToBlock(pkg)
         }
     }
 
@@ -175,7 +202,29 @@ class BlackoutAccessibilityService : AccessibilityService() {
                 if (pkg == packageName) { // STRICT EQUALITY
                     val isLocked = itemObj.optBoolean("isLocked", false)
                     val dailyLimitMs = itemObj.optDouble("dailyLimitMs", 0.0)
-                    val usedTodayMs = itemObj.optDouble("usedTodayMs", 0.0)
+                    var usedTodayMs = itemObj.optDouble("usedTodayMs", 0.0)
+
+                    if (dailyLimitMs > 0) {
+                        try {
+                            val calendar = java.util.Calendar.getInstance(java.util.TimeZone.getDefault()).apply {
+                                set(java.util.Calendar.HOUR_OF_DAY, 0)
+                                set(java.util.Calendar.MINUTE, 0)
+                                set(java.util.Calendar.SECOND, 0)
+                                set(java.util.Calendar.MILLISECOND, 0)
+                            }
+                            val usageStatsManager = getSystemService(Context.USAGE_STATS_SERVICE) as? android.app.usage.UsageStatsManager
+                            val stats = usageStatsManager?.queryUsageStats(
+                                android.app.usage.UsageStatsManager.INTERVAL_DAILY,
+                                calendar.timeInMillis,
+                                System.currentTimeMillis()
+                            )
+                            val liveUsage = stats?.find { it.packageName == packageName }?.totalTimeInForeground ?: 0L
+                            if (liveUsage > usedTodayMs) {
+                                usedTodayMs = liveUsage.toDouble()
+                            }
+                        } catch (e: Exception) {}
+                    }
+
                     if (isLocked || (dailyLimitMs > 0 && usedTodayMs >= dailyLimitMs)) {
                         return true
                     }
@@ -303,11 +352,11 @@ class BlackoutAccessibilityService : AccessibilityService() {
     }
 
     private fun showOverlay(packageName: String) {
-        mainHandler.post {
+        val action = Runnable {
             if (overlayView == null) {
                 initOverlayView()
             }
-            val view = overlayView ?: return@post
+            val view = overlayView ?: return@Runnable
 
             var targetAppName = packageName
             try {
@@ -330,11 +379,16 @@ class BlackoutAccessibilityService : AccessibilityService() {
                 Log.d(TAG, "Overlay visibility set to VISIBLE for $packageName")
             }
         }
+        if (Looper.myLooper() == Looper.getMainLooper()) {
+            action.run()
+        } else {
+            mainHandler.post(action)
+        }
     }
 
     private fun hideOverlay() {
-        mainHandler.post {
-            val view = overlayView ?: return@post
+        val action = Runnable {
+            val view = overlayView ?: return@Runnable
             if (view.visibility != View.GONE) {
                 view.visibility = View.GONE
                 overlayParams?.flags = WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE or
@@ -347,6 +401,11 @@ class BlackoutAccessibilityService : AccessibilityService() {
                 }
                 Log.d(TAG, "Overlay visibility set to GONE")
             }
+        }
+        if (Looper.myLooper() == Looper.getMainLooper()) {
+            action.run()
+        } else {
+            mainHandler.post(action)
         }
     }
 
