@@ -297,8 +297,8 @@ export const StatsScreen: React.FC = () => {
                         resizeMode="cover"
                       />
                     ) : (
-                      <View className="w-10 h-10 rounded-lg bg-primary/10 dark:bg-white/10 items-center justify-center border border-primary/20 dark:border-white/20">
-                        <Text className="font-bold text-sm text-primary dark:text-white">
+                      <View className="w-10 h-10 rounded-lg bg-gray-200 dark:bg-gray-700 items-center justify-center">
+                        <Text className="text-lg font-bold text-gray-500 dark:text-gray-400">
                           {app.appName.charAt(0).toUpperCase()}
                         </Text>
                       </View>

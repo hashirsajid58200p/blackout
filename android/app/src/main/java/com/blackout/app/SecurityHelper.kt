@@ -92,6 +92,9 @@ object SecurityHelper {
                 .putBoolean(KEY_HAS_ACTIVE_LOCKS, hasLocks)
                 .apply()
 
+            val blackoutPrefs = context.getSharedPreferences("BlackoutPrefs", Context.MODE_PRIVATE)
+            blackoutPrefs.edit().putString("locked_apps_json", jsonString).apply()
+
             BlackoutAccessibilityService.lockedPackages = blockedSet
             scheduleMidnightReset(context)
             Log.d(TAG, "Saved locked apps. Has active locks: $hasLocks, next midnight: $nextMidnight, packages: $blockedSet")
@@ -137,6 +140,7 @@ object SecurityHelper {
         try {
             val prefs = getPreferences(context)
             val jsonString = prefs.getString(KEY_LOCKED_APPS_JSON, null)
+            var updatedJsonString: String? = null
             if (jsonString != null) {
                 val jsonArray = JSONArray(jsonString)
                 val updatedArray = JSONArray()
@@ -150,8 +154,9 @@ object SecurityHelper {
                         updatedArray.put(jsonArray.get(i))
                     }
                 }
+                updatedJsonString = updatedArray.toString()
                 prefs.edit()
-                    .putString(KEY_LOCKED_APPS_JSON, updatedArray.toString())
+                    .putString(KEY_LOCKED_APPS_JSON, updatedJsonString)
                     .putLong(KEY_LOCK_EXPIRATION, 0L)
                     .putBoolean(KEY_HAS_ACTIVE_LOCKS, false)
                     .apply()
@@ -162,7 +167,21 @@ object SecurityHelper {
                     .apply()
             }
 
-            BlackoutAccessibilityService.lockedPackages = emptySet()
+            val blackoutPrefs = context.getSharedPreferences("BlackoutPrefs", Context.MODE_PRIVATE)
+            val bEditor = blackoutPrefs.edit()
+            val allEntries = blackoutPrefs.all
+            for ((key, _) in allEntries) {
+                if (key.startsWith("realtime_usage_")) {
+                    bEditor.remove(key)
+                }
+            }
+            if (updatedJsonString != null) {
+                bEditor.putString("locked_apps_json", updatedJsonString)
+            }
+            bEditor.apply()
+
+            BlackoutAccessibilityService.lockedPackages.clear()
+            BlackoutAccessibilityService.instance?.resetDailyUsage()
             Log.d(TAG, "Midnight reset successfully completed: lock flags cleared.")
         } catch (e: Exception) {
             Log.e(TAG, "Failed to reset midnight locks", e)
@@ -294,7 +313,11 @@ object SecurityHelper {
                 .putLong(KEY_LOCK_EXPIRATION, nextMidnight)
                 .putBoolean(KEY_HAS_ACTIVE_LOCKS, true)
                 .apply()
-            BlackoutAccessibilityService.lockedPackages = BlackoutAccessibilityService.lockedPackages + packageName
+
+            val blackoutPrefs = context.getSharedPreferences("BlackoutPrefs", Context.MODE_PRIVATE)
+            blackoutPrefs.edit().putString("locked_apps_json", updated.toString()).apply()
+
+            BlackoutAccessibilityService.lockedPackages.add(packageName)
             Log.d(TAG, "Marked package as locked: $packageName")
         } catch (e: Exception) {
             Log.e(TAG, "Error marking package locked", e)

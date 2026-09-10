@@ -33,15 +33,21 @@
   - Enterprise anti-uninstall protection intercepting `com.android.settings` and `packageinstaller` with `GLOBAL_ACTION_BACK` and overlay.
   - Daily 12:00 AM midnight reset using `AlarmManager` and `MidnightResetReceiver`.
 
-- [x] **Complete 7-Fix Rescue & Feature Completion**:
-  - [x] **Fix 1: Theme Sync Bug**: `AppContext.tsx` immediately syncs with `Appearance.getColorScheme()` when selecting system theme. No `key={effectiveTheme}` on root View, no theme polling.
-  - [x] **Fix 2: Screen Time Accuracy**: Pure `UsageStatsManager.queryUsageStats()` with midnight start; zero delta accumulation in Accessibility Service and zero `queryEvents` loops.
-  - [x] **Fix 3: App Icons (Black Boxes)**: Base64 app icon extraction in `BlackoutModule.kt`; rendered via `<Image source={{ uri: "data:image/png;base64," + app.iconBase64 }} />` across Home, Stats, and Add App screens.
-  - [x] **Fix 4: Add App Screen UI/UX**: Step 2 Time Selector positioned inline beneath the selected app card in the ScrollView. Minute stepper increments/decrements by 1. Allowed 1-minute daily limit minimum.
-  - [x] **Fix 5: 10-Second Countdown Overlay**: Active countdown HUD displayed when foreground app is within 10s of daily limit, ticking down to 0 before executing Home action and lock overlay.
-  - [x] **Fix 6: Anti-Uninstall Protection**: Settings & PackageInstaller blocked with `GLOBAL_ACTION_BACK` and security overlay when any app is locked.
-  - [x] **Fix 7: Midnight Reset Logic**: Daily 12:00 AM alarm clears `usedTodayMs` and resets `isLocked` flags in SharedPreferences.
-  - [x] **Device Build & Verification**: TypeScript (`tsc`) and Kotlin compilation (`compileDebugKotlin`) passed; installed debug APK onto connected device.
+- [x] **Critical Bug Fixes (Bug 1 & Bug 2)**:
+  - [x] **Bug 1: Real-Time Usage Tracking & Immediate App Blocking**:
+    - Tracked foreground sessions in `BlackoutAccessibilityService.kt` with a 1-second continuous foreground monitor runnable.
+    - Persisted session deltas to `realtime_usage_$packageName` in `BlackoutPrefs`.
+    - Computed total usage as `baseUsage` (from `UsageStatsManager`) + `realTimeUsage` across Accessibility blocking and `BlackoutModule.getTodayUsage`.
+    - Reduced `AppContext.tsx` polling interval to 3 seconds (`3000ms`) and ensured `syncLockedAppsToNative` fires whenever usage changes.
+    - Synchronized `locked_apps_json` between `SecurityHelper` and `BlackoutPrefs` and added midnight reset for real-time tracking.
+  - [x] **Bug 2: Real App Icons Display**:
+    - Converted application drawables to 96x96 ARGB_8888 Bitmaps compressed as PNG at 100% quality and Base64 encoded.
+    - Always returned `iconBase64` in `getInstalledApps` and `getDayUsageStats`.
+    - Rendered `<Image source={{ uri: "data:image/png;base64," + app.iconBase64 }} />` with clean `bg-gray-200 dark:bg-gray-700` fallbacks across Home, Stats, and Add App screens.
+    - Automatically hydrated missing `iconBase64` for previously configured `trackedApps` in `AppContext.tsx`.
+  - [x] **Compilation & Verification**:
+    - `npm run tsc` exited with 0 errors.
+    - `./gradlew :app:compileDebugKotlin` and `./gradlew installDebug` built and installed on connected device (`Infinix X6833B - 14`).
 
 ## What's Next / Pending
 - App fully ready for user testing.

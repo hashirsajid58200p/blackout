@@ -23,9 +23,13 @@ class BlackoutAccessibilityService : AccessibilityService() {
 
     companion object {
         private const val TAG = "BlackoutAccessibility"
-        var lockedPackages: Set<String> = emptySet()
-        var currentForegroundPackage: String = ""
+        var lockedPackages: MutableSet<String> = mutableSetOf()
         var instance: BlackoutAccessibilityService? = null
+
+        // Real-time tracking
+        var currentForegroundPackage: String? = null
+        var currentSessionStartTime: Long = 0L
+        var sessionUsageMap: MutableMap<String, Long> = mutableMapOf()
     }
 
     private var windowManager: WindowManager? = null
@@ -49,6 +53,7 @@ class BlackoutAccessibilityService : AccessibilityService() {
             if (countdownSeconds <= 0) {
                 val targetPkg = countdownPackage ?: ""
                 removeCountdownOverlay()
+                lockedPackages.add(targetPkg)
                 SecurityHelper.markPackageLocked(applicationContext, targetPkg)
                 performGlobalAction(GLOBAL_ACTION_HOME)
                 showOverlay(targetPkg)
@@ -60,11 +65,34 @@ class BlackoutAccessibilityService : AccessibilityService() {
         }
     }
 
+    private val foregroundMonitorRunnable = object : Runnable {
+        override fun run() {
+            val pkg = currentForegroundPackage
+            if (pkg != null && currentSessionStartTime > 0) {
+                val liveDuration = System.currentTimeMillis() - currentSessionStartTime
+                if (liveDuration > 0) {
+                    val currentTotal = (sessionUsageMap[pkg] ?: 0L) + liveDuration
+                    saveRealTimeUsage(pkg, currentTotal)
+
+                    if (isAppBlocked(pkg)) {
+                        removeCountdownOverlay()
+                        performGlobalAction(GLOBAL_ACTION_HOME)
+                        showOverlay(pkg)
+                    } else {
+                        checkCountdownIfAboutToBlock(pkg)
+                    }
+                }
+            }
+            mainHandler.postDelayed(this, 1000L)
+        }
+    }
+
     override fun onServiceConnected() {
         super.onServiceConnected()
         instance = this
         windowManager = getSystemService(Context.WINDOW_SERVICE) as WindowManager
         SecurityHelper.scheduleMidnightReset(this)
+        mainHandler.post(foregroundMonitorRunnable)
         Log.d(TAG, "Blackout Accessibility Service connected successfully")
     }
 
@@ -73,12 +101,20 @@ class BlackoutAccessibilityService : AccessibilityService() {
 
         if (event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
             val packageName = event.packageName?.toString() ?: return
-            currentForegroundPackage = packageName
 
-            // Never block Blackout itself
-            if (packageName == applicationContext.packageName) {
-                removeOverlay()
-                removeCountdownOverlay()
+            // Skip system packages
+            if (packageName.startsWith("com.blackout.app") ||
+                packageName.contains("launcher") ||
+                packageName.contains("systemui") ||
+                packageName.contains("home") ||
+                packageName.contains("trebuchet") ||
+                packageName.contains("quickstep") ||
+                packageName.contains("navigationbar") ||
+                packageName == "android") {
+                if (isLauncherOrSystemUI(packageName) || packageName == applicationContext.packageName) {
+                    removeOverlay()
+                    removeCountdownOverlay()
+                }
                 return
             }
 
@@ -95,41 +131,61 @@ class BlackoutAccessibilityService : AccessibilityService() {
                 }
             }
 
-            // Check if app is blocked or about to be blocked
-            val usageLimit = SecurityHelper.getPackageUsageLimit(this, packageName)
-            if (usageLimit != null) {
-                if (usageLimit.isLocked || (usageLimit.dailyLimitMs > 0 && usageLimit.usedTodayMs >= usageLimit.dailyLimitMs)) {
-                    Log.d(TAG, "Intercepted blocked package: $packageName")
-                    removeCountdownOverlay()
-                    performGlobalAction(GLOBAL_ACTION_HOME)
-                    showOverlay(packageName)
-                    return
-                }
+            // If same package, ignore (avoid duplicate events)
+            if (packageName == currentForegroundPackage) return
 
-                // Check if ABOUT to be blocked: last 10 seconds (usedTodayMs >= dailyLimitMs - 10000)
-                if (usageLimit.dailyLimitMs > 0 && usageLimit.usedTodayMs >= (usageLimit.dailyLimitMs - 10000L)) {
-                    val remainingMs = usageLimit.dailyLimitMs - usageLimit.usedTodayMs
-                    val remainingSecs = Math.max(1, Math.min(10, ((remainingMs + 999) / 1000).toInt()))
-                    showCountdownOverlay(packageName, remainingSecs)
-                    return
-                } else {
-                    removeCountdownOverlay()
+            // Calculate time for previous app
+            if (currentForegroundPackage != null && currentSessionStartTime > 0) {
+                val duration = System.currentTimeMillis() - currentSessionStartTime
+                if (duration > 0) {
+                    val prev = currentForegroundPackage!!
+                    sessionUsageMap[prev] = (sessionUsageMap[prev] ?: 0L) + duration
+                    saveRealTimeUsage(prev, sessionUsageMap[prev]!!)
                 }
-            } else if (isAppBlocked(packageName)) {
-                Log.d(TAG, "Intercepted blocked package: $packageName")
+            }
+
+            // Start tracking new app
+            currentForegroundPackage = packageName
+            currentSessionStartTime = System.currentTimeMillis()
+
+            // Check if app should be blocked
+            if (isAppBlocked(packageName)) {
                 removeCountdownOverlay()
                 performGlobalAction(GLOBAL_ACTION_HOME)
                 showOverlay(packageName)
-                return
             } else {
-                removeCountdownOverlay()
-            }
-
-            // If navigating to home or launcher, dismiss overlay
-            if (isLauncherOrSystemUI(packageName)) {
                 removeOverlay()
-                removeCountdownOverlay()
+                checkCountdownIfAboutToBlock(packageName)
             }
+        }
+    }
+
+    private fun saveRealTimeUsage(packageName: String, totalMs: Long) {
+        try {
+            val prefs = getSharedPreferences("BlackoutPrefs", Context.MODE_PRIVATE)
+            val key = "realtime_usage_$packageName"
+            prefs.edit().putLong(key, totalMs).apply()
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+
+    fun resetDailyUsage() {
+        try {
+            val prefs = getSharedPreferences("BlackoutPrefs", Context.MODE_PRIVATE)
+            val editor = prefs.edit()
+            val allEntries = prefs.all
+            for ((key, _) in allEntries) {
+                if (key.startsWith("realtime_usage_")) {
+                    editor.remove(key)
+                }
+            }
+            editor.apply()
+            sessionUsageMap.clear()
+            currentSessionStartTime = 0L
+            currentForegroundPackage = null
+        } catch (e: Exception) {
+            e.printStackTrace()
         }
     }
 
@@ -143,7 +199,89 @@ class BlackoutAccessibilityService : AccessibilityService() {
     }
 
     private fun isAppBlocked(packageName: String): Boolean {
-        return SecurityHelper.isPackageBlocked(this, packageName)
+        // 1. Check in-memory set
+        if (lockedPackages.contains(packageName)) {
+            return true
+        }
+
+        // 2. Read from SharedPreferences
+        try {
+            val prefs = getSharedPreferences("BlackoutPrefs", Context.MODE_PRIVATE)
+            val jsonString = prefs.getString("locked_apps_json", null) ?: return false
+
+            val jsonArray = org.json.JSONArray(jsonString)
+            for (i in 0 until jsonArray.length()) {
+                val itemObj = jsonArray.optJSONObject(i)
+                if (itemObj != null) {
+                    val pkg = itemObj.optString("packageName")
+                    if (pkg == packageName) {
+                        val isLocked = itemObj.optBoolean("isLocked", false)
+                        val dailyLimitMs = itemObj.optDouble("dailyLimitMs", 0.0)
+
+                        // Get REAL-TIME usage from Accessibility Service tracking
+                        val realTimeKey = "realtime_usage_$packageName"
+                        var realTimeUsage = prefs.getLong(realTimeKey, 0L).toDouble()
+
+                        if (packageName == currentForegroundPackage && currentSessionStartTime > 0) {
+                            val liveDuration = System.currentTimeMillis() - currentSessionStartTime
+                            if (liveDuration > 0) {
+                                realTimeUsage = ((sessionUsageMap[packageName] ?: 0L) + liveDuration).toDouble()
+                            }
+                        }
+
+                        // Also get base usage from queryUsageStats (synced from React Native)
+                        val baseUsage = itemObj.optDouble("usedTodayMs", 0.0)
+
+                        // Total = base (from queryUsageStats) + real-time session
+                        val totalUsage = baseUsage + realTimeUsage
+
+                        if (isLocked || (dailyLimitMs > 0 && totalUsage >= dailyLimitMs)) {
+                            return true
+                        }
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error checking blocked app status", e)
+        }
+        return false
+    }
+
+    private fun checkCountdownIfAboutToBlock(packageName: String) {
+        try {
+            val prefs = getSharedPreferences("BlackoutPrefs", Context.MODE_PRIVATE)
+            val jsonString = prefs.getString("locked_apps_json", null) ?: return
+            val jsonArray = org.json.JSONArray(jsonString)
+            for (i in 0 until jsonArray.length()) {
+                val itemObj = jsonArray.optJSONObject(i)
+                if (itemObj != null && itemObj.optString("packageName") == packageName) {
+                    val dailyLimitMs = itemObj.optDouble("dailyLimitMs", 0.0)
+                    if (dailyLimitMs <= 0) return
+
+                    val realTimeKey = "realtime_usage_$packageName"
+                    var realTimeUsage = prefs.getLong(realTimeKey, 0L).toDouble()
+                    if (packageName == currentForegroundPackage && currentSessionStartTime > 0) {
+                        val live = System.currentTimeMillis() - currentSessionStartTime
+                        if (live > 0) {
+                            realTimeUsage = ((sessionUsageMap[packageName] ?: 0L) + live).toDouble()
+                        }
+                    }
+                    val baseUsage = itemObj.optDouble("usedTodayMs", 0.0)
+                    val totalUsage = baseUsage + realTimeUsage
+
+                    if (totalUsage >= (dailyLimitMs - 10000.0) && totalUsage < dailyLimitMs) {
+                        val remainingMs = (dailyLimitMs - totalUsage).toLong()
+                        val remainingSecs = Math.max(1, Math.min(10, ((remainingMs + 999) / 1000).toInt()))
+                        showCountdownOverlay(packageName, remainingSecs)
+                    } else if (totalUsage < (dailyLimitMs - 10000.0)) {
+                        removeCountdownOverlay()
+                    }
+                    return
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error checking countdown", e)
+        }
     }
 
     private fun showOverlay(blockedPackage: String, customMessage: String? = null) {
@@ -423,6 +561,7 @@ class BlackoutAccessibilityService : AccessibilityService() {
 
     override fun onDestroy() {
         super.onDestroy()
+        mainHandler.removeCallbacks(foregroundMonitorRunnable)
         removeOverlay()
         removeCountdownOverlay()
         instance = null

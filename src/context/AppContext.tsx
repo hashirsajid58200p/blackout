@@ -170,20 +170,36 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setSettings(loadedSettings);
 
     let loadedApps = await StorageService.getTrackedApps();
+    const installedApps = await NativeBridge.getInstalledApps();
+    const installedMap = new Map(installedApps.map((a) => [a.packageName, a]));
 
     // Auto-clean uninstalled apps if enabled (default true)
     if (loadedSettings.autoCleanUninstalled !== false) {
-      const installedApps = await NativeBridge.getInstalledApps();
-      const installedSet = new Set(installedApps.map((a) => a.packageName));
-
       const validApps = loadedApps.filter(
-        (app) => app.packageName.startsWith("custom.") || installedSet.has(app.packageName)
+        (app) => app.packageName.startsWith("custom.") || installedMap.has(app.packageName)
       );
 
       if (validApps.length !== loadedApps.length) {
         loadedApps = validApps;
-        await StorageService.saveTrackedApps(validApps);
       }
+    }
+
+    // Hydrate missing iconBase64 on trackedApps if not present
+    let appsUpdatedWithIcons = false;
+    loadedApps = loadedApps.map((app) => {
+      const installed = installedMap.get(app.packageName);
+      if (installed && installed.iconBase64 && !app.iconBase64) {
+        appsUpdatedWithIcons = true;
+        return {
+          ...app,
+          iconBase64: installed.iconBase64,
+        };
+      }
+      return app;
+    });
+
+    if (appsUpdatedWithIcons || (loadedSettings.autoCleanUninstalled !== false && loadedApps.length !== (await StorageService.getTrackedApps()).length)) {
+      await StorageService.saveTrackedApps(loadedApps);
     }
 
     setTrackedApps(loadedApps);
@@ -263,7 +279,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
     };
 
-    const interval = setInterval(fetchUsage, 5000);
+    const interval = setInterval(fetchUsage, 3000);
     return () => clearInterval(interval);
   }, [trackedApps, refreshUsageStats]);
 

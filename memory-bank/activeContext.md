@@ -1,25 +1,28 @@
 # Active Context
 
 ## Current Status
-- Completed all 7 fixes in one pass:
-  1. Fix 1: Theme Sync Bug (Manual to System Transition) — `AppContext.tsx` immediately syncs `sysScheme` with `Appearance.getColorScheme()` when selecting "system". `App.tsx` has no `key={effectiveTheme}`, and all theme polling intervals are eliminated.
-  2. Fix 2: Screen Time Accuracy — Accessibility Service is used strictly for blocking. Screen time is queried via `UsageStatsManager.queryUsageStats(INTERVAL_DAILY)` starting from midnight device time with zero `queryEvents` loops, matching Digital Wellbeing exactly.
-  3. Fix 3: App Icons (Black Boxes Fixed) — `BlackoutModule.kt` generates high-quality `iconBase64` for installed apps and daily statistics. `HomeScreen.tsx`, `StatsScreen.tsx`, and `AddAppScreen.tsx` render real app icons with `<Image source={{ uri: 'data:image/png;base64,' + app.iconBase64 }} />`.
-  4. Fix 4: Add App Screen UI/UX — Moved "Step 2: Time Selector" inline directly beneath the selected app card inside the ScrollView loop. Replaced minute stepper with +/- 1 increments (`Math.max(0, minutes - 1)`, `Math.min(59, minutes + 1)`). Allowed 1-minute limits.
-  5. Fix 5: 10-Second Countdown Overlay — `BlackoutAccessibilityService.kt` detects when an active app is within 10 seconds of its daily limit (`usedTodayMs >= dailyLimitMs - 10000`). Displays a high-contrast native countdown HUD (10, 9, 8...) over the screen; at 0, executes `GLOBAL_ACTION_HOME`, locks the app, and shows the Blackout lock overlay.
-  6. Fix 6: Anti-Uninstall Protection — `BlackoutAccessibilityService.kt` intercepts `com.android.settings` and `com.google.android.packageinstaller` by checking `SecurityHelper.hasActiveLocks()`, performs `GLOBAL_ACTION_BACK`, and displays a blocking overlay stating "Modifying Settings is blocked while apps are locked."
-  7. Fix 7: Midnight Reset Logic — Exact daily 12:00 AM `AlarmManager` alarm triggers `MidnightResetReceiver.kt`, clearing `usedTodayMs` and setting `isLocked = false` across all tracked apps.
+- Completed Critical Bug Fixes (Bug 1 & Bug 2):
+  1. Bug 1: Real-Time Usage Tracking & Blocking Fix:
+     - `BlackoutAccessibilityService.kt`: Added real-time tracking via `currentForegroundPackage`, `currentSessionStartTime`, `sessionUsageMap`, and `saveRealTimeUsage` saving to `BlackoutPrefs`. Added a 1-second foreground monitor runnable to track active continuous sessions in real time and trigger immediate lock + 10s countdown if daily limit is reached while actively using an app.
+     - `BlackoutAccessibilityService.kt`: Rewrote `isAppBlocked` to sum `baseUsage` (from synced JSON) + `realTimeUsage` (from `BlackoutPrefs` including active session elapsed time). Added `resetDailyUsage()` clearing `realtime_usage_` keys.
+     - `BlackoutModule.kt`: Rewrote `getTodayUsage` to combine `UsageStatsManager.queryUsageStats` base + `realtime_usage_$packageName` (+ live delta if currently active in foreground). Updated `syncLockedAppsToNative` to write to both `SecurityHelper` and `BlackoutPrefs`.
+     - `SecurityHelper.kt`: Updated `saveLockedApps` and `resetMidnightLocks` to mirror `locked_apps_json` to `BlackoutPrefs` and invoke `resetDailyUsage()`.
+     - `AppContext.tsx`: Changed usage polling interval from 5000ms to 3000ms, and ensured `syncLockedAppsToNative` runs on all usage updates.
+  2. Bug 2: App Icons Display Fix:
+     - `BlackoutModule.kt`: In `getInstalledApps` and `getAppIconBase64`, extracted 96x96 PNG ARGB_8888 bitmap at 100% quality into Base64, and guaranteed `iconBase64` is always present in output map.
+     - `HomeScreen.tsx`, `StatsScreen.tsx`, and `AddAppScreen.tsx`: Updated fallback views when an icon is absent to `bg-gray-200 dark:bg-gray-700` and letter styling `text-lg font-bold text-gray-500 dark:text-gray-400`.
+     - `AppContext.tsx`: Hydrates missing `iconBase64` on existing `trackedApps` from `NativeBridge.getInstalledApps()` on load.
 - Validated with `npm run tsc` (clean) and `./gradlew :app:compileDebugKotlin` (BUILD SUCCESSFUL).
 - Deployed and installed updated APK directly onto connected device (`Infinix X6833B - 14`).
 
 ## Key Files & Structure
 - `App.tsx`: Root application with NativeWind v4 theme binding.
-- `src/context/AppContext.tsx`: Real-time system theme event handling and usage synchronization.
-- `src/screens/AddAppScreen.tsx`: Inline Step 2 time picker, 1-min increments, native icon display.
-- `src/screens/HomeScreen.tsx` & `src/screens/StatsScreen.tsx`: Real app icons, accurate screen time display.
+- `src/context/AppContext.tsx`: 3-second usage polling, icon hydration, and locked app state synchronization.
+- `src/screens/AddAppScreen.tsx`: Inline Step 2 time picker, 1-min increments, real native icon rendering.
+- `src/screens/HomeScreen.tsx` & `src/screens/StatsScreen.tsx`: Real app icons, accurate screen time and countdown display.
 - `android/app/src/main/java/com/blackout/app/`:
-  - `BlackoutAccessibilityService.kt`: App blocking, 10s countdown HUD, and Settings anti-uninstall protection.
-  - `BlackoutModule.kt`: Pure `UsageStatsManager` usage querying and icon Base64 generation.
-  - `SecurityHelper.kt`: Encrypted prefs, active lock verification, and 12:00 AM alarm scheduling.
+  - `BlackoutAccessibilityService.kt`: Real-time session tracking, 1-sec continuous monitor, app blocking, 10s countdown HUD, Settings anti-uninstall protection, and midnight reset.
+  - `BlackoutModule.kt`: Base + real-time usage querying, 96x96 Base64 icon generation.
+  - `SecurityHelper.kt`: Encrypted prefs, BlackoutPrefs sync, active lock verification, and 12:00 AM alarm scheduling.
   - `MidnightResetReceiver.kt`: Midnight alarm broadcast receiver.
 
