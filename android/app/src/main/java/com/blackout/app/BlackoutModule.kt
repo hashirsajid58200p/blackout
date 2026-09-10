@@ -327,7 +327,27 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
                 addedPackages.add(packageName)
                 val appName = resolveInfo.loadLabel(pm).toString()
                 val usedTodayMs = usageMap[packageName] ?: 0L
-                val iconUri = getAppIconUri(pm, appInfo)
+
+                var iconUri = ""
+                try {
+                    val iconDrawable = pm.getApplicationIcon(appInfo)
+                    val bitmap = android.graphics.Bitmap.createBitmap(96, 96, android.graphics.Bitmap.Config.ARGB_8888)
+                    val canvas = android.graphics.Canvas(bitmap)
+                    iconDrawable.setBounds(0, 0, 96, 96)
+                    iconDrawable.draw(canvas)
+
+                    val cacheDir = reactApplicationContext.cacheDir
+                    if (!cacheDir.exists()) cacheDir.mkdirs()
+                    val iconFile = java.io.File(cacheDir, "icon_${packageName.replace(".", "_")}.png")
+                    val outputStream = java.io.FileOutputStream(iconFile)
+                    bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, outputStream)
+                    outputStream.flush()
+                    outputStream.close()
+
+                    iconUri = "file://" + iconFile.absolutePath
+                } catch (e: Exception) {
+                    Log.e("BlackoutModule", "Icon error for $packageName", e)
+                }
 
                 val map = WritableNativeMap().apply {
                     putString("packageName", packageName)
@@ -427,8 +447,6 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
             // 1. Get precise foreground time from UsageStatsManager
             val foregroundUsageMap = getForegroundUsageStatsMap(startTime, endTime)
 
-
-
             val array = WritableNativeArray()
             val selfPkg = reactApplicationContext.packageName
 
@@ -458,7 +476,27 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
                     continue
                 }
 
-                val iconUri = getAppIconUriByPackage(pm, pkg)
+                var iconUri = ""
+                try {
+                    val appInfo = pm.getApplicationInfo(pkg, 0)
+                    val iconDrawable = pm.getApplicationIcon(appInfo)
+                    val bitmap = android.graphics.Bitmap.createBitmap(96, 96, android.graphics.Bitmap.Config.ARGB_8888)
+                    val canvas = android.graphics.Canvas(bitmap)
+                    iconDrawable.setBounds(0, 0, 96, 96)
+                    iconDrawable.draw(canvas)
+
+                    val cacheDir = reactApplicationContext.cacheDir
+                    if (!cacheDir.exists()) cacheDir.mkdirs()
+                    val iconFile = java.io.File(cacheDir, "icon_${pkg.replace(".", "_")}.png")
+                    val outputStream = java.io.FileOutputStream(iconFile)
+                    bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, outputStream)
+                    outputStream.flush()
+                    outputStream.close()
+
+                    iconUri = "file://" + iconFile.absolutePath
+                } catch (e: Exception) {
+                    Log.e("BlackoutModule", "Icon error for $pkg", e)
+                }
 
                 val map = WritableNativeMap().apply {
                     putString("packageName", pkg)

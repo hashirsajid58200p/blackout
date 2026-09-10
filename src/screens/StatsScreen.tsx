@@ -76,7 +76,13 @@ export const StatsScreen: React.FC = () => {
 
   // If today (0), consume unified state from AppContext
   const dayApps: DayAppUsage[] = selectedDayOffset === 0
-    ? todayDeviceUsage.map((d) => ({ packageName: d.packageName, appName: d.appName, usedMs: d.usedMs }))
+    ? todayDeviceUsage.map((d) => ({
+        packageName: d.packageName,
+        appName: d.appName,
+        usedMs: d.usedMs,
+        iconUri: d.iconUri,
+        iconBase64: d.iconBase64,
+      }))
     : historicalDayApps;
 
   // Compute 7 days stats

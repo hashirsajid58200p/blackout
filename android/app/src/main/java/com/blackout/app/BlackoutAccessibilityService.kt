@@ -36,6 +36,7 @@ class BlackoutAccessibilityService : AccessibilityService() {
     private var overlayView: View? = null
     private var isOverlayShowing = false
     private var currentOverlayPackage: String? = null
+    private var currentLockedPackage: String? = null
     private val mainHandler = Handler(Looper.getMainLooper())
 
     // 10-Second Countdown Overlay State
@@ -56,7 +57,11 @@ class BlackoutAccessibilityService : AccessibilityService() {
                 removeCountdownOverlay()
                 lockedPackages.add(targetPkg)
                 SecurityHelper.markPackageLocked(applicationContext, targetPkg)
-                showBlockingOverlay(targetPkg)
+                if (!isOverlayShowing || currentLockedPackage != targetPkg) {
+                    if (isOverlayShowing) removeOverlay()
+                    currentLockedPackage = targetPkg
+                    showOverlay(targetPkg)
+                }
             } else {
                 countdownTv?.text = countdownSeconds.toString()
                 countdownSubTv?.text = "Daily limit ends in ${countdownSeconds}s"
@@ -71,7 +76,11 @@ class BlackoutAccessibilityService : AccessibilityService() {
             if (pkg != null && currentSessionStartTime > 0) {
                 if (isAppBlocked(pkg)) {
                     removeCountdownOverlay()
-                    showBlockingOverlay(pkg)
+                    if (!isOverlayShowing || currentLockedPackage != pkg) {
+                        if (isOverlayShowing) removeOverlay()
+                        currentLockedPackage = pkg
+                        showOverlay(pkg)
+                    }
                 } else {
                     checkCountdownIfAboutToBlock(pkg)
                 }
@@ -90,63 +99,81 @@ class BlackoutAccessibilityService : AccessibilityService() {
     }
 
     override fun onAccessibilityEvent(event: AccessibilityEvent?) {
-        if (event == null) return
+        if (event == null || event.eventType != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) return
+        val packageName = event.packageName?.toString() ?: return
 
-        if (event.eventType == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) {
-            val packageName = event.packageName?.toString() ?: return
+        // If event is from our own package (com.blackout.app)
+        if (packageName.startsWith("com.blackout.app") || packageName == applicationContext.packageName) {
+            val className = event.className?.toString() ?: ""
+            // Only dismiss overlay if user actually opened Blackout's MainActivity
+            if (className.contains("MainActivity")) {
+                if (isOverlayShowing) {
+                    removeOverlay()
+                    currentLockedPackage = null
+                }
+                currentForegroundPackage = packageName
+                currentSessionStartTime = System.currentTimeMillis()
+            }
+            // If it's the overlay view itself (e.g. LinearLayout, FrameLayout), ignore it to avoid blinking loop!
+            return
+        }
 
-            // Skip system packages
-            if (packageName.startsWith("com.blackout.app") ||
-                packageName.contains("launcher") ||
-                packageName.contains("systemui") ||
-                packageName.contains("home") ||
-                packageName.contains("trebuchet") ||
-                packageName.contains("quickstep") ||
-                packageName.contains("navigationbar") ||
-                packageName == "android") {
-                if (isLauncherOrSystemUI(packageName) || packageName == applicationContext.packageName) {
-                    removeBlockingOverlay()
-                    removeCountdownOverlay()
+        // 1. If user goes to Home/Launcher/SystemUI, ALWAYS remove overlay
+        val isSystemOrHome = packageName.contains("launcher", ignoreCase = true) ||
+                packageName.contains("systemui", ignoreCase = true) ||
+                packageName.contains("home", ignoreCase = true) ||
+                packageName.contains("trebuchet", ignoreCase = true) ||
+                packageName.contains("quickstep", ignoreCase = true) ||
+                packageName.contains("navigationbar", ignoreCase = true) ||
+                packageName == "android"
+
+        if (isSystemOrHome) {
+            if (isOverlayShowing) {
+                removeOverlay()
+                currentLockedPackage = null
+            }
+            removeCountdownOverlay()
+            currentForegroundPackage = packageName
+            return
+        }
+
+        // Anti-uninstall protection: Prevent opening Settings or Package Installer while ANY app is locked
+        if (packageName == "com.android.settings" ||
+            packageName == "com.google.android.packageinstaller" ||
+            packageName == "com.android.packageinstaller") {
+            if (SecurityHelper.hasActiveLocks(this)) {
+                Log.w(TAG, "Anti-uninstall protection: Settings/PackageInstaller blocked while apps are locked")
+                removeCountdownOverlay()
+                if (!isOverlayShowing || currentLockedPackage != packageName) {
+                    if (isOverlayShowing) removeOverlay()
+                    currentLockedPackage = packageName
+                    showOverlay(packageName, "Modifying Settings is blocked while apps are locked.")
                 }
                 return
             }
+        }
 
-            // Anti-uninstall protection: Prevent opening Settings or Package Installer while ANY app is locked
-            if (packageName == "com.android.settings" ||
-                packageName == "com.google.android.packageinstaller" ||
-                packageName == "com.android.packageinstaller") {
-                if (SecurityHelper.hasActiveLocks(this)) {
-                    Log.w(TAG, "Anti-uninstall protection: Settings/PackageInstaller blocked while apps are locked")
-                    removeCountdownOverlay()
-                    showBlockingOverlay(packageName, "Modifying Settings is blocked while apps are locked.")
-                    return
-                }
+        // 2. If the current foreground app is blocked
+        if (isAppBlocked(packageName)) {
+            removeCountdownOverlay()
+            // Only show overlay if it's not already showing for THIS specific package
+            if (!isOverlayShowing || currentLockedPackage != packageName) {
+                if (isOverlayShowing) removeOverlay() // Clean up old overlay
+                currentLockedPackage = packageName
+                showOverlay(packageName)
             }
-
-            // If same package, ignore (avoid duplicate events)
-            if (packageName == currentForegroundPackage) return
-
-            // Calculate time for previous app
-            if (currentForegroundPackage != null && currentSessionStartTime > 0) {
-                val duration = System.currentTimeMillis() - currentSessionStartTime
-                if (duration > 0) {
-                    val prev = currentForegroundPackage!!
-                    sessionUsageMap[prev] = (sessionUsageMap[prev] ?: 0L) + duration
-                }
+        } else {
+            // 3. Foreground app is NOT blocked, remove overlay if it's showing
+            if (isOverlayShowing) {
+                removeOverlay()
+                currentLockedPackage = null
             }
+            checkCountdownIfAboutToBlock(packageName)
+        }
 
-            // Start tracking new app
+        if (packageName != currentForegroundPackage) {
             currentForegroundPackage = packageName
             currentSessionStartTime = System.currentTimeMillis()
-
-            // Check if app should be blocked
-            if (isAppBlocked(packageName)) {
-                removeCountdownOverlay()
-                showBlockingOverlay(packageName)
-            } else {
-                removeBlockingOverlay()
-                checkCountdownIfAboutToBlock(packageName)
-            }
         }
     }
 
@@ -250,8 +277,8 @@ class BlackoutAccessibilityService : AccessibilityService() {
         }
     }
 
-    private fun showBlockingOverlay(blockedPackage: String, customMessage: String? = null) {
-        if (isOverlayShowing && overlayView != null && currentOverlayPackage == blockedPackage) {
+    private fun showOverlay(blockedPackage: String, customMessage: String? = null) {
+        if (isOverlayShowing && overlayView != null && currentLockedPackage == blockedPackage) {
             return
         }
 
@@ -260,12 +287,12 @@ class BlackoutAccessibilityService : AccessibilityService() {
             return
         }
 
+        isOverlayShowing = true
+        currentLockedPackage = blockedPackage
+        currentOverlayPackage = blockedPackage
+
         mainHandler.post {
             try {
-                if (isOverlayShowing && overlayView != null && currentOverlayPackage == blockedPackage) {
-                    return@post
-                }
-
                 if (overlayView != null) {
                     try {
                         windowManager?.removeView(overlayView)
@@ -274,8 +301,6 @@ class BlackoutAccessibilityService : AccessibilityService() {
                     }
                     overlayView = null
                 }
-
-                currentOverlayPackage = blockedPackage
 
                 var targetAppName = blockedPackage
                 try {
@@ -358,7 +383,7 @@ class BlackoutAccessibilityService : AccessibilityService() {
                     setPadding(32, 20, 32, 20)
                     setOnClickListener {
                         performGlobalAction(GLOBAL_ACTION_HOME)
-                        removeBlockingOverlay()
+                        removeOverlay()
                     }
                 }
                 layout.addView(homeButton)
@@ -383,20 +408,23 @@ class BlackoutAccessibilityService : AccessibilityService() {
 
                 windowManager?.addView(layout, params)
                 overlayView = layout
-                isOverlayShowing = true
                 Log.d(TAG, "Blackout blocking overlay displayed for $blockedPackage")
             } catch (e: Exception) {
                 Log.e(TAG, "Failed to display blocking overlay", e)
+                isOverlayShowing = false
+                currentLockedPackage = null
+                currentOverlayPackage = null
             }
         }
     }
 
-    private fun removeBlockingOverlay() {
-        if (isOverlayShowing && overlayView != null) {
+    private fun removeOverlay() {
+        currentLockedPackage = null
+        currentOverlayPackage = null
+        isOverlayShowing = false
+        if (overlayView != null) {
             val viewToRemove = overlayView
             overlayView = null
-            isOverlayShowing = false
-            currentOverlayPackage = null
             mainHandler.post {
                 try {
                     viewToRemove?.let { windowManager?.removeView(it) }
@@ -404,12 +432,11 @@ class BlackoutAccessibilityService : AccessibilityService() {
                     Log.e(TAG, "Failed to remove blocking overlay view", e)
                 }
             }
-        } else {
-            overlayView = null
-            isOverlayShowing = false
-            currentOverlayPackage = null
         }
     }
+
+    private fun showBlockingOverlay(pkg: String, msg: String? = null) = showOverlay(pkg, msg)
+    private fun removeBlockingOverlay() = removeOverlay()
 
     private fun showCountdownOverlay(packageName: String, remainingSecs: Int) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M && !Settings.canDrawOverlays(this)) {
