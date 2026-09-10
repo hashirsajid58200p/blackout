@@ -1,23 +1,20 @@
 # Active Context
 
 ## Current Status
-- Completed Critical Bug Fixes (Overlay Glitch, Real-time Tracking, Icon URI & Screen Time):
-  1. Bug 1 & 3: Apps Closing Instantly & Lock Screen Glitching:
-     - `BlackoutAccessibilityService.kt`: Removed `performGlobalAction(GLOBAL_ACTION_HOME)` from all blocking code. When an app is blocked, it now remains running behind an untouchable full-screen overlay.
-     - Added package deduplication check in `showBlockingOverlay`: if `overlayView != null` and current foreground package is already showing the overlay, do nothing to prevent glitching/infinite loops.
-     - Added touch consumer (`setOnTouchListener { _, _ -> true }`) on the full-screen layout so touches cannot reach the locked app.
-     - Fixed `removeBlockingOverlay` to safely remove the view from `WindowManager` and reset flags.
-     - Fixed anti-uninstall protection on Settings/PackageInstaller: displays the full-screen blocking overlay without calling `GLOBAL_ACTION_BACK`.
-  2. Bug 2a: App Icons Showing Alphabets Instead of Real Icons:
-     - Root cause: Passing Base64 strings across the React Native bridge for all installed apps exceeded the 1MB Android IPC Binder buffer limit.
-     - `BlackoutModule.kt`: Switched from Base64 strings to disk caching in `reactApplicationContext.cacheDir` (`icon_${pkg}.png`), returning lightweight `file://` URIs in `iconUri`.
-     - `types/index.ts`, `nativeBridge.ts`, `storage.ts`, `AppContext.tsx`: Added `iconUri` support and hydration.
-     - `HomeScreen.tsx`, `StatsScreen.tsx`, `AddAppScreen.tsx`, `SettingsScreen.tsx`: Render `<Image source={{ uri: app.iconUri }} />` with clean fallbacks.
-  3. Bug 2b: Screen Time Inflation:
-     - `BlackoutModule.kt`: Removed all `realtime_usage_` additions from `getTodayUsage`, `getDayUsageStats`, and `getInstalledApps`. UI now strictly reflects `UsageStatsManager.queryUsageStats()` matching Digital Wellbeing.
-     - `BlackoutAccessibilityService.kt`: In `isAppBlocked`, computes active session duration in-memory (`baseUsage + currentSessionTime >= dailyLimitMs`) without writing back to SharedPreferences.
-- Validated with `npm run tsc` (0 errors), `./gradlew :app:compileDebugKotlin` (BUILD SUCCESSFUL in 28s).
-- Installed on device (`Infinix X6833B - 14`) via `./gradlew installDebug`.
+- Completed Surgical Regression Fixes:
+  1. Bug 1: Lock Screen Blinking/Glitching (Infinite Loop):
+     - Added `currentLockedPackage: String?` state tracking in `BlackoutAccessibilityService.kt`.
+     - Rewrote `onAccessibilityEvent` to ignore window state events dispatched by the overlay itself (`com.blackout.app` where `className != MainActivity`).
+     - Removed overlay only when user navigates to Home / Launcher (`isSystemOrHome`) or an unblocked app.
+     - Protected `showOverlay` and `foregroundMonitorRunnable` with `!isOverlayShowing || currentLockedPackage != packageName` to eliminate rapid teardown and re-addition cycles.
+     - Intercepted all touches using full-screen `FLAG_NOT_TOUCH_MODAL or FLAG_LAYOUT_IN_SCREEN` with `setOnTouchListener { _, _ -> true }`.
+  2. Bug 2: Icons Showing Alphabets (Especially Stats Screen):
+     - `BlackoutModule.kt`: Implemented explicit 96x96 PNG disk caching in `reactApplicationContext.cacheDir` for `getDayUsageStats` and `getInstalledApps`, returning valid `file://` URIs in `iconUri`.
+     - `StatsScreen.tsx`: Fixed `dayApps` mapping for `selectedDayOffset === 0` to preserve `iconUri` and `iconBase64` from `todayDeviceUsage`.
+  3. Bug 3: Screen Time Inflation:
+     - `BlackoutModule.kt`: Strictly uses `UsageStatsManager.queryUsageStats()` without real-time SharedPreferences additions.
+     - `BlackoutAccessibilityService.kt`: Calculates live active session time strictly in-memory for blocking logic without saving it to SharedPreferences.
+- Validated with `npm run tsc` (0 errors), `./gradlew :app:compileDebugKotlin` (BUILD SUCCESSFUL in 31s), and installed on device (`Infinix X6833B - 14`) via `./gradlew installDebug`. App launched via ADB.
 
 ## Key Files & Structure
 - `App.tsx`: Root application with NativeWind v4 theme binding.
