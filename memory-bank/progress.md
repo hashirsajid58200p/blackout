@@ -82,13 +82,15 @@
     - System Dark -> App System (Dark) -> Switch to Light (Light) -> Switch back to System (immediately returns to Dark without reopen).
     - Manual Dark mode persists.
     - Live OS dark mode toggle (`adb shell cmd uimode night no/yes`): app updates live in the foreground immediately.
-- [ ] **Phase 4 — Unfinished features & audit issues (Next)**:
-  - Add auto-clean toggle in `SettingsScreen.tsx`.
-  - Deduplicate `SecurityHelper` vs `BlackoutAccessibilityService` blocking logic.
-  - Add `.npmrc` with `legacy-peer-deps=true`.
-  - Fix Android 14 `SCHEDULE_EXACT_ALARM` SecurityException in `SecurityHelper.scheduleMidnightReset`.
-  - Complete screen sweep.
-- [ ] **Phase 5 — Full regression pass**: End-to-end verification on physical device (Infinix X6833B, Android 14).
+- [x] **Phase 4 — Unfinished features & audit issues (Verified & Fixed)**:
+  - Added "AUTO-CLEAN UNINSTALLED APPS" maintenance toggle row with `Switch` component in `src/screens/SettingsScreen.tsx` wired to `updateAutoCleanSetting`. Verified on device: toggles off, persists, and toggles back on.
+  - Eliminated duplicated, dead blocking-state logic in `SecurityHelper.kt`: confirmed `getPackageUsageLimit`, `AppUsageLimitInfo`, and `isPackageBlocked` were completely unused outside `SecurityHelper.kt`, and deleted them.
+  - Updated `SecurityHelper.hasActiveLocks` to check live foreground usage via `getTodayPackageUsage`, preventing `BlackoutDeviceAdminReceiver` from missing active locks.
+  - Created `.npmrc` with `legacy-peer-deps=true` so `npm install` runs cleanly without manual flags on React 19 / `lucide-react-native`.
+  - Hardened midnight reset alarms against Android 14 (API 34) crashes: added API 31+ `alarmManager.canScheduleExactAlarms()` check with safe fallback to `setAndAllowWhileIdle` in `SecurityHelper.scheduleMidnightReset`. Added `SCHEDULE_EXACT_ALARM` permission to `AndroidManifest.xml` and `plugins/withBlackoutNativeModule.js`.
+  - Added live 4-second polling interval in `src/screens/StatsScreen.tsx` so screen time numbers and charts automatically refresh while the screen is open without requiring navigation reload.
+  - Verified `npx tsc --noEmit` (0 errors) and `./gradlew :app:compileDebugKotlin` / `:app:installDebug` (BUILD SUCCESSFUL).
+- [ ] **Phase 5 — Full regression pass (Next)**: End-to-end verification on physical device (Infinix X6833B, Android 14).
 
 ## What's Next
-- Proceeding to Phase 4: Unfinished features and issues found in audit.
+- Proceeding to Phase 5: Full regression pass across all 9 checklist items.

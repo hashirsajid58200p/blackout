@@ -45,14 +45,28 @@
 
 ---
 
+### Phase 4: Unfinished Features & Audit Issues (Completed & Verified)
+1. **Auto-Clean Uninstalled Apps Toggle**:
+   - Added a "MAINTENANCE" section card in `src/screens/SettingsScreen.tsx` with a `Switch` wired to `updateAutoCleanSetting`.
+   - Verified on device: switch renders in monochrome theme, toggles from ON to OFF and back to ON, and updates settings state persistently.
+2. **Deduplication of Dead Blocking Logic**:
+   - Analyzed `SecurityHelper.kt` vs `BlackoutAccessibilityService.kt`.
+   - Deleted unused `AppUsageLimitInfo`, `getPackageUsageLimit`, and `isPackageBlocked` from `SecurityHelper.kt`.
+   - Updated `SecurityHelper.hasActiveLocks` to check live usage via `getTodayPackageUsage`, preventing `BlackoutDeviceAdminReceiver` from missing active locks.
+3. **NPM Configuration**:
+   - Added `.npmrc` with `legacy-peer-deps=true` for seamless dependency resolution with React 19 and `lucide-react-native`.
+4. **Android 14 Exact Alarm Hardening & Live Stats**:
+   - In `SecurityHelper.scheduleMidnightReset`: added API 31+ `alarmManager.canScheduleExactAlarms()` check with safe `setAndAllowWhileIdle` fallback to prevent `SecurityException` crashes on Android 14.
+   - Added `SCHEDULE_EXACT_ALARM` permission to `android/app/src/main/AndroidManifest.xml` and `plugins/withBlackoutNativeModule.js`.
+   - Added live 4-second polling interval in `src/screens/StatsScreen.tsx`.
+   - Verified clean compilation: `npx tsc --noEmit` (0 errors) and `./gradlew :app:compileDebugKotlin` / `:app:installDebug` (BUILD SUCCESSFUL).
+
+---
+
 ## Next Phase
-- **Phase 4 — Unfinished features and audit issues**:
-  1. Add auto-clean toggle in `SettingsScreen.tsx` wired to `updateAutoCleanSetting`.
-  2. Deduplicate blocking-state logic: evaluate `SecurityHelper.kt` vs `BlackoutAccessibilityService.kt` (`EncryptedSharedPreferences` vs `BlackoutPrefs`).
-  3. Add `.npmrc` with `legacy-peer-deps=true`.
-  4. Screen sweep & verify Android 14 exact alarm permission handling in `SecurityHelper.scheduleMidnightReset`.
+- **Phase 5 — Full regression pass**: End-to-end verification of the 9 regression checklist items on the Infinix X6833B device.
 
 ## Manual Checks for Founder
-- Go to Settings -> Theme Mode: toggle between System, Light, and Dark.
-- Notice switching from Light back to System returns immediately to the system dark theme without requiring app restart.
-- Open Spotify: verify hard-lock redirection remains rock-solid.
+- Go to Settings -> Maintenance: toggle "Auto-Clean Uninstalled Apps" switch.
+- Note how Stats screen updates live every 4s while open.
+- Verify midnight alarms schedule cleanly without Android 14 security exceptions.

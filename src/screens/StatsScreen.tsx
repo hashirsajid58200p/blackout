@@ -34,6 +34,8 @@ export const StatsScreen: React.FC = () => {
 
   useEffect(() => {
     refreshUsageStats();
+    const interval = setInterval(refreshUsageStats, 4000);
+    return () => clearInterval(interval);
   }, [refreshUsageStats]);
 
   // Dynamic continuous monochrome lightness generator

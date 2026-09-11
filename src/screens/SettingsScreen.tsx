@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, ScrollView, TouchableOpacity, Image } from "react-native";
+import { View, Text, ScrollView, TouchableOpacity, Image, Switch } from "react-native";
 import { useApp } from "../context/AppContext";
 import { NavigationHeader } from "../components/NavigationHeader";
 import { BottomNavBar } from "../components/BottomNavBar";
@@ -131,6 +131,38 @@ export const SettingsScreen: React.FC = () => {
                   {isAdminActive ? "PROTECTION ACTIVE" : "ACTIVATE DEVICE ADMIN"}
                 </Text>
               </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+
+        {/* Section: Auto-Clean Maintenance */}
+        <View className="flex-col gap-3 mb-8">
+          <Text className="font-bold text-xs text-secondary dark:text-zinc-400 uppercase tracking-widest">
+            MAINTENANCE
+          </Text>
+
+          <View className="border-2 border-primary dark:border-white p-4 bg-surface-container-lowest dark:bg-black flex-col rounded-none">
+            <View className="flex-row items-center justify-between">
+              <View className="flex-1 mr-4">
+                <View className="flex-row items-center gap-2.5 mb-1.5">
+                  <View className="w-5 h-5 items-center justify-center">
+                    <Trash2 size={20} color={iconColor} />
+                  </View>
+                  <Text className="font-bold text-sm uppercase tracking-wider text-primary dark:text-white leading-5">
+                    AUTO-CLEAN UNINSTALLED APPS
+                  </Text>
+                </View>
+                <Text className="text-xs text-secondary dark:text-zinc-400 ml-[30px] leading-4">
+                  Automatically remove tracked apps from Blackout when they are uninstalled from this device.
+                </Text>
+              </View>
+
+              <Switch
+                value={isAutoCleanEnabled}
+                onValueChange={(val) => updateAutoCleanSetting(val)}
+                trackColor={{ false: "#52525b", true: isDark ? "#ffffff" : "#000000" }}
+                thumbColor={isAutoCleanEnabled ? (isDark ? "#000000" : "#ffffff") : "#a1a1aa"}
+              />
             </View>
           </View>
         </View>

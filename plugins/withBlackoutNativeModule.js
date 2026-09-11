@@ -15,6 +15,7 @@ const withBlackoutNativeModule = (config) => {
       "android.permission.SYSTEM_ALERT_WINDOW",
       "android.permission.BIND_ACCESSIBILITY_SERVICE",
       "android.permission.QUERY_ALL_PACKAGES",
+      "android.permission.SCHEDULE_EXACT_ALARM",
     ];
 
     for (const perm of permissionsToAdd) {
