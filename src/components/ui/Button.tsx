@@ -18,17 +18,17 @@ export const Button: React.FC<ButtonProps> = ({
   icon,
   fullWidth = true,
 }) => {
-  let containerStyles = "h-touch-target flex-row items-center justify-center px-6 rounded-none active:scale-95 transition-transform ";
-  let textStyles = "font-bold text-base uppercase tracking-wider ";
+  let containerStyles = "h-touch-target flex-row items-center justify-center px-6 rounded ";
+  let textStyles = "font-body-semibold text-xs uppercase tracking-widest ";
 
   if (variant === "primary") {
-    containerStyles += "bg-primary dark:bg-white text-white border-2 border-primary dark:border-white";
-    textStyles += "text-white dark:text-black";
+    containerStyles += "bg-ink dark:bg-bone border border-ink dark:border-bone";
+    textStyles += "text-paper dark:text-espresso";
   } else if (variant === "secondary") {
-    containerStyles += "bg-transparent text-primary dark:text-white border-2 border-primary dark:border-white";
-    textStyles += "text-primary dark:text-white";
+    containerStyles += "bg-transparent border border-hairline dark:border-hairline-dark";
+    textStyles += "text-ink dark:text-bone";
   } else if (variant === "danger") {
-    containerStyles += "bg-error text-white border-2 border-error";
+    containerStyles += "bg-stamp-red border border-stamp-red";
     textStyles += "text-white";
   }
 

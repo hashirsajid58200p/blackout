@@ -29,22 +29,22 @@ export const Modal: React.FC<ModalProps> = ({
       animationType="fade"
       onRequestClose={onCancel}
     >
-      <View className="flex-1 bg-black/80 justify-center items-center px-margin-page">
-        <View className="w-full bg-white dark:bg-black border-2 border-primary dark:border-white p-6 rounded-none flex-col gap-4">
+      <View className="flex-1 bg-black/60 justify-center items-center px-margin-page">
+        <View className="w-full bg-paper-surface dark:bg-espresso-surface border border-hairline dark:border-hairline-dark p-6 rounded flex-col gap-4">
           <View className="flex-row items-center gap-3">
-            <AlertTriangle size={28} color="#000000" className="dark:text-white" />
-            <Text className="font-bold text-xl uppercase tracking-tight text-primary dark:text-white flex-1">
+            <AlertTriangle size={24} color="#B23A2E" strokeWidth={1.25} />
+            <Text className="font-display text-xl text-ink dark:text-bone tracking-tight flex-1">
               {title}
             </Text>
           </View>
 
-          <Text className="text-base text-secondary dark:text-zinc-300 leading-relaxed">
+          <Text className="font-body text-sm text-ink-muted dark:text-bone-muted leading-relaxed">
             {description}
           </Text>
 
-          <View className="bg-surface-container dark:bg-zinc-900 p-3 border border-primary dark:border-white">
-            <Text className="text-xs font-bold uppercase text-primary dark:text-white text-center">
-              ⚠️ This lock cannot be edited, paused, or undone today.
+          <View className="bg-stamp-red/10 p-3 border border-stamp-red/30 rounded-sm">
+            <Text className="text-xs font-mono-medium uppercase text-stamp-red text-center tracking-wider">
+              This lock cannot be edited, paused, or undone today.
             </Text>
           </View>
 

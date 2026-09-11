@@ -16,7 +16,7 @@ export const NavigationHeader: React.FC<NavigationHeaderProps> = ({
   const { currentScreen, setCurrentScreen, effectiveTheme } = useApp();
   const insets = useSafeAreaInsets();
   const isDark = effectiveTheme === "dark";
-  const iconColor = isDark ? "#ffffff" : "#000000";
+  const iconColor = isDark ? "#EDE4D3" : "#2B2621";
 
   // Calculate safe top padding for all Android notches/camera punch-holes and iOS status bars
   const topPadding =
@@ -27,22 +27,22 @@ export const NavigationHeader: React.FC<NavigationHeaderProps> = ({
   return (
     <View
       style={{ paddingTop: topPadding }}
-      className="bg-background dark:bg-black border-b-2 border-primary dark:border-white z-40"
+      className="bg-paper dark:bg-espresso border-b border-hairline dark:border-hairline-dark z-40"
     >
       <View className="py-2.5 flex-row justify-between items-center px-margin-page min-h-[52px]">
         {showBack ? (
           <TouchableOpacity
-            activeOpacity={0.8}
+            activeOpacity={0.7}
             onPress={() => setCurrentScreen("home")}
-            className="w-8 h-8 items-center justify-center border border-primary dark:border-white active:bg-primary/10"
+            className="w-8 h-8 items-center justify-center border border-hairline dark:border-hairline-dark rounded active:bg-ink/5 dark:active:bg-bone/5"
           >
-            <ChevronLeft size={18} color={iconColor} />
+            <ChevronLeft size={18} color={iconColor} strokeWidth={1.25} />
           </TouchableOpacity>
         ) : (
           <View className="w-8 h-8" />
         )}
 
-        <Text className="font-bold text-xl uppercase tracking-tighter text-primary dark:text-white">
+        <Text className="font-display text-xl text-ink dark:text-bone tracking-tight">
           {title}
         </Text>
 

@@ -1,5 +1,5 @@
 import React from "react";
-import { View, TouchableOpacity } from "react-native";
+import { View, TouchableOpacity, Text } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useApp } from "../context/AppContext";
 import { LayoutGrid, BarChart2, ShieldAlert, Settings as SettingsIcon } from "lucide-react-native";
@@ -17,32 +17,39 @@ export const BottomNavBar: React.FC = () => {
 
   return (
     <View
-      style={{ paddingBottom: Math.max(insets.bottom, 8) }}
-      className="absolute bottom-0 left-0 right-0 bg-background dark:bg-black border-t-2 border-primary dark:border-white flex-row justify-around items-center pt-2 z-50"
+      style={{ paddingBottom: Math.max(insets.bottom, 10) }}
+      className="absolute bottom-0 left-0 right-0 bg-paper dark:bg-espresso border-t border-hairline dark:border-hairline-dark flex-row justify-around items-center pt-2 z-50"
     >
       {navItems.map((item) => {
         const IconComponent = item.icon;
         const isActive = currentScreen === item.id;
         const iconColor = isActive
           ? isDark
-            ? "#000000"
-            : "#ffffff"
+            ? "#EDE4D3"
+            : "#2B2621"
           : isDark
-          ? "#a3a3a3"
-          : "#737373";
+          ? "#A89A85"
+          : "#6E6459";
 
         return (
           <TouchableOpacity
             key={item.id}
-            activeOpacity={0.8}
+            activeOpacity={0.7}
             onPress={() => setCurrentScreen(item.id as any)}
-            className={`w-12 h-12 justify-center items-center rounded-none border ${
-              isActive
-                ? "bg-primary dark:bg-white border-primary dark:border-white"
-                : "bg-transparent border-transparent"
-            }`}
+            className="flex-1 items-center justify-center py-1"
           >
-            <IconComponent size={22} color={iconColor} />
+            <IconComponent size={20} color={iconColor} strokeWidth={isActive ? 1.75 : 1.25} />
+            <View className="mt-1">
+              <Text
+                className={`text-[10px] uppercase tracking-widest ${
+                  isActive
+                    ? "font-body-semibold text-ink dark:text-bone"
+                    : "font-body text-ink-muted dark:text-bone-muted"
+                }`}
+              >
+                {item.label}
+              </Text>
+            </View>
           </TouchableOpacity>
         );
       })}

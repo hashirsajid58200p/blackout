@@ -12,24 +12,20 @@ export const StatusPill: React.FC<StatusPillProps> = ({ isLocked }) => {
   const isDark = effectiveTheme === "dark";
 
   if (isLocked) {
-    const iconColor = isDark ? "#000000" : "#ffffff";
-
     return (
-      <View className="bg-primary dark:bg-white px-2.5 py-1 flex-row items-center justify-center gap-1.5 border border-primary dark:border-white min-h-[26px]">
-        <Lock size={13} color={iconColor} />
-        <Text className="text-white dark:text-black font-bold text-xs uppercase leading-none">
+      <View className="bg-stamp-red/10 border border-stamp-red px-2 py-0.5 rounded-sm flex-row items-center justify-center gap-1 min-h-[22px]">
+        <Lock size={11} color="#B23A2E" strokeWidth={1.25} />
+        <Text className="text-stamp-red font-mono-bold text-[10px] uppercase tracking-wider leading-none">
           LOCKED
         </Text>
       </View>
     );
   }
 
-  const iconColor = isDark ? "#a1a1aa" : "#5e5e5e";
-
   return (
-    <View className="bg-surface-container dark:bg-zinc-900 px-2.5 py-1 flex-row items-center justify-center gap-1.5 border border-outline-variant dark:border-zinc-700 min-h-[26px]">
-      <Check size={13} color={iconColor} />
-      <Text className="text-secondary dark:text-zinc-300 font-bold text-xs uppercase leading-none">
+    <View className="bg-stamp-olive/10 border border-stamp-olive px-2 py-0.5 rounded-sm flex-row items-center justify-center gap-1 min-h-[22px]">
+      <Check size={11} color="#6E7A54" strokeWidth={1.25} />
+      <Text className="text-stamp-olive font-mono-bold text-[10px] uppercase tracking-wider leading-none">
         ACTIVE
       </Text>
     </View>
