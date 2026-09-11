@@ -348,7 +348,7 @@ class BlackoutAccessibilityService : AccessibilityService() {
         val layout = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER
-            setBackgroundColor(Color.BLACK)
+            setBackgroundColor(Color.parseColor("#1B1712")) // Vintage Minimalist Espresso
             setPadding(64, 64, 64, 64)
             isClickable = true
             isFocusable = true
@@ -356,30 +356,39 @@ class BlackoutAccessibilityService : AccessibilityService() {
             visibility = View.GONE
         }
 
-        // Monolith Logo / Icon Box
+        // Vintage Minimalist Rubber Stamp / Lock Badge
         val iconBox = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER
-            setBackgroundColor(Color.BLACK)
-            val sizePx = (72 * resources.displayMetrics.density).toInt()
+            val drawable = android.graphics.drawable.GradientDrawable().apply {
+                shape = android.graphics.drawable.GradientDrawable.OVAL
+                setColor(Color.parseColor("#241F19")) // espresso-surface
+                setStroke((1.5f * resources.displayMetrics.density).toInt(), Color.parseColor("#B23A2E")) // stamp-red
+            }
+            background = drawable
+            val sizePx = (80 * resources.displayMetrics.density).toInt()
             layoutParams = LinearLayout.LayoutParams(sizePx, sizePx).apply {
                 bottomMargin = (32 * resources.displayMetrics.density).toInt()
             }
+            rotation = -3f
         }
-        val iconInner = View(this).apply {
-            setBackgroundColor(Color.WHITE)
-            val innerSize = (40 * resources.displayMetrics.density).toInt()
-            layoutParams = LinearLayout.LayoutParams(innerSize, innerSize)
+        val stampText = TextView(this).apply {
+            text = "LOCKED"
+            setTextColor(Color.parseColor("#B23A2E"))
+            setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
+            typeface = android.graphics.Typeface.MONOSPACE
+            gravity = Gravity.CENTER
+            letterSpacing = 0.2f
         }
-        iconBox.addView(iconInner)
+        iconBox.addView(stampText)
         layout.addView(iconBox)
 
         // Title: BLACKOUT
         val titleText = TextView(this).apply {
             text = "BLACKOUT"
-            setTextColor(Color.WHITE)
+            setTextColor(Color.parseColor("#EDE4D3")) // bone
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 28f)
-            typeface = android.graphics.Typeface.DEFAULT_BOLD
+            typeface = android.graphics.Typeface.SERIF
             gravity = Gravity.CENTER
             letterSpacing = 0.15f
         }
@@ -388,9 +397,9 @@ class BlackoutAccessibilityService : AccessibilityService() {
         // Subtitle: TARGET APP IS DARK
         appNameTextView = TextView(this).apply {
             text = "APP IS DARK"
-            setTextColor(Color.parseColor("#E4E4E7"))
+            setTextColor(Color.parseColor("#EDE4D3")) // bone
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
-            typeface = android.graphics.Typeface.DEFAULT_BOLD
+            typeface = android.graphics.Typeface.SERIF
             gravity = Gravity.CENTER
             letterSpacing = 0.08f
             setPadding(0, 16, 0, 8)
@@ -400,7 +409,7 @@ class BlackoutAccessibilityService : AccessibilityService() {
         // Warning / Lock explanation
         warningTextView = TextView(this).apply {
             text = "Daily screen time allowance reached.\nApplication is locked until 12:00 AM midnight.\nDiscipline by design."
-            setTextColor(Color.parseColor("#A1A1AA"))
+            setTextColor(Color.parseColor("#A89A85")) // bone-muted
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
             gravity = Gravity.CENTER
             setPadding(0, 8, 0, 40)
@@ -411,8 +420,14 @@ class BlackoutAccessibilityService : AccessibilityService() {
         // Action Button: RETURN TO HOME SCREEN
         val homeButton = Button(this).apply {
             text = "RETURN TO HOME SCREEN"
-            setTextColor(Color.BLACK)
-            setBackgroundColor(Color.WHITE)
+            setTextColor(Color.parseColor("#1B1712")) // espresso
+            val btnDrawable = android.graphics.drawable.GradientDrawable().apply {
+                shape = android.graphics.drawable.GradientDrawable.RECTANGLE
+                cornerRadius = 4f * resources.displayMetrics.density
+                setColor(Color.parseColor("#EDE4D3")) // bone
+                setStroke((1f * resources.displayMetrics.density).toInt(), Color.parseColor("#EDE4D3"))
+            }
+            background = btnDrawable
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
             typeface = android.graphics.Typeface.DEFAULT_BOLD
             letterSpacing = 0.08f
