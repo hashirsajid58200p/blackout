@@ -22,8 +22,8 @@ export const HomeScreen: React.FC = () => {
   const [selectedAppPackage, setSelectedAppPackage] = useState<string | null>(null);
 
   const isDark = effectiveTheme === "dark";
-  const iconColor = isDark ? "#ffffff" : "#000000";
-  const fabIconColor = isDark ? "#000000" : "#ffffff";
+  const iconColor = isDark ? "#EDE4D3" : "#2B2621";
+  const fabIconColor = isDark ? "#1B1712" : "#F4EFE4";
 
   useEffect(() => {
     refreshUsageStats();
@@ -83,18 +83,14 @@ export const HomeScreen: React.FC = () => {
 
   const circleCircumference = 408.4;
 
-  const getDynamicMonochromeShade = (index: number, total: number, isDarkTheme: boolean): string => {
+  const getDynamicVintageShade = (index: number, total: number, isDarkTheme: boolean): string => {
     if (total <= 1) {
-      return isDarkTheme ? "hsl(0, 0%, 100%)" : "hsl(0, 0%, 0%)";
+      return isDarkTheme ? "#EDE4D3" : "#2B2621";
     }
-    const ratio = index / (total - 1);
-    if (isDarkTheme) {
-      const lightness = Math.round(100 - ratio * 65);
-      return `hsl(0, 0%, ${lightness}%)`;
-    } else {
-      const lightness = Math.round(ratio * 70);
-      return `hsl(0, 0%, ${lightness}%)`;
-    }
+    const palette = isDarkTheme
+      ? ["#EDE4D3", "#D9CEB9", "#A89A85", "#8C7F70", "#6E7A54", "#6E6459", "#52493F"]
+      : ["#2B2621", "#4A4036", "#6E6459", "#8C7F70", "#6E7A54", "#A89A85", "#C2B6A3"];
+    return palette[index % palette.length];
   };
 
   const sortedApps = [...chartApps].sort((a, b) => b.usedTodayMs - a.usedTodayMs);
@@ -105,7 +101,7 @@ export const HomeScreen: React.FC = () => {
     const strokeDash = usageFraction * circleCircumference;
     const startAngle = currentAngle;
     currentAngle += usageFraction * 360;
-    const shadeColor = getDynamicMonochromeShade(index, sortedApps.length, isDark);
+    const shadeColor = getDynamicVintageShade(index, sortedApps.length, isDark);
 
     return {
       packageName: app.packageName,
@@ -123,16 +119,16 @@ export const HomeScreen: React.FC = () => {
   const activeFocusApp = appSegments.find((a) => a.packageName === selectedAppPackage);
 
   return (
-    <View className="flex-1 bg-background dark:bg-black">
+    <View className="flex-1 bg-paper dark:bg-espresso">
       <NavigationHeader title="HOME" />
 
       <ScrollView contentContainerStyle={{ paddingBottom: 120 }} className="px-margin-page pt-4 flex-1">
         {/* Date Header */}
         <View className="flex-col gap-1 mb-6">
-          <Text className="font-bold text-3xl text-primary dark:text-white uppercase tracking-tight">
-            FOCUS
+          <Text className="font-display text-3xl text-ink dark:text-bone tracking-tight">
+            Focus
           </Text>
-          <Text className="font-bold text-xs text-secondary dark:text-zinc-400 uppercase tracking-widest">
+          <Text className="font-mono text-xs text-ink-muted dark:text-bone-muted uppercase tracking-widest">
             {getTodayFormatted()}
           </Text>
         </View>
@@ -140,31 +136,29 @@ export const HomeScreen: React.FC = () => {
         {/* Permission Notice if missing */}
         {(!permissions.usageStats || !permissions.overlay || !permissions.accessibility || !permissions.deviceAdmin) && (
           <TouchableOpacity
-            activeOpacity={0.8}
+            activeOpacity={0.7}
             onPress={() => setCurrentScreen("permissions")}
-            className="border-2 border-primary dark:border-white bg-surface-container dark:bg-black p-4 mb-6 flex-col rounded-none"
+            className="border border-stamp-red/40 bg-stamp-red/10 p-3.5 mb-6 flex-col rounded"
           >
-            <View className="flex-row items-center gap-2.5 mb-1">
-              <View className="w-5 h-5 items-center justify-center">
-                <ShieldAlert size={20} color={iconColor} />
-              </View>
-              <Text className="font-bold text-sm uppercase tracking-wider text-primary dark:text-white flex-1 leading-5">
-                PERMISSIONS REQUIRED
+            <View className="flex-row items-center gap-2 mb-1">
+              <ShieldAlert size={16} color="#B23A2E" strokeWidth={1.25} />
+              <Text className="font-body-semibold text-xs uppercase tracking-wider text-stamp-red flex-1">
+                Permissions Required
               </Text>
             </View>
-            <Text className="text-xs text-secondary dark:text-zinc-400 leading-4">
+            <Text className="font-body text-xs text-stamp-red/90 leading-4">
               Tap to grant Usage Access, Overlay, Accessibility & Device Admin privileges
             </Text>
           </TouchableOpacity>
         )}
 
-        {/* Multi-Segment Monochrome Donut Chart (ALWAYS ACCURATE & VISIBLE) */}
-        <Card className="p-5 mb-6 items-center justify-center flex-col rounded-none bg-surface-container-lowest dark:bg-black">
+        {/* Multi-Segment Warm Donut Chart */}
+        <Card className="p-5 mb-6 items-center justify-center flex-col">
           <View className="w-full flex-row justify-between items-center mb-4">
-            <Text className="font-bold text-xs text-secondary dark:text-zinc-400 uppercase tracking-widest">
-              TODAY'S USAGE OVERVIEW
+            <Text className="font-body-semibold text-[11px] text-ink-muted dark:text-bone-muted uppercase tracking-widest">
+              Today's Usage Overview
             </Text>
-            <Text className="font-bold text-xs text-primary dark:text-white uppercase">
+            <Text className="font-mono-bold text-xs text-ink dark:text-bone">
               {formatMs(totalUsedTodayMs)}
             </Text>
           </View>
@@ -176,8 +170,8 @@ export const HomeScreen: React.FC = () => {
                 cx="80"
                 cy="80"
                 r="65"
-                stroke={isDark ? "#27272a" : "#e4e4e7"}
-                strokeWidth="14"
+                stroke={isDark ? "#3B3327" : "#D9CEB9"}
+                strokeWidth="12"
                 fill="none"
               />
 
@@ -192,7 +186,7 @@ export const HomeScreen: React.FC = () => {
                       cy="80"
                       r="65"
                       stroke={seg.shadeColor}
-                      strokeWidth={isSelected ? "18" : "14"}
+                      strokeWidth={isSelected ? "16" : "12"}
                       fill="none"
                       strokeDasharray={`${seg.strokeDash} ${circleCircumference - seg.strokeDash}`}
                       strokeLinecap="butt"
@@ -205,8 +199,8 @@ export const HomeScreen: React.FC = () => {
                   cx="80"
                   cy="80"
                   r="65"
-                  stroke={isDark ? "#ffffff" : "#000000"}
-                  strokeWidth="14"
+                  stroke={isDark ? "#EDE4D3" : "#2B2621"}
+                  strokeWidth="12"
                   fill="none"
                   strokeDasharray="408.4"
                   strokeLinecap="butt"
@@ -216,20 +210,20 @@ export const HomeScreen: React.FC = () => {
             </Svg>
 
             <View className="absolute items-center justify-center pointer-events-none px-2 text-center">
-              <Text numberOfLines={1} className="font-bold text-2xl text-primary dark:text-white">
+              <Text numberOfLines={1} className="font-mono-bold text-2xl text-ink dark:text-bone">
                 {activeFocusApp ? formatMs(activeFocusApp.usedTodayMs) : formatMs(totalUsedTodayMs)}
               </Text>
-              <Text numberOfLines={1} className="font-bold text-[10px] text-secondary dark:text-zinc-400 uppercase tracking-widest mt-0.5 max-w-[110px] text-center">
-                {activeFocusApp ? activeFocusApp.appName : "TOTAL USAGE"}
+              <Text numberOfLines={1} className="font-display text-xs text-ink-muted dark:text-bone-muted tracking-wide mt-0.5 max-w-[110px] text-center">
+                {activeFocusApp ? activeFocusApp.appName : "Total Usage"}
               </Text>
             </View>
           </View>
 
           {/* App Usage Segment Legend Breakdown */}
           {appSegments.length > 0 && (
-            <View className="w-full flex-col gap-2 pt-2 border-t border-primary/20 dark:border-white/20">
-              <Text className="text-[10px] font-bold text-secondary dark:text-zinc-500 uppercase tracking-widest mb-1">
-                APP USAGE BREAKDOWN (TAP TO HIGHLIGHT)
+            <View className="w-full flex-col gap-1.5 pt-3 border-t border-hairline/60 dark:border-hairline-dark/60">
+              <Text className="text-[10px] font-body-semibold text-ink-muted dark:text-bone-muted uppercase tracking-widest mb-1">
+                App Usage Breakdown (Tap to Highlight)
               </Text>
               {appSegments.slice(0, 8).map((seg) => {
                 const percentOfTotal = totalUsedTodayMs > 0
@@ -240,23 +234,23 @@ export const HomeScreen: React.FC = () => {
                 return (
                   <TouchableOpacity
                     key={seg.packageName}
-                    activeOpacity={0.8}
+                    activeOpacity={0.7}
                     onPress={() => setSelectedAppPackage(isSelected ? null : seg.packageName)}
-                    className={`flex-row justify-between items-center py-1.5 px-2 border ${
+                    className={`flex-row justify-between items-center py-1.5 px-2 rounded ${
                       isSelected
-                        ? "border-primary dark:border-white bg-primary/10 dark:bg-white/10"
-                        : "border-transparent"
+                        ? "border border-ink dark:border-bone bg-ink/5 dark:bg-bone/5"
+                        : "border border-transparent"
                     }`}
                   >
                     <View className="flex-row items-center gap-2 flex-1 pr-2">
-                      <View style={{ backgroundColor: seg.shadeColor }} className="w-3.5 h-3.5 rounded-none border border-primary dark:border-white" />
-                      <Text numberOfLines={1} className="font-bold text-xs text-primary dark:text-white uppercase flex-1">
+                      <View style={{ backgroundColor: seg.shadeColor }} className="w-3 h-3 rounded-sm border border-hairline dark:border-hairline-dark" />
+                      <Text numberOfLines={1} className="font-body-medium text-xs text-ink dark:text-bone flex-1">
                         {seg.appName}
                       </Text>
                     </View>
 
-                    <Text className="font-bold text-[11px] text-secondary dark:text-zinc-300 uppercase">
-                      {formatMs(seg.usedTodayMs)} ({percentOfTotal}%){seg.openCount ? ` • ${seg.openCount} OPENS` : ""}
+                    <Text className="font-mono text-[11px] text-ink-muted dark:text-bone-muted">
+                      {formatMs(seg.usedTodayMs)} ({percentOfTotal}%){seg.openCount ? ` • ${seg.openCount} opens` : ""}
                     </Text>
                   </TouchableOpacity>
                 );
@@ -268,25 +262,24 @@ export const HomeScreen: React.FC = () => {
         {/* Tracked Apps List */}
         {trackedApps.length === 0 ? (
           <Card className="py-12 items-center justify-center text-center">
-            <Text className="font-bold text-lg uppercase text-primary dark:text-white mb-2">
-              NO APP LOCKS ACTIVE
+            <Text className="font-display text-lg text-ink dark:text-bone mb-1">
+              No App Locks Active
             </Text>
-            <Text className="text-sm text-secondary dark:text-zinc-400 text-center max-w-[240px]">
+            <Text className="font-body text-xs text-ink-muted dark:text-bone-muted text-center max-w-[240px]">
               Tap the (+) button below to pick an installed app and set a daily limit.
             </Text>
           </Card>
         ) : (
-          <View className="flex-col gap-3.5">
-            <Text className="font-bold text-xs text-secondary dark:text-zinc-400 uppercase tracking-widest">
+          <View className="flex-col gap-3">
+            <Text className="font-body-semibold text-xs text-ink-muted dark:text-bone-muted uppercase tracking-widest">
               LOCKED APPLICATIONS
             </Text>
 
-            {trackedApps.map((app, appIdx) => {
+            {trackedApps.map((app) => {
               const percent = Math.min(
                 100,
                 Math.round((app.usedTodayMs / app.dailyLimitMs) * 100)
               );
-              const shadeColor = getDynamicMonochromeShade(appIdx, trackedApps.length, isDark);
 
               return (
                 <Card
@@ -299,25 +292,25 @@ export const HomeScreen: React.FC = () => {
                       {app.iconUri ? (
                         <Image
                           source={{ uri: app.iconUri }}
-                          className="w-10 h-10 rounded-lg"
+                          className="w-9 h-9 rounded border border-hairline dark:border-hairline-dark"
                           resizeMode="cover"
                         />
                       ) : app.iconBase64 ? (
                         <Image
                           source={{ uri: `data:image/png;base64,${app.iconBase64}` }}
-                          className="w-10 h-10 rounded-lg"
+                          className="w-9 h-9 rounded border border-hairline dark:border-hairline-dark"
                           resizeMode="cover"
                         />
                       ) : (
-                        <View className="w-10 h-10 rounded-lg bg-gray-200 dark:bg-gray-700 items-center justify-center">
-                          <Text className="text-lg font-bold text-gray-500 dark:text-gray-400">
+                        <View className="w-9 h-9 rounded bg-paper dark:bg-espresso border border-hairline dark:border-hairline-dark items-center justify-center">
+                          <Text className="font-display text-sm font-bold text-ink dark:text-bone">
                             {app.appName.charAt(0).toUpperCase()}
                           </Text>
                         </View>
                       )}
                       <Text
                         numberOfLines={1}
-                        className="font-bold text-sm uppercase tracking-wider text-primary dark:text-white flex-1 leading-5"
+                        className="font-body-semibold text-sm text-ink dark:text-bone flex-1 leading-5"
                       >
                         {app.appName}
                       </Text>
@@ -328,10 +321,10 @@ export const HomeScreen: React.FC = () => {
 
                   <View className="flex-col gap-1.5 w-full mt-1">
                     <View className="flex-row justify-between items-end">
-                      <Text className="font-bold text-xs text-secondary dark:text-zinc-300">
+                      <Text className="font-mono text-xs text-ink-muted dark:text-bone-muted">
                         {formatMs(app.usedTodayMs)} / {formatMs(app.dailyLimitMs)} limit
                       </Text>
-                      <Text className="font-bold text-xs text-primary dark:text-white">
+                      <Text className={`font-mono-bold text-xs ${app.isLocked ? "text-stamp-red" : "text-ink dark:text-bone"}`}>
                         {percent}%
                       </Text>
                     </View>
@@ -349,9 +342,9 @@ export const HomeScreen: React.FC = () => {
       <TouchableOpacity
         activeOpacity={0.8}
         onPress={() => setCurrentScreen("add_app")}
-        className="absolute bottom-20 right-6 w-14 h-14 bg-primary dark:bg-white rounded-full items-center justify-center z-40 border-2 border-primary dark:border-white shadow-none active:scale-95"
+        className="absolute bottom-20 right-6 w-14 h-14 bg-ink dark:bg-bone rounded-full items-center justify-center z-40 border border-ink dark:border-bone shadow-none active:scale-95"
       >
-        <Plus size={28} color={fabIconColor} />
+        <Plus size={26} color={fabIconColor} strokeWidth={1.5} />
       </TouchableOpacity>
 
       <BottomNavBar />
