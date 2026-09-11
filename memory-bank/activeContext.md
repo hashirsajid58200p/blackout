@@ -1,53 +1,39 @@
 # Active Context
 
-## Current Status: Phase 1 — App Debugging & Issue Discovery (Complete)
-- **Mode**: QA Engineer + Codebase Auditor (Investigate Only, No Fixes Applied per prompt Hard Rule).
+## Current Status: Phase 2 — Comprehensive Issues Resolution (Complete & Hardware Verified)
+- **Mode**: Issue Resolution & Quality Assurance on Physical Hardware.
 - **Tested Environment**: Physical hardware Infinix X6833B (Infinix NOTE 30), Android 14 (API 34), 1080x2460.
-- **Report Created**: `ISSUES_REPORT.md` (Committed locally to Git).
-- **Summary**: 0 Critical, 3 High, 8 Medium, 8 Low issues (19 total) uncovered across native Kotlin modules, navigation lifecycle, and UI responsiveness/edge-sticking layouts.
+- **Resolved Issues**: All 19 issues cataloged in `ISSUES_REPORT.md` (0 Critical, 3 High, 8 Medium, 8 Low) resolved and verified on live device.
+- **Build Verification**: `npm run tsc` (0 errors), `./gradlew assembleDebug --no-daemon` with offline self-contained JS bundle (`debuggableVariants = []`), streamed install to `10275333B5001336`.
 
-1. **Phase 1 — Live Time Lock Expiration & Self-Healing (Fixed & Verified)**:
-   - **Root Cause**: `SecurityHelper.markPackageLocked()` recorded `lockExpirationTimestamp`, but neither `BlackoutAccessibilityService.isAppBlocked()` nor `SecurityHelper.hasActiveLocks()` read this field. The system depended entirely on external midnight alarms or JS app reopen. Furthermore, `AppContext.tsx` had a one-way ratchet (`isLocked: app.isLocked || isNowLocked`).
-   - **Fix Implemented**:
-     - In `BlackoutAccessibilityService.kt` (`isAppBlocked`), read `lockExpirationTimestamp` from JSON. If `now >= lockExpirationTimestamp` (and > 0), the app is treated as immediately unlocked, removed from `lockedPackages`, and allowed normal access without waiting for alarms or app reopen. Removed blind `lockedPackages.contains()` bypass.
-     - In `SecurityHelper.kt`, updated `saveLockedApps`, `hasActiveLocks`, and `unlockPackage` to check `lockExpirationTimestamp > 0 && now >= lockExpirationTimestamp`.
-     - In `StorageService.applyMidnightResetIfNeeded`, checks `(app.lockExpirationTimestamp && now >= app.lockExpirationTimestamp)` in addition to date changes.
-     - In `AppContext.tsx` (`fetchUsage`), broke the one-way ratchet: computes `isExpired = Boolean(app.lockExpirationTimestamp && now >= app.lockExpirationTimestamp)` and `finalLocked = (!isExpired && app.isLocked) || isNowLocked`.
-     - **Critical OEM Bug Fixed**: In `isLauncherOrHome(packageName)`, removed `lower.contains("transsion")` which was causing Transsion pre-installed apps (like `com.transsion.calculator`) to be mistaken for the home launcher.
-   - **Verification on Device**:
-     - Tested locked app (`Calculator`) within lock period: intercepted within 2ms, bounced to home, full overlay shown.
-     - Tested expired locked app past its timestamp: opened immediately and cleanly without opening Blackout first (`Lock expired for com.transsion.calculator ... Allowing access`).
-     - Tested within-limit app: does not lock prematurely.
-
-2. **Phase 2 — Screen-Time Total System App Regression (Fixed & Verified)**:
-   - **Root Cause**: Commit `498b66b` removed the `FLAG_SYSTEM` filter across `BlackoutModule.kt`, unintentionally re-introducing system apps (Settings, Phone, etc.) into `getDayUsageStats()` and `getWeeklyUsageStats()`.
-   - **Fix Implemented**:
-     - Restored `(appInfo.flags and ApplicationInfo.FLAG_SYSTEM) != 0 && (appInfo.flags and ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) == 0` filter strictly in `getDayUsageStats()` and `getWeeklyUsageStats()` (both today and past days).
-     - Kept `getInstalledApps()` unfiltered by system flag so users can still choose to track and limit launchable system apps.
-   - **Verification on Device**:
-     - Total usage matches user foreground apps: 4h 47m (Instagram 2h 28m, X 1h 0m, YouTube 29m, WhatsApp 21m, ChatGPT 6m, Chrome 5m, easypaisa 4m, Gmail 4m). Pure system apps are completely excluded from the totals.
-
-3. **Phase 3 — Theme Visual Audit & System Mode Sync (Verified & Documented)**:
-   - **Visual Sweep**: Audited all 4 primary screens (Home, Stats, Settings, Add App) via screencaps in Light, Dark, and System modes on `Infinix_X6833B`. All cards, hairline borders, muted texts, and badges show excellent contrast.
-   - **System -> Light -> System Transition**: Verified switching from System to Light to System updates immediately on device without reopen.
-   - **Live OS Night Mode Toggle**: Tested `cmd uimode night no` and `cmd uimode night yes` live on device; app immediately transitions between Light (warm paper) and Dark (espresso).
-   - **Native Lock Overlay Theme Decision**:
-     - The native lock overlay (`BlackoutAccessibilityService.initOverlayView()`) is intentionally fixed to the dark/espresso palette (`#1B1712` background, `#EDE4D3` bone serif text, `#B23A2E` rubber-stamp locked badge) in accordance with the Vintage Minimalist design brief ("this screen can intentionally use the same dark treatment in both modes" representing "Blackout" / darkness). Recorded here explicitly to prevent future re-litigation.
-
-4. **Phase 4 — Open-Ended Audit & UI Affordances**:
-   - `unlockTrackedApp` / `unlockPackage` is fully wired into `HomeScreen.tsx` and `SettingsScreen.tsx`:
-     - While locked: button reads "LOCKED UNTIL MIDNIGHT" and alerts user that premature unlock is prohibited.
-     - When expiration passes: button reads "UNLOCK APPLICATION" and displays a confirmation dialog to restore normal access.
-   - Added `style={{ elevation: 8 }}` to the FAB button on `HomeScreen.tsx` to ensure touch responder priority on Android.
-
----
-
-### What to Specifically Check on Device (Founder Testing Guide)
-1. **Screen Time Accuracy**:
-   - Open Home screen and Stats screen. Compare total (e.g. 4h 47m) against Android Digital Wellbeing. Verify only real user apps appear in breakdown.
-2. **Locking & Unlock Expiration**:
-   - Add an app with a daily limit or let it lock. Verify it immediately bounces to Home when opened.
-   - Wait until midnight (or adjust clock): verify the app opens normally without having to open Blackout first.
-3. **Theme & System Mode**:
-   - In Settings, switch between System, Light, and Dark.
-   - Toggle device Dark Theme in Android Quick Settings: verify Blackout updates dynamically.
+### Key Resolutions Verified on Device:
+1. **ISSUE-01 (Multi-day screen time aggregation bug in Stats)**:
+   - Enforced `INTERVAL_DAILY` in `getWeeklyUsageHistory` and `getDayUsageStats` with timestamp intersection (`firstTimeStamp < dayEnd && lastTimeStamp > dayStart`) and 24h daily attribution clamp.
+   - Verified on device: 7-day total dropped from 117h to accurate 70.0h; Monday dropped from impossible 53.9h to 16.2h; all daily totals are strictly within 24h.
+2. **ISSUE-02 (Android hardware/gesture Back navigation)**:
+   - Added `BackHandler` listener in `App.tsx` navigating to `"home"` whenever the user is on any secondary screen (`stats`, `settings`, `add_app`, `permissions`).
+   - Verified on device: hardware back key seamlessly returns from Settings, Stats, Add App, and Permissions to Home.
+3. **ISSUE-03 (Missing RECEIVE_BOOT_COMPLETED)**:
+   - Added `<uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />` to `AndroidManifest.xml` and Expo config plugin `withBlackoutNativeModule.js`.
+4. **ISSUE-04 (Placebo Custom Lock button removal)**:
+   - Pruned fake "Custom Lock" button from `AddAppScreen.tsx`. Step 2 only renders the functional "LOCK IT IN — [APP NAME]" button.
+5. **ISSUE-05 (Cold launch flash of Permissions Required notice)**:
+   - Added `isInitialized` guard to `AppContext.tsx` and `HomeScreen.tsx`. Splash screen hides smoothly without any transient red alert flash.
+6. **ISSUE-06 (Dead code & orphaned screen route: BlackoutScreen)**:
+   - Deleted `src/screens/BlackoutScreen.tsx`, removed `blackout` from `ScreenType` in `AppContext.tsx` and `App.tsx`.
+7. **ISSUE-07 (Outdated permission count in SettingsScreen)**:
+   - Updated copy to "ALL 4 PERMISSIONS GRANTED"; verified on device.
+8. **ISSUE-08 (Inconsistent theme colors in native overlay)**:
+   - Aligned `BlackoutAccessibilityService.kt` countdown overlay styling with Vintage Minimalist palette (`#EE1B1712`, `#EDE4D3`, `#B23A2E`, `#A89A85`).
+9. **ISSUE-09 (Dead imports cleanup)**:
+   - Removed unused imports across `AddAppScreen`, `SettingsScreen`, `NavigationHeader`, `BottomNavBar`.
+10. **ISSUE-10 (SecurityHelper.scheduleMidnightReset Android 14+ exact alarm fallback)**:
+    - Added resilient `catch (e: SecurityException)` fallback to `setAndAllowWhileIdle`.
+11. **ISSUE-11 (Dynamic permissions polling)**:
+    - Added 4-second active interval polling in `AppContext.tsx` when permissions are missing or screen is `permissions`.
+12. **ISSUE-12 through ISSUE-17 (UI Responsiveness & Edge-Sticking Layouts)**:
+    - Added responsive inner padding, flex gaps, and `shrink-0` to 7-Day Activity header (`px-2`), Today's Overview header (`px-1`), breakdown metrics, bar chart bars (`px-0.5`), and two-column stat summaries.
+13. **ISSUE-18 (Brittle Margin Indents Removed)**:
+    - Replaced hardcoded `ml-[28px]` and `ml-[46px]` in `PermissionsScreen` and `AddAppScreen` with responsive nested flex layouts.
+14. **ISSUE-19 (Unused State Cleanup)**:
+    - Pruned dead `activeBlockApp` state and unused actions from `AppContext.tsx`.

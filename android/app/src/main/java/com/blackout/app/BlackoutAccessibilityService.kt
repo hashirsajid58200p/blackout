@@ -667,7 +667,7 @@ class BlackoutAccessibilityService : AccessibilityService() {
                 val layout = LinearLayout(this).apply {
                     orientation = LinearLayout.VERTICAL
                     gravity = Gravity.CENTER
-                    setBackgroundColor(Color.parseColor("#EE09090B"))
+                    setBackgroundColor(Color.parseColor("#EE1B1712"))
                     val padH = (24 * resources.displayMetrics.density).toInt()
                     val padV = (16 * resources.displayMetrics.density).toInt()
                     setPadding(padH, padV, padH, padV)
@@ -675,7 +675,7 @@ class BlackoutAccessibilityService : AccessibilityService() {
 
                 val tagText = TextView(this).apply {
                     text = "BLACKOUT WARNING"
-                    setTextColor(Color.parseColor("#EF4444"))
+                    setTextColor(Color.parseColor("#B23A2E"))
                     setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
                     typeface = android.graphics.Typeface.DEFAULT_BOLD
                     gravity = Gravity.CENTER
@@ -685,7 +685,7 @@ class BlackoutAccessibilityService : AccessibilityService() {
 
                 val numText = TextView(this).apply {
                     text = countdownSeconds.toString()
-                    setTextColor(Color.WHITE)
+                    setTextColor(Color.parseColor("#EDE4D3"))
                     setTextSize(TypedValue.COMPLEX_UNIT_SP, 40f)
                     typeface = android.graphics.Typeface.DEFAULT_BOLD
                     gravity = Gravity.CENTER
@@ -696,7 +696,7 @@ class BlackoutAccessibilityService : AccessibilityService() {
 
                 val subText = TextView(this).apply {
                     text = "$targetAppName LOCKS IN ${countdownSeconds}s"
-                    setTextColor(Color.parseColor("#D4D4D8"))
+                    setTextColor(Color.parseColor("#A89A85"))
                     setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
                     typeface = android.graphics.Typeface.DEFAULT_BOLD
                     gravity = Gravity.CENTER

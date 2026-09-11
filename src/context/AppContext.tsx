@@ -10,7 +10,6 @@ type ScreenType =
   | "permissions"
   | "home"
   | "add_app"
-  | "blackout"
   | "stats"
   | "settings";
 
@@ -42,8 +41,6 @@ interface AppContextType {
     iconUri?: string
   ) => Promise<{ success: boolean; error?: string }>;
   unlockTrackedApp: (packageName: string) => Promise<{ success: boolean; error?: string }>;
-  activeBlockApp: TrackedApp | null;
-  setActiveBlockApp: (app: TrackedApp | null) => void;
   colorScheme: "light" | "dark";
   effectiveTheme: "light" | "dark";
   refreshData: () => Promise<void>;
@@ -51,6 +48,7 @@ interface AppContextType {
   todayTotalUsageMs: number;
   weeklyUsageStats: WeeklyStats[];
   refreshUsageStats: () => Promise<void>;
+  isInitialized: boolean;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -72,7 +70,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     accessibility: false,
     deviceAdmin: false,
   });
-  const [activeBlockApp, setActiveBlockApp] = useState<TrackedApp | null>(null);
+  const [isInitialized, setIsInitialized] = useState<boolean>(false);
 
   // Synchronized real device screen time state (consumed by HomeScreen & StatsScreen)
   const [todayDeviceUsage, setTodayDeviceUsage] = useState<DeviceAppUsage[]>([]);
@@ -238,6 +236,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
 
       await refreshData();
+      setIsInitialized(true);
     };
 
     init();
@@ -248,8 +247,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       }
     });
 
+    // Dynamic background/split-screen permission revocation polling (ISSUE-11)
+    const pollInterval = setInterval(() => {
+      if (AppState.currentState === "active") {
+        refreshPermissions();
+      }
+    }, 4000);
+
     return () => {
       appStateSub.remove();
+      clearInterval(pollInterval);
     };
   }, [refreshPermissions, refreshData]);
 
@@ -365,8 +372,6 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         updateAutoCleanSetting,
         addTrackedApp,
         unlockTrackedApp,
-        activeBlockApp,
-        setActiveBlockApp,
         colorScheme: sysScheme,
         effectiveTheme,
         refreshData,
@@ -374,6 +379,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         todayTotalUsageMs,
         weeklyUsageStats,
         refreshUsageStats,
+        isInitialized,
       }}
     >
       {children}

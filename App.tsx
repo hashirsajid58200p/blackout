@@ -1,6 +1,6 @@
 import "./global.css";
 import React, { useEffect } from "react";
-import { View, StatusBar } from "react-native";
+import { View, StatusBar, BackHandler } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import * as SplashScreen from "expo-splash-screen";
 import { useFonts } from "expo-font";
@@ -27,14 +27,26 @@ import { OnboardingScreen } from "./src/screens/OnboardingScreen";
 import { PermissionsScreen } from "./src/screens/PermissionsScreen";
 import { HomeScreen } from "./src/screens/HomeScreen";
 import { AddAppScreen } from "./src/screens/AddAppScreen";
-import { BlackoutScreen } from "./src/screens/BlackoutScreen";
 import { StatsScreen } from "./src/screens/StatsScreen";
 import { SettingsScreen } from "./src/screens/SettingsScreen";
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
 const MainContent: React.FC = () => {
-  const { currentScreen, effectiveTheme } = useApp();
+  const { currentScreen, setCurrentScreen, effectiveTheme } = useApp();
+
+  useEffect(() => {
+    const onBackPress = () => {
+      if (currentScreen !== "home" && currentScreen !== "onboarding") {
+        setCurrentScreen("home");
+        return true;
+      }
+      return false;
+    };
+
+    const subscription = BackHandler.addEventListener("hardwareBackPress", onBackPress);
+    return () => subscription.remove();
+  }, [currentScreen, setCurrentScreen]);
 
   const renderScreen = () => {
     switch (currentScreen) {
@@ -46,8 +58,6 @@ const MainContent: React.FC = () => {
         return <HomeScreen />;
       case "add_app":
         return <AddAppScreen />;
-      case "blackout":
-        return <BlackoutScreen />;
       case "stats":
         return <StatsScreen />;
       case "settings":

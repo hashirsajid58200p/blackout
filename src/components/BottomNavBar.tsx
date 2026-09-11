@@ -2,7 +2,7 @@ import React from "react";
 import { View, TouchableOpacity, Text } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useApp } from "../context/AppContext";
-import { LayoutGrid, BarChart2, ShieldAlert, Settings as SettingsIcon } from "lucide-react-native";
+import { LayoutGrid, BarChart2, Settings as SettingsIcon } from "lucide-react-native";
 
 export const BottomNavBar: React.FC = () => {
   const { currentScreen, setCurrentScreen, effectiveTheme } = useApp();

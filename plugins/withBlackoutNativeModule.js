@@ -16,6 +16,7 @@ const withBlackoutNativeModule = (config) => {
       "android.permission.BIND_ACCESSIBILITY_SERVICE",
       "android.permission.QUERY_ALL_PACKAGES",
       "android.permission.SCHEDULE_EXACT_ALARM",
+      "android.permission.RECEIVE_BOOT_COMPLETED",
     ];
 
     for (const perm of permissionsToAdd) {

@@ -21,6 +21,7 @@ export const HomeScreen: React.FC = () => {
     todayTotalUsageMs,
     refreshUsageStats,
     unlockTrackedApp,
+    isInitialized,
   } = useApp();
   const [selectedAppPackage, setSelectedAppPackage] = useState<string | null>(null);
 
@@ -163,7 +164,7 @@ export const HomeScreen: React.FC = () => {
     <View className="flex-1 bg-paper dark:bg-espresso">
       <NavigationHeader title="HOME" />
 
-      <ScrollView contentContainerStyle={{ paddingBottom: 120 }} className="px-margin-page pt-4 flex-1">
+      <ScrollView contentContainerStyle={{ paddingBottom: 160 }} className="px-margin-page pt-4 flex-1">
         {/* Date Header */}
         <View className="flex-col gap-1 mb-6">
           <Text className="font-display text-3xl text-ink dark:text-bone tracking-tight">
@@ -174,8 +175,8 @@ export const HomeScreen: React.FC = () => {
           </Text>
         </View>
 
-        {/* Permission Notice if missing */}
-        {(!permissions.usageStats || !permissions.overlay || !permissions.accessibility || !permissions.deviceAdmin) && (
+        {/* Permission Notice if missing (guarded by isInitialized to avoid cold-launch false error flash) */}
+        {isInitialized && (!permissions.usageStats || !permissions.overlay || !permissions.accessibility || !permissions.deviceAdmin) && (
           <TouchableOpacity
             activeOpacity={0.7}
             onPress={() => setCurrentScreen("permissions")}
@@ -195,12 +196,12 @@ export const HomeScreen: React.FC = () => {
 
         {/* Multi-Segment Warm Donut Chart */}
         <Card className="p-5 mb-6 items-center justify-center flex-col">
-          <View className="w-full flex-row justify-between items-center mb-4">
-            <Text className="font-body-semibold text-[11px] text-ink-muted dark:text-bone-muted uppercase tracking-widest">
+          <View className="w-full flex-row justify-between items-center mb-4 px-1">
+            <Text className="font-body-semibold text-[11px] text-ink-muted dark:text-bone-muted uppercase tracking-widest flex-1 pr-2">
               Today's Usage Overview
             </Text>
-            <Text className="font-mono-bold text-xs text-ink dark:text-bone">
-              {formatMs(totalUsedTodayMs)}
+            <Text className="font-mono-bold text-xs text-ink dark:text-bone shrink-0">
+              {isInitialized ? formatMs(totalUsedTodayMs) : "—"}
             </Text>
           </View>
 
@@ -284,13 +285,13 @@ export const HomeScreen: React.FC = () => {
                     }`}
                   >
                     <View className="flex-row items-center gap-2 flex-1 pr-2">
-                      <View style={{ backgroundColor: seg.shadeColor }} className="w-3 h-3 rounded-sm border border-hairline dark:border-hairline-dark" />
+                      <View style={{ backgroundColor: seg.shadeColor }} className="w-3 h-3 rounded-sm border border-hairline dark:border-hairline-dark shrink-0" />
                       <Text numberOfLines={1} className="font-body-medium text-xs text-ink dark:text-bone flex-1">
                         {seg.appName}
                       </Text>
                     </View>
 
-                    <Text className="font-mono text-[11px] text-ink-muted dark:text-bone-muted">
+                    <Text numberOfLines={1} className="font-mono text-[11px] text-ink-muted dark:text-bone-muted shrink-0">
                       {formatMs(seg.usedTodayMs)} ({percentOfTotal}%){seg.openCount ? ` • ${seg.openCount} opens` : ""}
                     </Text>
                   </TouchableOpacity>

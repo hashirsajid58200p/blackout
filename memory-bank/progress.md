@@ -1,6 +1,27 @@
 # Progress Tracker
 
 ## Completed Features
+- [x] **Phase 2 — Comprehensive Issues Resolution (19/19 Fixed & Verified on Hardware)**:
+  - [x] **ISSUE-01**: Native UsageStatsManager daily bucket aggregation enforced (`INTERVAL_DAILY` + timestamp intersection + 24h clamp). Verified on physical hardware: 7-day total dropped to accurate 70.0h, impossible 53.9h Monday rollup resolved to 16.2h.
+  - [x] **ISSUE-02**: Android system hardware/gesture Back navigation implemented via `BackHandler` in `App.tsx`. Verified smooth return to Home across all screens.
+  - [x] **ISSUE-03**: Added `RECEIVE_BOOT_COMPLETED` permission in `AndroidManifest.xml` and `withBlackoutNativeModule.js`.
+  - [x] **ISSUE-04**: Eliminated non-functional "Custom Lock" placebo button from `AddAppScreen.tsx`.
+  - [x] **ISSUE-05**: Prevented cold launch flash of "PERMISSIONS REQUIRED" notice using `isInitialized` guard.
+  - [x] **ISSUE-06**: Removed dead `BlackoutScreen.tsx` orphaned route.
+  - [x] **ISSUE-07**: Updated copy to "ALL 4 PERMISSIONS GRANTED" in `SettingsScreen.tsx`.
+  - [x] **ISSUE-08**: Re-themed countdown overlay in `BlackoutAccessibilityService.kt` to Vintage Minimalist tokens.
+  - [x] **ISSUE-09**: Cleaned dead imports across `AddAppScreen`, `SettingsScreen`, `NavigationHeader`, `BottomNavBar`.
+  - [x] **ISSUE-10**: Handled Android 14+ `SCHEDULE_EXACT_ALARM` restriction in `SecurityHelper.kt` with inexact alarm fallback.
+  - [x] **ISSUE-11**: Implemented dynamic 4-second active polling for system permissions in `AppContext.tsx`.
+  - [x] **ISSUE-12**: Fixed 7-Day Activity header edge-sticking with `px-2` and `shrink-0` in `StatsScreen.tsx`.
+  - [x] **ISSUE-13**: Fixed Today's Overview header edge-sticking with `px-1` and responsive flex in `HomeScreen.tsx`.
+  - [x] **ISSUE-14**: Eliminated FAB overlap with `pb-[160px]` on HomeScreen ScrollView.
+  - [x] **ISSUE-15**: Prevented breakdown legend row metric text-wrapping with `shrink-0` in `HomeScreen.tsx`.
+  - [x] **ISSUE-16**: Added horizontal spacing (`px-0.5`) and auto-scaling to 7-Day bar chart in `StatsScreen.tsx`.
+  - [x] **ISSUE-17**: Prevented value collision in two-column summary card with `px-1` and `numberOfLines={1}` in `StatsScreen.tsx`.
+  - [x] **ISSUE-18**: Replaced hardcoded `ml-[28px]` and `ml-[46px]` indents with nested flex layouts in `PermissionsScreen.tsx` and `AddAppScreen.tsx`.
+  - [x] **ISSUE-19**: Cleaned dead `activeBlockApp` state and unused methods in `AppContext.tsx`.
+
 - [x] **Phase 1 — App Debugging & Issue Discovery (Hardware-Tested QA Audit)**:
   - Exhaustive live device audit conducted on connected Infinix X6833B (Android 14, API 34).
   - Clean build verified: TypeScript (0 errors), Gradle assembleDebug (clean, 28s), ADB installation.
@@ -49,19 +70,3 @@
   - NativeWind v4 dynamic theme management without manual dark class injection.
   - Enterprise anti-uninstall protection intercepting `com.android.settings` and `packageinstaller` with `GLOBAL_ACTION_BACK` and overlay.
   - Daily 12:00 AM midnight reset using `AlarmManager` and `MidnightResetReceiver`.
-
-- [x] **Targeted Fixes (Round 1 Baseline)**:
-  - [x] Initial lock and overlay state machine
-  - [x] Basic exclusion filter for system apps in usage stats
-
-- [x] **Audit Round 2**:
-  - [x] Phase 0: Reconcile native Android code copies
-  - [x] Phase 1: Screen time accuracy
-  - [x] Phase 2: Locked app backgrounding & overlay enforcement
-  - [x] Phase 3: Theme desync from System mode
-  - [x] Phase 4: Unfinished features & audit issues
-  - [x] Phase 5: Full regression pass
-
-- [x] **Visual Redesign Implementation (Vintage Minimalist)**:
-  - [x] Design tokens, typography (Fraunces, Inter, IBM Plex Mono) and fonts
-  - [x] Shared components, Onboarding, Permissions, Home, Add App, Stats, Settings, Blackout overlay

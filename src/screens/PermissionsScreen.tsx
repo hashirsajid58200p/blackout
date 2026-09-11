@@ -122,27 +122,27 @@ export const PermissionsScreen: React.FC = () => {
                   key={item.id}
                   className="border border-hairline dark:border-hairline-dark p-3.5 rounded flex-col bg-paper-surface dark:bg-espresso-surface"
                 >
-                  {/* 1. Top Row: Icon Center-Aligned Vertically with Heading Text Line */}
-                  <View className="flex-row items-center gap-2.5 mb-1">
-                    <View className="w-5 h-5 items-center justify-center">
+                  {/* Content Row: Icon aligned with Title + Description column */}
+                  <View className="flex-row items-start gap-2.5 mb-2">
+                    <View className="w-5 h-5 items-center justify-center mt-0.5 shrink-0">
                       <IconComponent
                         size={18}
                         color={item.isGranted ? "#6E7A54" : iconColor}
                         strokeWidth={1.25}
                       />
                     </View>
-                    <Text
-                      numberOfLines={1}
-                      className="font-body-semibold text-xs uppercase tracking-widest text-ink dark:text-bone flex-1 leading-5"
-                    >
-                      {item.title}
-                    </Text>
+                    <View className="flex-1">
+                      <Text
+                        numberOfLines={1}
+                        className="font-body-semibold text-xs uppercase tracking-widest text-ink dark:text-bone leading-5"
+                      >
+                        {item.title}
+                      </Text>
+                      <Text className="font-body text-xs text-ink-muted dark:text-bone-muted leading-4 mt-0.5">
+                        {item.description}
+                      </Text>
+                    </View>
                   </View>
-
-                  {/* 2. Description Paragraph: Left-aligned at exact 30px offset */}
-                  <Text className="font-body text-xs text-ink-muted dark:text-bone-muted ml-[28px] leading-4 mb-2">
-                    {item.description}
-                  </Text>
 
                   {/* 3. Action Button: Aligned on the Right Side */}
                   <View className="flex-row justify-end">

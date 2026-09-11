@@ -424,8 +424,8 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
                         } catch (e: Exception) {}
                     }
                 } else {
-                    // Past days: INTERVAL_BEST with maxOf per package to prevent bucket duplication
-                    val stats = usageStatsManager.queryUsageStats(UsageStatsManager.INTERVAL_BEST, dayStart, dayEnd)
+                    // Past days: INTERVAL_DAILY with strict timestamp overlap check to prevent multi-day bucket leakage
+                    val stats = usageStatsManager.queryUsageStats(UsageStatsManager.INTERVAL_DAILY, dayStart, dayEnd)
                     if (stats != null) {
                         val packageUsageMap = mutableMapOf<String, Long>()
                         for (stat in stats) {
@@ -436,9 +436,11 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
                                 continue
                             }
                             if (stat.totalTimeInForeground <= 0) continue
+                            if (stat.firstTimeStamp > dayEnd || stat.lastTimeStamp < dayStart) continue
+                            val validTime = Math.min(stat.totalTimeInForeground, 24L * 3600 * 1000)
                             val existing = packageUsageMap[pkg] ?: 0L
-                            if (stat.totalTimeInForeground > existing) {
-                                packageUsageMap[pkg] = stat.totalTimeInForeground
+                            if (validTime > existing) {
+                                packageUsageMap[pkg] = validTime
                             }
                         }
 
@@ -454,6 +456,7 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
                             } catch (e: Exception) {}
                         }
                     }
+                    dayTotalMs = Math.min(dayTotalMs, 24L * 3600 * 1000)
                 }
 
                 val month = dayCal.get(Calendar.MONTH) + 1
@@ -501,14 +504,17 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
                 // Today: event-accurate foreground usage and launch counts
                 getTodayUsageEventsMap(reactApplicationContext)
             } else {
-                // Past days: INTERVAL_BEST with maxOf per package
-                val stats = usageStatsManager.queryUsageStats(UsageStatsManager.INTERVAL_BEST, startTime, endTime)
+                // Past days: INTERVAL_DAILY with strict timestamp overlap check
+                val stats = usageStatsManager.queryUsageStats(UsageStatsManager.INTERVAL_DAILY, startTime, endTime)
                 val map = mutableMapOf<String, Long>()
                 stats?.forEach { stat ->
                     val pkg = stat.packageName ?: return@forEach
+                    if (stat.firstTimeStamp > endTime || stat.lastTimeStamp < startTime) return@forEach
+                    val validTime = Math.min(stat.totalTimeInForeground, 24L * 3600 * 1000)
+                    if (validTime <= 0) return@forEach
                     val existing = map[pkg] ?: 0L
-                    if (stat.totalTimeInForeground > existing) {
-                        map[pkg] = stat.totalTimeInForeground
+                    if (validTime > existing) {
+                        map[pkg] = validTime
                     }
                 }
                 Pair(map, emptyMap<String, Int>())

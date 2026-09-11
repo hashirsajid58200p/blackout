@@ -173,9 +173,13 @@ export const StatsScreen: React.FC = () => {
         </View>
 
         {/* Selected Day Summary Card */}
-        <Card className="flex-row justify-around items-center py-4 mb-5 rounded border border-hairline dark:border-hairline-dark bg-paper-surface dark:bg-espresso-surface">
-          <View className="flex-col items-center">
-            <Text className="font-body-semibold text-[10px] text-ink-muted dark:text-bone-muted uppercase tracking-widest">
+        <Card className="flex-row justify-around items-center py-4 px-2 mb-5 rounded border border-hairline dark:border-hairline-dark bg-paper-surface dark:bg-espresso-surface">
+          <View className="flex-1 items-center px-1">
+            <Text
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              className="font-body-semibold text-[10px] text-ink-muted dark:text-bone-muted uppercase tracking-widest text-center"
+            >
               {getSelectedDayLabel()} TOTAL
             </Text>
             <Text className="font-mono-bold text-2xl text-ink dark:text-bone mt-1">
@@ -185,8 +189,12 @@ export const StatsScreen: React.FC = () => {
 
           <View className="w-px h-10 bg-hairline dark:bg-hairline-dark" />
 
-          <View className="flex-col items-center">
-            <Text className="font-body-semibold text-[10px] text-ink-muted dark:text-bone-muted uppercase tracking-widest">
+          <View className="flex-1 items-center px-1">
+            <Text
+              numberOfLines={1}
+              adjustsFontSizeToFit
+              className="font-body-semibold text-[10px] text-ink-muted dark:text-bone-muted uppercase tracking-widest text-center"
+            >
               7-DAY AVERAGE
             </Text>
             <Text className="font-mono-bold text-2xl text-ink dark:text-bone mt-1">
@@ -197,19 +205,19 @@ export const StatsScreen: React.FC = () => {
 
         {/* 7-Day Flat Hairline Bar Chart */}
         <Card className="p-4 mb-5 rounded border border-hairline dark:border-hairline-dark bg-paper-surface dark:bg-espresso-surface flex-col">
-          <View className="flex-row items-center justify-between mb-4 pb-2 border-b border-hairline dark:border-hairline-dark">
-            <View className="flex-row items-center gap-2">
+          <View className="flex-row items-center justify-between mb-4 pb-2 px-1 border-b border-hairline dark:border-hairline-dark">
+            <View className="flex-row items-center gap-2 flex-1 pr-2">
               <BarChart2 size={16} strokeWidth={1.25} color={iconColor} />
-              <Text className="font-body-semibold text-xs text-ink dark:text-bone uppercase tracking-wider">
+              <Text numberOfLines={1} className="font-body-semibold text-xs text-ink dark:text-bone uppercase tracking-wider">
                 7-Day Activity
               </Text>
             </View>
-            <Text className="font-mono text-[10px] text-ink-muted dark:text-bone-muted uppercase">
+            <Text className="font-mono text-[10px] text-ink-muted dark:text-bone-muted uppercase shrink-0">
               {formatHours(totalWeeklyMs)} TOTAL
             </Text>
           </View>
 
-          <View className="flex-row justify-between items-end h-44 pt-2 px-1">
+          <View className="flex-row justify-between items-end h-44 pt-2 px-0.5">
             {activeWeeklyStats.map((item, idx) => {
               const heightPercent = Math.min(100, Math.max(8, Math.round((item.totalUsageMs / maxUsage) * 100)));
               const isSelected = idx === selectedIndex;
@@ -237,7 +245,11 @@ export const StatsScreen: React.FC = () => {
                   className="flex-col items-center gap-1.5 flex-1"
                 >
                   {/* Usage duration above each bar */}
-                  <Text className={`font-mono text-[10px] ${isSelected ? "font-mono-bold text-ink dark:text-bone" : "text-ink-muted dark:text-bone-muted"}`}>
+                  <Text
+                    numberOfLines={1}
+                    adjustsFontSizeToFit
+                    className={`font-mono text-[10px] ${isSelected ? "font-mono-bold text-ink dark:text-bone" : "text-ink-muted dark:text-bone-muted"}`}
+                  >
                     {formatHours(item.totalUsageMs)}
                   </Text>
 

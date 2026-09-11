@@ -146,7 +146,24 @@ object SecurityHelper {
             }
             Log.d(TAG, "Midnight reset alarm scheduled successfully for: $triggerTime (${calendar.time})")
         } catch (e: Exception) {
-            Log.e(TAG, "Failed to schedule midnight reset alarm", e)
+            Log.e(TAG, "Failed to schedule exact midnight reset alarm, attempting fallback", e)
+            try {
+                val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as? AlarmManager
+                val intent = Intent(context, MidnightResetReceiver::class.java)
+                val flags = PendingIntent.FLAG_UPDATE_CURRENT or (if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) PendingIntent.FLAG_IMMUTABLE else 0)
+                val pendingIntent = PendingIntent.getBroadcast(context, 1001, intent, flags)
+                val calendar = Calendar.getInstance(TimeZone.getDefault()).apply {
+                    add(Calendar.DAY_OF_YEAR, 1)
+                    set(Calendar.HOUR_OF_DAY, 0)
+                    set(Calendar.MINUTE, 0)
+                    set(Calendar.SECOND, 0)
+                    set(Calendar.MILLISECOND, 0)
+                }
+                alarmManager?.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, calendar.timeInMillis, pendingIntent)
+                Log.d(TAG, "Fallback midnight reset alarm scheduled successfully")
+            } catch (fallbackError: Exception) {
+                Log.e(TAG, "Fatal: failed fallback midnight alarm schedule", fallbackError)
+            }
         }
     }
 

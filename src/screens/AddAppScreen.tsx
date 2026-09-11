@@ -5,7 +5,7 @@ import { NavigationHeader } from "../components/NavigationHeader";
 import { Button } from "../components/ui/Button";
 import { Modal } from "../components/ui/Modal";
 import { NativeBridge } from "../services/nativeBridge";
-import { Search, Camera, Video, MessageSquare, Globe, Check, Plus, Gamepad2 } from "lucide-react-native";
+import { Search, Check, Plus } from "lucide-react-native";
 import { InstalledAppInfo } from "../types";
 
 export const AddAppScreen: React.FC = () => {
@@ -43,30 +43,6 @@ export const AddAppScreen: React.FC = () => {
     app.appName.toLowerCase().includes(searchQuery.toLowerCase()) ||
     app.packageName.toLowerCase().includes(searchQuery.toLowerCase())
   );
-
-  const getIcon = (appName: string) => {
-    const lower = appName.toLowerCase();
-    if (lower.includes("insta") || lower.includes("camera") || lower.includes("photo")) return Camera;
-    if (lower.includes("you") || lower.includes("video") || lower.includes("netf") || lower.includes("tube"))
-      return Video;
-    if (lower.includes("chat") || lower.includes("snap") || lower.includes("mess") || lower.includes("what"))
-      return MessageSquare;
-    if (lower.includes("pubg") || lower.includes("game") || lower.includes("fire") || lower.includes("roblox"))
-      return Gamepad2;
-    return Globe;
-  };
-
-  const handleSelectCustomApp = () => {
-    const cleanName = searchQuery.trim();
-    if (!cleanName) return;
-    const customPkg = "custom." + cleanName.toLowerCase().replace(/[^a-z0-9]/g, "");
-    const newCustomApp: InstalledAppInfo = {
-      packageName: customPkg,
-      appName: cleanName,
-      category: "Custom Lock",
-    };
-    setSelectedApp(newCustomApp);
-  };
 
   const handleSetTimer = () => {
     if (!selectedApp) {
@@ -158,9 +134,9 @@ export const AddAppScreen: React.FC = () => {
                         : "border-hairline dark:border-hairline-dark bg-paper-surface dark:bg-espresso-surface"
                     }`}
                   >
-                    {/* Top Row: Icon Center-Aligned Vertically with App Name + Selection Indicator on Right */}
+                    {/* App Row: Icon + Column (Title & Subtitle) + Selection/Lock Status */}
                     <View className="flex-row items-center justify-between">
-                      <View className="flex-row items-center gap-2.5 flex-1 pr-2">
+                      <View className="flex-row items-center gap-3 flex-1 pr-2">
                         <View className="w-9 h-9 items-center justify-center">
                           {app.iconUri ? (
                             <Image
@@ -182,12 +158,26 @@ export const AddAppScreen: React.FC = () => {
                             </View>
                           )}
                         </View>
-                        <Text
-                          numberOfLines={1}
-                          className="font-body-semibold text-sm text-ink dark:text-bone flex-1 leading-5"
-                        >
-                          {app.appName}
-                        </Text>
+                        <View className="flex-1">
+                          <Text
+                            numberOfLines={1}
+                            className="font-body-semibold text-sm text-ink dark:text-bone leading-5"
+                          >
+                            {app.appName}
+                          </Text>
+                          <Text className="font-mono text-xs text-ink-muted dark:text-bone-muted mt-0.5">
+                            {(() => {
+                              if (!app.usedTodayMs || app.usedTodayMs <= 0) return "No usage today";
+                              const minutes = Math.floor(app.usedTodayMs / (1000 * 60));
+                              const hours = Math.floor(minutes / 60);
+                              const minsRem = minutes % 60;
+                              if (hours > 0) {
+                                return `Used for ${hours}h ${minsRem}m today`;
+                              }
+                              return `Used for ${minsRem}m today`;
+                            })()}
+                          </Text>
+                        </View>
                       </View>
 
                       {isAlreadyTracked ? (
@@ -200,20 +190,6 @@ export const AddAppScreen: React.FC = () => {
                         </View>
                       ) : null}
                     </View>
-
-                    {/* Screen Time Sub-text: Left-aligned at 46px offset */}
-                    <Text className="font-mono text-xs ml-[46px] leading-4 text-ink-muted dark:text-bone-muted">
-                      {(() => {
-                        if (!app.usedTodayMs || app.usedTodayMs <= 0) return "No usage today";
-                        const minutes = Math.floor(app.usedTodayMs / (1000 * 60));
-                        const hours = Math.floor(minutes / 60);
-                        const minsRem = minutes % 60;
-                        if (hours > 0) {
-                          return `Used for ${hours}h ${minsRem}m today`;
-                        }
-                        return `Used for ${minsRem}m today`;
-                      })()}
-                    </Text>
                   </TouchableOpacity>
 
                   {/* Step 2: Time Selector directly beneath the selected app */}
@@ -296,96 +272,12 @@ export const AddAppScreen: React.FC = () => {
               );
             })}
 
-            {/* Custom App Option when searching */}
-            {searchQuery.trim().length > 0 && (
-              <View className="flex-col">
-                <TouchableOpacity
-                  activeOpacity={0.7}
-                  onPress={handleSelectCustomApp}
-                  className="p-3.5 border border-dashed border-hairline dark:border-hairline-dark rounded bg-paper-surface dark:bg-espresso-surface flex-row items-center gap-3 mt-2"
-                >
-                  <Plus size={18} color={iconColor} strokeWidth={1.25} />
-                  <View className="flex-col flex-1">
-                    <Text className="font-body-semibold text-sm text-ink dark:text-bone uppercase">
-                      ADD CUSTOM LOCK: "{searchQuery.trim()}"
-                    </Text>
-                    <Text className="font-body text-xs text-ink-muted dark:text-bone-muted">
-                      Set a daily limit for "{searchQuery.trim()}"
-                    </Text>
-                  </View>
-                </TouchableOpacity>
-
-                {selectedApp?.packageName.startsWith("custom.") && (
-                  <View className="flex-col gap-4 mt-2 mb-2 border border-hairline dark:border-hairline-dark p-4 bg-paper-surface dark:bg-espresso-surface rounded">
-                    <Text className="font-body-semibold text-[11px] text-ink-muted dark:text-bone-muted uppercase tracking-widest">
-                      STEP 2 — SET DAILY ALLOWANCE
-                    </Text>
-
-                    <View className="flex-row items-center justify-center gap-3 py-2">
-                      <View className="flex-col items-center flex-1">
-                        <Text className="text-[10px] font-body-semibold text-ink-muted dark:text-bone-muted uppercase mb-2 tracking-widest">
-                          HOURS
-                        </Text>
-                        <View className="flex-row items-center gap-1.5">
-                          <TouchableOpacity
-                            activeOpacity={0.7}
-                            onPress={() => setHours(Math.max(0, hours - 1))}
-                            className="w-8 h-8 border border-hairline dark:border-hairline-dark rounded items-center justify-center bg-transparent active:bg-ink/5 dark:active:bg-bone/5"
-                          >
-                            <Text className="font-mono-bold text-base text-ink dark:text-bone">-</Text>
-                          </TouchableOpacity>
-                          <Text className="font-mono-bold text-2xl text-ink dark:text-bone min-w-[36px] text-center">
-                            {hours}
-                          </Text>
-                          <TouchableOpacity
-                            activeOpacity={0.7}
-                            onPress={() => setHours(Math.min(12, hours + 1))}
-                            className="w-8 h-8 border border-hairline dark:border-hairline-dark rounded items-center justify-center bg-transparent active:bg-ink/5 dark:active:bg-bone/5"
-                          >
-                            <Text className="font-mono-bold text-base text-ink dark:text-bone">+</Text>
-                          </TouchableOpacity>
-                        </View>
-                      </View>
-
-                      <Text className="font-mono-bold text-xl text-ink-muted dark:text-bone-muted self-end mb-1">:</Text>
-
-                      <View className="flex-col items-center flex-1">
-                        <Text className="text-[10px] font-body-semibold text-ink-muted dark:text-bone-muted uppercase mb-2 tracking-widest">
-                          MINUTES
-                        </Text>
-                        <View className="flex-row items-center gap-1.5">
-                          <TouchableOpacity
-                            activeOpacity={0.7}
-                            onPress={() => setMinutes(Math.max(0, minutes - 1))}
-                            className="w-8 h-8 border border-hairline dark:border-hairline-dark rounded items-center justify-center bg-transparent active:bg-ink/5 dark:active:bg-bone/5"
-                          >
-                            <Text className="font-mono-bold text-base text-ink dark:text-bone">-</Text>
-                          </TouchableOpacity>
-                          <Text className="font-mono-bold text-2xl text-ink dark:text-bone min-w-[36px] text-center">
-                            {String(minutes).padStart(2, "0")}
-                          </Text>
-                          <TouchableOpacity
-                            activeOpacity={0.7}
-                            onPress={() => setMinutes(Math.min(59, minutes + 1))}
-                            className="w-8 h-8 border border-hairline dark:border-hairline-dark rounded items-center justify-center bg-transparent active:bg-ink/5 dark:active:bg-bone/5"
-                          >
-                            <Text className="font-mono-bold text-base text-ink dark:text-bone">+</Text>
-                          </TouchableOpacity>
-                        </View>
-                      </View>
-                    </View>
-
-                    <TouchableOpacity
-                      activeOpacity={0.8}
-                      onPress={handleSetTimer}
-                      className="bg-ink dark:bg-bone border border-ink dark:border-bone py-3 px-4 rounded items-center justify-center mt-2 active:opacity-90"
-                    >
-                      <Text numberOfLines={1} className="font-body-semibold text-xs text-paper dark:text-espresso uppercase tracking-widest">
-                        LOCK IT IN — {selectedApp.appName.toUpperCase()}
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                )}
+            {/* Empty search fallback */}
+            {filteredApps.length === 0 && searchQuery.trim().length > 0 && (
+              <View className="p-6 border border-hairline dark:border-hairline-dark rounded bg-paper-surface dark:bg-espresso-surface items-center justify-center mt-4">
+                <Text className="font-body-medium text-xs text-ink-muted dark:text-bone-muted text-center uppercase tracking-wider">
+                  No installed application matches "{searchQuery.trim()}"
+                </Text>
               </View>
             )}
           </View>

@@ -5,7 +5,7 @@ import { NavigationHeader } from "../components/NavigationHeader";
 import { BottomNavBar } from "../components/BottomNavBar";
 import { Card } from "../components/ui/Card";
 import { NativeBridge } from "../services/nativeBridge";
-import { Moon, Sun, Monitor, ShieldCheck, Info, Lock, Trash2, ChevronRight, Unlock } from "lucide-react-native";
+import { Moon, Sun, Monitor, ShieldCheck, Info, Lock, Trash2, ChevronRight } from "lucide-react-native";
 import { TrackedApp } from "../types";
 import { StorageService } from "../services/storage";
 
@@ -300,8 +300,8 @@ export const SettingsScreen: React.FC = () => {
                     SYSTEM PERMISSIONS
                   </Text>
                   <Text className="font-body text-xs text-ink-muted dark:text-bone-muted mt-0.5">
-                    {permissions.usageStats && permissions.overlay && permissions.accessibility
-                      ? "ALL 3 PERMISSIONS GRANTED"
+                    {permissions.usageStats && permissions.overlay && permissions.accessibility && permissions.deviceAdmin
+                      ? "ALL 4 PERMISSIONS GRANTED"
                       : "ACTION REQUIRED — TAP TO REVIEW"}
                   </Text>
                 </View>

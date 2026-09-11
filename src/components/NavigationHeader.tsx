@@ -2,7 +2,7 @@ import React from "react";
 import { View, Text, TouchableOpacity, StatusBar, Platform } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useApp } from "../context/AppContext";
-import { Calendar, Settings as SettingsIcon, ChevronLeft } from "lucide-react-native";
+import { ChevronLeft } from "lucide-react-native";
 
 interface NavigationHeaderProps {
   title?: string;
