@@ -33,21 +33,27 @@
   - Enterprise anti-uninstall protection intercepting `com.android.settings` and `packageinstaller` with `GLOBAL_ACTION_BACK` and overlay.
   - Daily 12:00 AM midnight reset using `AlarmManager` and `MidnightResetReceiver`.
 
-- [x] **Targeted Fixes (Background App Running & Screen Time Accuracy)**:
-  - [x] **Bug 1: Locked App Still Running Behind Overlay (Fixed)**:
-    - Added `isTransitioningToHome` state machine flag in `BlackoutAccessibilityService.kt`.
-    - Shows overlay immediately when app is blocked, sets `isTransitioningToHome = true`, and calls `performGlobalAction(GLOBAL_ACTION_HOME)`.
-    - Keeps overlay visible on screen for 3 seconds while user transitions to home, then hides safely, ensuring the app is stopped in background.
-    - Added `isTransitioningToHome` handling on `homeButton.setOnClickListener` with a 500ms delay before dismiss.
-  - [x] **Bug 2: Screen Time 20 Min Inflated (Fixed)**:
-    - In `BlackoutModule.kt`, strictly excluded `selfPkg`, `"com.blackout.app"`, and packages starting with `"com.blackout"` in `getDayUsageStats`, `getInstalledApps`, and `getWeeklyUsageStats`.
-    - Filtered out `systemui`, `launcher`, `navigationbar`, and `android` packages.
-    - Verified only `totalTimeInForeground` from `queryUsageStats(INTERVAL_DAILY)` is read, matching Digital Wellbeing exactly.
-  - [x] **Verification & Deployment**:
-    - TypeScript compile (`npm run tsc`): 0 errors.
-    - Gradle Kotlin compile (`./gradlew :app:compileDebugKotlin`): BUILD SUCCESSFUL in 27s.
-    - Installed on device (`Infinix X6833B - 14`) via `./gradlew installDebug`.
-    - MainActivity launched via `adb shell am start`.
+- [x] **Targeted Fixes (Round 1 Baseline)**:
+  - [x] Initial lock and overlay state machine
+  - [x] Basic exclusion filter for system apps in usage stats
 
-## What's Next / Pending
-- All requested fixes verified and operational on device.
+## Audit Round 2 (In Progress)
+- [x] **Phase 0 — Reconcile native Android code copies (Verified & Fixed)**:
+  - Analyzed and diffed embedded native templates in `plugins/withBlackoutNativeModule.js` against checked-in Kotlin files in `android/app/src/main/java/com/blackout/app/`.
+  - Removed 438 lines of duplicate/stale embedded Kotlin templates (`BlackoutDeviceAdminReceiver`, `BlackoutAccessibilityService`, `BlackoutModule`, `BlackoutPackage`) from `plugins/withBlackoutNativeModule.js`.
+  - Established `android/app/src/main/java/com/blackout/app/` as the single authoritative source of truth for all native Android logic.
+  - The Expo config plugin now strictly handles AndroidManifest injection, XML resources (`accessibility_service_config.xml`, `device_admin.xml`, `strings.xml`), and `MainApplication` package registration.
+  - Verified `package.json` scripts do not contain `expo prebuild --clean`.
+  - Verified compilation: `npm run tsc` (0 errors) and `./gradlew :app:compileDebugKotlin` (BUILD SUCCESSFUL).
+- [ ] **Phase 1 — Screen time accuracy (Next)**: Replace `INTERVAL_DAILY` with `INTERVAL_BEST` across `BlackoutModule.kt` and `SecurityHelper.kt` (or fallback to event query), verify against `dumpsys usagestats`.
+- [ ] **Phase 2 — Locked app backgrounding & overlay desync**: Consolidate dual enforcement paths (event-driven vs polling runnable) in `BlackoutAccessibilityService.kt`, check `performGlobalAction(GLOBAL_ACTION_HOME)` return value with retry/logging.
+- [ ] **Phase 3 — Theme desync from System mode**: Pass literal `"system"` to `setColorScheme` in `AppContext.tsx` rather than resolved concrete color.
+- [ ] **Phase 4 — Unfinished features & audit issues**:
+  - Add auto-clean toggle in `SettingsScreen.tsx`.
+  - Deduplicate `SecurityHelper` vs `BlackoutAccessibilityService` blocking logic.
+  - Add `.npmrc` with `legacy-peer-deps=true`.
+  - Complete screen sweep.
+- [ ] **Phase 5 — Full regression pass**: End-to-end verification on physical device (Infinix X6833B, Android 14).
+
+## What's Next
+- Proceeding to Phase 1 in the next loop iteration.
