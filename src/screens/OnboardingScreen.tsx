@@ -10,7 +10,7 @@ export const OnboardingScreen: React.FC = () => {
   const { setCurrentScreen, refreshPermissions, effectiveTheme } = useApp();
   const insets = useSafeAreaInsets();
   const isDark = effectiveTheme === "dark";
-  const iconColor = isDark ? "#000000" : "#ffffff";
+  const iconColor = isDark ? "#EDE4D3" : "#2B2621";
   const [slideIndex, setSlideIndex] = useState(0);
 
   const topPadding =
@@ -21,21 +21,21 @@ export const OnboardingScreen: React.FC = () => {
   const slides = [
     {
       icon: Shield,
-      title: "MONOLITHIC FOCUS",
+      title: "Monolithic Focus",
       subtitle: "RECLAIM YOUR TIME",
       description:
-        "Blackout is a strict, achromatic digital wellbeing tool. Zero shadows, zero distractions, absolute focus control.",
+        "Blackout is an analog-calm, strict digital wellbeing tool. Zero distractions, absolute focus control.",
     },
     {
       icon: Lock,
-      title: "IMMUTABLE LIMITS",
+      title: "Immutable Limits",
       subtitle: "NO BYPASSES",
       description:
         "Once a daily limit is set, it cannot be edited, paused, or deleted until midnight. Discipline by design.",
     },
     {
       icon: Zap,
-      title: "INSTANT BLOCKING",
+      title: "Instant Blocking",
       subtitle: "REAL-TIME OVERLAY",
       description:
         "Powered by Android Accessibility Service to instantly block locked apps the moment they hit the foreground.",
@@ -59,49 +59,52 @@ export const OnboardingScreen: React.FC = () => {
   const IconComponent = slides[slideIndex].icon;
 
   return (
-    <View style={{ paddingTop: topPadding }} className="flex-1 bg-background dark:bg-black justify-between p-margin-page">
+    <View style={{ paddingTop: topPadding }} className="flex-1 bg-paper dark:bg-espresso justify-between p-margin-page">
       <View className="flex-row justify-between items-center pt-2">
-        <Text className="font-bold text-sm tracking-widest text-primary dark:text-white uppercase">
+        <Text className="font-display text-lg tracking-wider text-ink dark:text-bone uppercase">
           BLACKOUT
         </Text>
         <TouchableOpacity
+          activeOpacity={0.7}
           onPress={async () => {
             await StorageService.setOnboardingCompleted(true);
             setCurrentScreen("permissions");
           }}
         >
-          <Text className="font-bold text-xs text-secondary dark:text-zinc-400 uppercase tracking-widest">
+          <Text className="font-body-semibold text-xs text-ink-muted dark:text-bone-muted uppercase tracking-widest">
             SKIP
           </Text>
         </TouchableOpacity>
       </View>
 
       <View className="flex-col gap-6 my-auto">
-        <View className="w-16 h-16 bg-primary dark:bg-white justify-center items-center rounded-none border-2 border-primary dark:border-white">
-          <IconComponent size={32} color={iconColor} />
+        <View className="w-14 h-14 bg-paper-surface dark:bg-espresso-surface justify-center items-center rounded border border-hairline dark:border-hairline-dark">
+          <IconComponent size={26} color={iconColor} strokeWidth={1.25} />
         </View>
 
         <View className="flex-col gap-2">
-          <Text className="text-xs font-bold text-secondary dark:text-zinc-400 uppercase tracking-widest">
+          <Text className="text-[11px] font-body-semibold text-ink-muted dark:text-bone-muted uppercase tracking-widest">
             {slides[slideIndex].subtitle}
           </Text>
-          <Text className="text-3xl font-bold uppercase tracking-tight text-primary dark:text-white">
+          <Text className="text-3xl font-display text-ink dark:text-bone tracking-tight">
             {slides[slideIndex].title}
           </Text>
-          <Text className="text-base text-secondary dark:text-zinc-300 leading-relaxed pt-2">
+          <Text className="text-base font-body text-ink-muted dark:text-bone-muted leading-relaxed pt-1">
             {slides[slideIndex].description}
           </Text>
         </View>
       </View>
 
-      <View className="flex-col gap-6 pb-4">
-        {/* Step Indicator */}
-        <View className="flex-row gap-2">
+      <View className="flex-col gap-5 pb-4">
+        {/* Step Indicator Dashes (Not continuous progress bar) */}
+        <View className="flex-row gap-2 justify-center items-center">
           {slides.map((_, idx) => (
             <View
               key={idx}
-              className={`h-1 flex-1 ${
-                idx === slideIndex ? "bg-primary dark:bg-white" : "bg-surface-container dark:bg-zinc-800"
+              className={`h-1 rounded-full ${
+                idx === slideIndex
+                  ? "w-8 bg-ink dark:bg-bone"
+                  : "w-4 bg-hairline dark:bg-hairline-dark"
               }`}
             />
           ))}

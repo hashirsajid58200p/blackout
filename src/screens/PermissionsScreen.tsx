@@ -10,8 +10,7 @@ export const PermissionsScreen: React.FC = () => {
   const { permissions, refreshPermissions, setCurrentScreen, effectiveTheme } = useApp();
   const insets = useSafeAreaInsets();
   const isDark = effectiveTheme === "dark";
-  const iconColor = isDark ? "#ffffff" : "#000000";
-  const badgeIconColor = isDark ? "#000000" : "#ffffff";
+  const iconColor = isDark ? "#EDE4D3" : "#2B2621";
 
   const topPadding =
     Platform.OS === "android"
@@ -96,21 +95,21 @@ export const PermissionsScreen: React.FC = () => {
   ];
 
   return (
-    <View style={{ paddingTop: topPadding }} className="flex-1 bg-background dark:bg-black">
+    <View style={{ paddingTop: topPadding }} className="flex-1 bg-paper dark:bg-espresso">
       <ScrollView contentContainerStyle={{ flexGrow: 1, paddingBottom: 30 }} className="flex-1 px-margin-page pt-6">
         <View className="items-center justify-center my-auto py-2">
           {/* Top Logo */}
-          <View className="mb-4 border-2 border-primary dark:border-white p-3.5 justify-center items-center">
-            <Shield size={44} color={iconColor} />
+          <View className="mb-4 border border-hairline dark:border-hairline-dark rounded w-14 h-14 bg-paper-surface dark:bg-espresso-surface justify-center items-center">
+            <Shield size={28} color={iconColor} strokeWidth={1.25} />
           </View>
 
           {/* Heading */}
-          <Text className="font-bold text-2xl text-primary dark:text-white uppercase tracking-tight text-center mb-1.5">
-            REQUIRED PERMISSIONS
+          <Text className="font-display text-2xl text-ink dark:text-bone tracking-tight text-center mb-1.5">
+            Required Permissions
           </Text>
 
           {/* Paragraph */}
-          <Text className="text-xs text-secondary dark:text-zinc-400 text-center mb-5 max-w-[290px] leading-5">
+          <Text className="font-body text-xs text-ink-muted dark:text-bone-muted text-center mb-5 max-w-[290px] leading-5">
             To detect locked apps in real-time and block them instantly, Blackout requires system privileges.
           </Text>
 
@@ -121,42 +120,46 @@ export const PermissionsScreen: React.FC = () => {
               return (
                 <View
                   key={item.id}
-                  className="border-2 border-primary dark:border-white p-3 rounded-none flex-col bg-surface-container-lowest dark:bg-black"
+                  className="border border-hairline dark:border-hairline-dark p-3.5 rounded flex-col bg-paper-surface dark:bg-espresso-surface"
                 >
                   {/* 1. Top Row: Icon Center-Aligned Vertically with Heading Text Line */}
                   <View className="flex-row items-center gap-2.5 mb-1">
                     <View className="w-5 h-5 items-center justify-center">
-                      <IconComponent size={20} color={iconColor} />
+                      <IconComponent
+                        size={18}
+                        color={item.isGranted ? "#6E7A54" : iconColor}
+                        strokeWidth={1.25}
+                      />
                     </View>
                     <Text
                       numberOfLines={1}
-                      className="font-bold text-sm uppercase tracking-wider text-primary dark:text-white flex-1 leading-5"
+                      className="font-body-semibold text-xs uppercase tracking-widest text-ink dark:text-bone flex-1 leading-5"
                     >
                       {item.title}
                     </Text>
                   </View>
 
                   {/* 2. Description Paragraph: Left-aligned at exact 30px offset */}
-                  <Text className="text-xs text-secondary dark:text-zinc-400 ml-[30px] leading-4 mb-1.5">
+                  <Text className="font-body text-xs text-ink-muted dark:text-bone-muted ml-[28px] leading-4 mb-2">
                     {item.description}
                   </Text>
 
                   {/* 3. Action Button: Aligned on the Right Side */}
                   <View className="flex-row justify-end">
                     {item.isGranted ? (
-                      <View className="bg-primary dark:bg-white px-2.5 py-1 flex-row items-center justify-center gap-1 border border-primary dark:border-white min-w-[76px]">
-                        <CheckCircle2 size={12} color={badgeIconColor} />
-                        <Text className="text-xs font-bold text-white dark:text-black uppercase">
+                      <View className="bg-stamp-olive/10 border border-stamp-olive px-2.5 py-1 rounded-sm flex-row items-center justify-center gap-1.5 min-w-[76px]">
+                        <CheckCircle2 size={11} color="#6E7A54" strokeWidth={1.25} />
+                        <Text className="text-[10px] font-mono-bold text-stamp-olive uppercase tracking-wider">
                           GRANTED
                         </Text>
                       </View>
                     ) : (
                       <TouchableOpacity
-                        activeOpacity={0.8}
+                        activeOpacity={0.7}
                         onPress={item.onGrant}
-                        className="bg-transparent border-2 border-primary dark:border-white px-2.5 py-1 items-center justify-center min-w-[76px] active:bg-primary/10 dark:active:bg-white/10"
+                        className="bg-transparent border border-hairline dark:border-hairline-dark px-2.5 py-1 rounded items-center justify-center min-w-[76px] active:bg-ink/5 dark:active:bg-bone/5"
                       >
-                        <Text className="text-xs font-bold text-primary dark:text-white uppercase">
+                        <Text className="text-[10px] font-body-semibold text-ink dark:text-bone uppercase tracking-widest">
                           GRANT
                         </Text>
                       </TouchableOpacity>
@@ -182,7 +185,7 @@ export const PermissionsScreen: React.FC = () => {
             }}
           />
 
-          <Text className="text-xs text-secondary dark:text-zinc-500 max-w-[260px] text-center pt-3 leading-4">
+          <Text className="font-body text-xs text-ink-muted dark:text-bone-muted max-w-[270px] text-center pt-3 leading-4">
             Blackout operates completely offline. No usage data ever leaves your device.
           </Text>
         </View>
