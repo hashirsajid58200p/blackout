@@ -62,6 +62,7 @@ object SecurityHelper {
         try {
             val prefs = getPreferences(context)
             val nextMidnight = getNextMidnightTimestamp()
+            val now = System.currentTimeMillis()
 
             val blockedSet = mutableSetOf<String>()
             try {
@@ -70,12 +71,17 @@ object SecurityHelper {
                     val item = jsonArray.optJSONObject(i)
                     if (item != null) {
                         val pkg = item.optString("packageName")
+                        val itemExpiration = item.optLong("lockExpirationTimestamp", 0L)
+                        if (itemExpiration > 0L && now >= itemExpiration) {
+                            // Lock has expired; do not block
+                            continue
+                        }
                         val isLocked = item.optBoolean("isLocked", false)
                         val usedTodayMs = item.optDouble("usedTodayMs", 0.0)
                         val dailyLimitMs = item.optDouble("dailyLimitMs", 0.0)
                         val initialUsageMs = item.optDouble("initialUsageMs", 0.0)
-                        val elapsed = Math.max(0.0, usedTodayMs - initialUsageMs)
-                        if (pkg.isNotEmpty() && (isLocked || (dailyLimitMs > 0 && elapsed >= dailyLimitMs))) {
+                        val currentElapsed = Math.max(0.0, usedTodayMs)
+                        if (pkg.isNotEmpty() && (isLocked || (dailyLimitMs > 0 && currentElapsed >= dailyLimitMs))) {
                             blockedSet.add(pkg)
                         }
                     } else {
@@ -161,6 +167,8 @@ object SecurityHelper {
                         item.put("isLocked", false)
                         item.put("usedTodayMs", 0.0)
                         item.put("initialUsageMs", 0.0)
+                        item.put("lockExpirationTimestamp", 0L)
+                        item.remove("lockedAtTimestamp")
                         updatedArray.put(item)
                     } else {
                         updatedArray.put(jsonArray.get(i))
@@ -221,6 +229,10 @@ object SecurityHelper {
             for (i in 0 until jsonArray.length()) {
                 val item = jsonArray.optJSONObject(i)
                 if (item != null) {
+                    val itemExpiration = item.optLong("lockExpirationTimestamp", 0L)
+                    if (itemExpiration > 0L && now >= itemExpiration) {
+                        continue // Lock for this item has expired
+                    }
                     val isLocked = item.optBoolean("isLocked", false)
                     var usedTodayMs = item.optDouble("usedTodayMs", 0.0)
                     val dailyLimitMs = item.optDouble("dailyLimitMs", 0.0)
@@ -228,13 +240,13 @@ object SecurityHelper {
                     val pkg = item.optString("packageName")
                     if (dailyLimitMs > 0 && pkg.isNotEmpty()) {
                         val liveUsage = getTodayPackageUsage(context, pkg)
-                        val elapsed = Math.max(0.0, liveUsage - initialUsageMs)
-                        if (elapsed > usedTodayMs) {
-                            usedTodayMs = elapsed
+                        val liveElapsed = Math.max(0.0, liveUsage.toDouble() - initialUsageMs)
+                        if (liveElapsed > usedTodayMs) {
+                            usedTodayMs = liveElapsed
                         }
                     }
-                    val elapsed = Math.max(0.0, usedTodayMs - initialUsageMs)
-                    if (isLocked || (dailyLimitMs > 0 && elapsed >= dailyLimitMs)) {
+                    val currentElapsed = Math.max(0.0, usedTodayMs)
+                    if (isLocked || (dailyLimitMs > 0 && currentElapsed >= dailyLimitMs)) {
                         return true
                     }
                 } else {
@@ -394,8 +406,8 @@ object SecurityHelper {
                 val dailyLimitMs = targetItem.optDouble("dailyLimitMs", 0.0)
                 val usedTodayMs = targetItem.optDouble("usedTodayMs", 0.0)
                 val initialUsageMs = targetItem.optDouble("initialUsageMs", 0.0)
-                val elapsed = Math.max(0.0, usedTodayMs - initialUsageMs)
-                val currentlyLocked = isLocked || (dailyLimitMs > 0 && elapsed >= dailyLimitMs)
+                val currentElapsed = Math.max(0.0, usedTodayMs)
+                val currentlyLocked = isLocked || (dailyLimitMs > 0 && currentElapsed >= dailyLimitMs)
 
                 if (currentlyLocked) {
                     val appExpiration = targetItem.optLong("lockExpirationTimestamp", 0L)

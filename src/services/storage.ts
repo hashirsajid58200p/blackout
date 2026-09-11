@@ -72,10 +72,14 @@ export const StorageService = {
    */
   async applyMidnightResetIfNeeded(apps: TrackedApp[]): Promise<TrackedApp[]> {
     const today = getTodayDateString();
+    const now = Date.now();
     let modified = false;
 
     const updatedApps = apps.map((app) => {
-      if (app.lockDate !== today) {
+      const isExpired = Boolean(app.lockExpirationTimestamp && now >= app.lockExpirationTimestamp);
+      const isNewDay = app.lockDate !== today;
+
+      if (isNewDay || isExpired) {
         modified = true;
         return {
           ...app,

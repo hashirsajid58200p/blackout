@@ -414,6 +414,10 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
                         }
                         if (timeMs <= 0) continue
                         try {
+                            val appInfo = pm.getApplicationInfo(pkg, 0)
+                            val isSystem = (appInfo.flags and ApplicationInfo.FLAG_SYSTEM) != 0 &&
+                                           (appInfo.flags and ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) == 0
+                            if (isSystem) continue
                             if (pm.getLaunchIntentForPackage(pkg) != null) {
                                 dayTotalMs += timeMs
                             }
@@ -440,6 +444,10 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
 
                         for ((pkg, timeMs) in packageUsageMap) {
                             try {
+                                val appInfo = pm.getApplicationInfo(pkg, 0)
+                                val isSystem = (appInfo.flags and ApplicationInfo.FLAG_SYSTEM) != 0 &&
+                                               (appInfo.flags and ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) == 0
+                                if (isSystem) continue
                                 if (pm.getLaunchIntentForPackage(pkg) != null) {
                                     dayTotalMs += timeMs
                                 }
@@ -517,6 +525,10 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
                 }
                 if (timeMs <= 0) continue
                 try {
+                    val appInfo = pm.getApplicationInfo(pkg, 0)
+                    val isSystem = (appInfo.flags and ApplicationInfo.FLAG_SYSTEM) != 0 &&
+                                   (appInfo.flags and ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) == 0
+                    if (isSystem) continue
                     if (pm.getLaunchIntentForPackage(pkg) == null) continue
                     filteredList.add(Triple(pkg, timeMs, openCountMap[pkg] ?: 0))
                 } catch (e: Exception) {}

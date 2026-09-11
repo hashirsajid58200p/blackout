@@ -111,10 +111,9 @@ class BlackoutAccessibilityService : AccessibilityService() {
 
     private fun isLauncherOrHome(packageName: String): Boolean {
         val lower = packageName.lowercase()
-        if (lower.contains("launcher") || lower.contains("home") ||
-            lower.contains("trebuchet") || lower.contains("quickstep") ||
-            lower.contains("nexuslauncher") || lower.contains("shade") ||
-            lower.contains("bitpit") || lower.contains("transsion")) {
+        if (lower.contains("launcher") || lower.contains("trebuchet") ||
+            lower.contains("quickstep") || lower.contains("nexuslauncher") ||
+            lower.contains("shade") || lower.contains("bitpit")) {
             return true
         }
         try {
@@ -287,8 +286,8 @@ class BlackoutAccessibilityService : AccessibilityService() {
     }
 
     private fun isAppBlocked(packageName: String): Boolean {
-        if (lockedPackages.contains(packageName)) return true
         try {
+            val now = System.currentTimeMillis()
             val prefs = getSharedPreferences("BlackoutPrefs", Context.MODE_PRIVATE)
             val jsonString = prefs.getString("locked_apps_json", null) ?: return false
             val jsonArray = JSONArray(jsonString)
@@ -296,6 +295,14 @@ class BlackoutAccessibilityService : AccessibilityService() {
                 val itemObj = jsonArray.optJSONObject(i) ?: continue
                 val pkg = itemObj.optString("packageName")
                 if (pkg == packageName) { // STRICT EQUALITY
+                    val lockExpirationTimestamp = itemObj.optLong("lockExpirationTimestamp", 0L)
+                    if (lockExpirationTimestamp > 0L && now >= lockExpirationTimestamp) {
+                        // Lock period has expired! App is NOT blocked.
+                        Log.d(TAG, "Lock expired for $packageName (now=$now >= expiration=$lockExpirationTimestamp). Allowing access.")
+                        lockedPackages.remove(packageName)
+                        return false
+                    }
+
                     val isLocked = itemObj.optBoolean("isLocked", false)
                     val dailyLimitMs = itemObj.optDouble("dailyLimitMs", 0.0)
                     var usedTodayMs = itemObj.optDouble("usedTodayMs", 0.0)
@@ -303,18 +310,23 @@ class BlackoutAccessibilityService : AccessibilityService() {
 
                     if (dailyLimitMs > 0) {
                         val liveUsage = SecurityHelper.getTodayPackageUsage(this, packageName)
-                        val liveElapsed = Math.max(0.0, liveUsage - initialUsageMs)
+                        val liveElapsed = Math.max(0.0, liveUsage.toDouble() - initialUsageMs)
                         if (liveElapsed > usedTodayMs) {
                             usedTodayMs = liveElapsed
                         }
                     }
 
-                    val elapsed = Math.max(0.0, usedTodayMs - initialUsageMs)
-                    if (isLocked || (dailyLimitMs > 0 && elapsed >= dailyLimitMs)) {
+                    val currentElapsed = Math.max(0.0, usedTodayMs)
+                    if (isLocked || (dailyLimitMs > 0 && currentElapsed >= dailyLimitMs)) {
                         return true
+                    } else {
+                        lockedPackages.remove(packageName)
+                        return false
                     }
                 }
             }
+            // Package is not tracked/locked in JSON
+            lockedPackages.remove(packageName)
         } catch (e: Exception) {
             Log.e(TAG, "Error parsing locked_apps_json", e)
         }

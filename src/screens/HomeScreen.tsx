@@ -408,6 +408,7 @@ export const HomeScreen: React.FC = () => {
       <TouchableOpacity
         activeOpacity={0.8}
         onPress={() => setCurrentScreen("add_app")}
+        style={{ elevation: 8 }}
         className="absolute bottom-20 right-6 w-14 h-14 bg-ink dark:bg-bone rounded-full items-center justify-center z-40 border border-ink dark:border-bone shadow-none active:scale-95"
       >
         <Plus size={26} color={fabIconColor} strokeWidth={1.5} />

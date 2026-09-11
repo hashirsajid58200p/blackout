@@ -259,26 +259,34 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
       await refreshUsageStats();
 
       if (trackedApps.length === 0) return;
-      let hasUpdates = false;
       const now = Date.now();
+      const baseApps = await StorageService.applyMidnightResetIfNeeded(trackedApps);
+      let hasUpdates = baseApps !== trackedApps;
+
       const updatedApps = await Promise.all(
-        trackedApps.map(async (app) => {
+        baseApps.map(async (app) => {
           if (app.packageName.startsWith("custom.")) return app;
           const currentDeviceUsage = await NativeBridge.getTodayUsageStats(app.packageName);
           const initial = app.initialUsageMs || 0;
           const elapsed = Math.max(0, currentDeviceUsage - initial);
           const timeDiff = Math.abs(elapsed - app.usedTodayMs);
-          const isNowLocked = app.dailyLimitMs > 0 && elapsed >= app.dailyLimitMs;
-          const lockChanged = !app.isLocked && isNowLocked;
 
-          if (timeDiff >= 1000 || lockChanged) {
+          const isExpired = Boolean(app.lockExpirationTimestamp && now >= app.lockExpirationTimestamp);
+          const effectiveLocked = !isExpired && app.isLocked;
+          const isNowLocked = app.dailyLimitMs > 0 && elapsed >= app.dailyLimitMs;
+          const finalLocked = effectiveLocked || isNowLocked;
+          const lockChanged = app.isLocked !== finalLocked;
+
+          if (timeDiff >= 1000 || lockChanged || isExpired) {
             hasUpdates = true;
             return {
               ...app,
               usedTodayMs: elapsed,
-              isLocked: app.isLocked || isNowLocked,
-              lockedAtTimestamp: lockChanged ? now : app.lockedAtTimestamp,
-              lockExpirationTimestamp: app.lockExpirationTimestamp || StorageService.getNextMidnightTimestamp(),
+              isLocked: finalLocked,
+              lockedAtTimestamp: (!app.isLocked && isNowLocked) ? now : (finalLocked ? app.lockedAtTimestamp : undefined),
+              lockExpirationTimestamp: finalLocked
+                ? (app.lockExpirationTimestamp || StorageService.getNextMidnightTimestamp())
+                : 0,
             };
           }
           return app;

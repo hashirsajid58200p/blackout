@@ -1,6 +1,13 @@
 # Progress Tracker
 
 ## Completed Features
+- [x] **Audit Round 3 (Verified on Physical Device Infinix X6833B)**:
+  - [x] **Phase 1 — Locks expire on live time**: Read `lockExpirationTimestamp` in `BlackoutAccessibilityService.isAppBlocked()` and `SecurityHelper.kt`. Expired apps immediately allowed without waiting for alarms or app reopen. Fixed OEM `transsion` launcher check bug. Broke JS one-way ratchet in `AppContext.fetchUsage`.
+  - [x] **Phase 2 — Screen-time total system apps regression resolved**: Restored `FLAG_SYSTEM` filter strictly in `getDayUsageStats()` and `getWeeklyUsageStats()`. Kept `getInstalledApps()` unfiltered by system flag. Total usage matches Digital Wellbeing.
+  - [x] **Phase 3 — Theme visual audit & live sync**: Verified high-contrast rendering across Light, Dark, and System modes with screenshots. Verified System -> Light -> System immediate sync and live OS theme toggle. Explicitly documented native lock overlay's intentional dark palette.
+  - [x] **Phase 4 — Open-ended sweep & UI affordance**: Verified `unlockTrackedApp` / `unlockPackage` integration in `HomeScreen` and `SettingsScreen`. Added `elevation: 8` to FAB button.
+  - [x] **Phase 5 — Full regression & build verification**: Passed `tsc` (0 errors), `expo export:embed` (2370 modules), and Gradle assembleDebug (clean build and install).
+
 - [x] **Persistent Issues Fix Loop (Issues 1, 2, 3)**:
   - [x] **Issue 1 (Locked app premature unlock blocked)**: Enforced via `SecurityHelper.unlockPackage`, `StorageService.unlockTrackedApp`, and UI alerts. Locked apps cannot be unlocked before midnight across all paths, navigations, and app restarts. Unlock becomes available once lock period completes.
   - [x] **Issue 2 (Screen-time calculation & timing drift resolved)**: Root cause resolved in `BlackoutModule.kt` by removing `isSystem` discard filter on launchable pre-installed packages (Phone, Chrome, Calculator, Deskclock, etc.). Restored ~16m discrepancy without hardcoded offsets.
@@ -42,102 +49,14 @@
   - [x] Initial lock and overlay state machine
   - [x] Basic exclusion filter for system apps in usage stats
 
-## Audit Round 2 (In Progress)
-- [x] **Phase 0 — Reconcile native Android code copies (Verified & Fixed)**:
-  - Analyzed and diffed embedded native templates in `plugins/withBlackoutNativeModule.js` against checked-in Kotlin files in `android/app/src/main/java/com/blackout/app/`.
-  - Removed 438 lines of duplicate/stale embedded Kotlin templates (`BlackoutDeviceAdminReceiver`, `BlackoutAccessibilityService`, `BlackoutModule`, `BlackoutPackage`) from `plugins/withBlackoutNativeModule.js`.
-  - Established `android/app/src/main/java/com/blackout/app/` as the single authoritative source of truth for all native Android logic.
-  - The Expo config plugin now strictly handles AndroidManifest injection, XML resources (`accessibility_service_config.xml`, `device_admin.xml`, `strings.xml`), and `MainApplication` package registration.
-  - Verified `package.json` scripts do not contain `expo prebuild --clean`.
-  - Verified compilation: `npm run tsc` (0 errors) and `./gradlew :app:compileDebugKotlin` (BUILD SUCCESSFUL).
-- [x] **Phase 1 — Screen time accuracy (Verified & Fixed)**:
-  - Tested `UsageStatsManager.INTERVAL_BEST` on physical device (Infinix X6833B, Android 14) and discovered that `queryUsageStats(INTERVAL_BEST, ...)` returned multiple overlapping/historical buckets summing to 10h 20m (Instagram: 4h 34m) while Google Digital Wellbeing showed only 3h 21m (Instagram: 56m).
-  - Implemented the fine-grained event-based engine using `UsageEvents.queryEvents(startTime, endTime)`:
-    - Walks events in chronological order, pairing `ACTIVITY_RESUMED` with subsequent `ACTIVITY_PAUSED` or new `ACTIVITY_RESUMED` for accurate foreground session calculation.
-    - Explicitly handles `SCREEN_NON_INTERACTIVE` (16), `KEYGUARD_SHOWN` (17), and `DEVICE_SHUTDOWN` (26) to immediately close ongoing foreground sessions so screen-off / locked device time is never counted as app usage.
-    - Caps active foreground sessions at `endTime`.
-    - Returns launch counts (`openCount`) tracked per app.
-  - Wired event-based usage into `BlackoutModule.kt` (`getTodayUsage`, `getInstalledApps`, `getDayUsageStats` for `dayOffset == 0`, and `getWeeklyUsageStats` today bar), `SecurityHelper.kt` (`getTodayPackageUsage`, `getPackageUsageLimit`), and `BlackoutAccessibilityService.kt` (`isAppBlocked`).
-  - For past days (`dayOffset < 0` and past weekly bars), deduplicated `queryUsageStats` using `maxOf(existing, stat.totalTimeInForeground)` to prevent multi-bucket summation.
-  - Re-exported the embedded Android bundle to eliminate a stale runtime crash (`systemColorScheme`).
-  - Verified on physical device against Google Digital Wellbeing:
-    - Digital Wellbeing: Total 3h 21m (with system/other), X 1h 0m, Instagram 56m, YouTube 31m, WhatsApp 14m.
-    - Blackout Home Screen: Total 3h 1m (launchable user apps), X 1h 0m (exact match!), Instagram 56m (exact match!), YouTube 29m (within 1-2m), WhatsApp 14m (exact match!).
-    - Blackout Stats Screen: Today total 3.0h, today bar 3.0h, X 1h 0m used, Instagram 56m used.
-- [x] **Phase 2 — Locked app backgrounding & overlay enforcement (Verified & Fixed)**:
-  - Eliminated dual competing enforcement machines in `BlackoutAccessibilityService.kt`: consolidated into a single authoritative `enforceBlock(packageName)` function.
-  - Demoted the high-frequency 1-second `foregroundMonitorRunnable` to a lightweight 3-second `safetyNetRunnable` that reuses `enforceBlock`.
-  - Added robust Home redirection with `sendToHome()`: checks return value of `performGlobalAction(GLOBAL_ACTION_HOME)`. If false, logs warning and retries immediately; if retry fails, launches fallback Home Intent (`Intent.ACTION_MAIN`, `Intent.CATEGORY_HOME`, `FLAG_ACTIVITY_NEW_TASK`).
-  - Fixed root cause of overlay premature dismissal: the overlay itself produces a `TYPE_WINDOW_STATE_CHANGED` event for `com.blackout.app`. Previously, `onAccessibilityEvent` received this and immediately called `hideOverlay()` and cleared `isTransitioningToHome`. Now, `com.blackout.app` events are explicitly ignored during `isTransitioningToHome`.
-  - Added case-insensitive launcher matching (`lower.contains(...)`) and dynamic package manager querying for `ACTION_MAIN` + `CATEGORY_HOME` (catching OEM launchers like Transsion XOSLauncher and user launchers like Niagara `bitpit.launcher`).
-  - Overlay dismiss timing is strictly synchronized: upon positive confirmation of arrival at launcher, overlay holds for 400ms to let the home screen settle cleanly before dismissing. If launcher event does not arrive, a safety timeout (5s) cleans up the overlay.
-  - Enabled `canRetrieveWindowContent="true"` and `flagRetrieveInteractiveWindows` in `accessibility_service_config.xml`.
-  - Verified on physical Infinix X6833B device via `adb logcat -s BlackoutAccessibility` and rapid re-opening stress test:
-    - Spotify launch immediately triggers `enforceBlock` (within 2ms).
-    - User is redirected to home screen instantly with overlay displayed.
-    - Rapid 5x re-opening bounces user back to home every single time with zero gap, zero leaks, and no bypass.
-- [x] **Phase 3 — Theme desync from System mode (Verified & Fixed)**:
-  - Root cause resolved: `react-native-css-interop`'s `setColorScheme` internally delegates to RN `Appearance.setColorScheme("light"|"dark")`, which plants an app-wide override. Previously, switching to "System" called `Appearance.getColorScheme()` which read the override previously planted and re-passed a concrete value, leaving the app permanently stuck.
-  - Implemented the fix in `src/context/AppContext.tsx`:
-    - Updated `updateThemeMode` to pass the literal string `mode` directly to `setColorScheme(mode)` without calling `Appearance.getColorScheme()`. Passing `"system"` clears the RN Appearance override.
-    - Updated `useEffect` to pass `settings.themeMode` directly to `setColorScheme(settings.themeMode)`.
-    - Preserved `sysScheme` state and listeners (`useRNColorScheme`, `Appearance.addChangeListener`, and native `onSystemThemeChanged`) for `effectiveTheme` used by icon colors and status bars.
-  - Re-exported production Android JS bundle.
-  - Verified on physical Infinix X6833B device:
-    - System Dark -> App System (Dark) -> Switch to Light (Light) -> Switch back to System (immediately returns to Dark without reopen).
-    - Manual Dark mode persists.
-    - Live OS dark mode toggle (`adb shell cmd uimode night no/yes`): app updates live in the foreground immediately.
-- [x] **Phase 4 — Unfinished features & audit issues (Verified & Fixed)**:
-  - Added "AUTO-CLEAN UNINSTALLED APPS" maintenance toggle row with `Switch` component in `src/screens/SettingsScreen.tsx` wired to `updateAutoCleanSetting`. Verified on device: toggles off, persists, and toggles back on.
-  - Eliminated duplicated, dead blocking-state logic in `SecurityHelper.kt`: confirmed `getPackageUsageLimit`, `AppUsageLimitInfo`, and `isPackageBlocked` were completely unused outside `SecurityHelper.kt`, and deleted them.
-  - Updated `SecurityHelper.hasActiveLocks` to check live foreground usage via `getTodayPackageUsage`, preventing `BlackoutDeviceAdminReceiver` from missing active locks.
-  - Created `.npmrc` with `legacy-peer-deps=true` so `npm install` runs cleanly without manual flags on React 19 / `lucide-react-native`.
-  - Hardened midnight reset alarms against Android 14 (API 34) crashes: added API 31+ `alarmManager.canScheduleExactAlarms()` check with safe fallback to `setAndAllowWhileIdle` in `SecurityHelper.scheduleMidnightReset`. Added `SCHEDULE_EXACT_ALARM` permission to `AndroidManifest.xml` and `plugins/withBlackoutNativeModule.js`.
-  - Added live 4-second polling interval in `src/screens/StatsScreen.tsx` so screen time numbers and charts automatically refresh while the screen is open without requiring navigation reload.
-  - Verified `npx tsc --noEmit` (0 errors) and `./gradlew :app:compileDebugKotlin` / `:app:installDebug` (BUILD SUCCESSFUL).
-- [x] **Phase 5 — Full regression pass (Verified on Device)**:
-  - [x] Onboarding flow: verified persistent completion state; does not re-show on app relaunch or force-kill.
-  - [x] Permissions screen: verified real dynamic detection for all 4 permissions (Usage Access, Draw Over Apps, Accessibility Service, Device Admin).
-  - [x] Tracked app addition: verified scanning real installed apps with genuine app icons, search filtering, and immutable daily limit configuration.
-  - [x] Home & Stats screen parity: verified event-based screen time tracking matches Google Digital Wellbeing (3h 5m total, X 1h 0m, Instagram 57m, WhatsApp 17m, YouTube 29m).
-  - [x] Hard-lock enforcement: verified locked apps (e.g. Spotify) are immediately intercepted within 2ms, zero gap, zero leaks, user bounced to home with overlay, surviving rapid 5x re-opening attempts.
-  - [x] Theme mode synchronization: verified System -> Light -> System immediate return to dark without reopen, and live OS dark mode toggle.
-  - [x] Device Admin protection: verified uninstall protection rejects deactivation while active locks exist.
-  - [x] Midnight reset: verified alarm scheduling and lock reset logic with Android 14 `SCHEDULE_EXACT_ALARM` support.
-  - [x] Compilation: verified `npx tsc --noEmit` (0 errors) and `./gradlew :app:compileDebugKotlin` (BUILD SUCCESSFUL).
+- [x] **Audit Round 2**:
+  - [x] Phase 0: Reconcile native Android code copies
+  - [x] Phase 1: Screen time accuracy
+  - [x] Phase 2: Locked app backgrounding & overlay enforcement
+  - [x] Phase 3: Theme desync from System mode
+  - [x] Phase 4: Unfinished features & audit issues
+  - [x] Phase 5: Full regression pass
 
-## Final Status (Audit Round 2)
-All Audit Round 2 phases (Phase 0, 1, 2, 3, 4, and 5) are complete and verified on physical hardware (Infinix X6833B, Android 14).
-
-## Visual Redesign Implementation (Vintage Minimalist) — COMPLETED
-- [x] **Phase 0 — Design tokens and font loading**:
-  - `@expo-google-fonts/fraunces`, `@expo-google-fonts/inter`, and `@expo-google-fonts/ibm-plex-mono` installed.
-  - Fonts loaded via `useFonts` in `App.tsx` and splash screen gated until loaded.
-  - Registered `display`, `body`, `mono` in `tailwind.config.js`.
-  - Added named color tokens: `paper`, `paper-surface`, `ink`, `ink-muted`, `hairline`, `espresso`, `espresso-surface`, `bone`, `bone-muted`, `hairline-dark`, `stamp-red`, `stamp-olive`.
-  - Configured 1px hairline border default and 2-4px radius scale.
-- [x] **Phase 1 — Shared components**:
-  - Restyled `Card.tsx`, `BottomNavBar.tsx`, `NavigationHeader.tsx`, `Button.tsx`, `ProgressBar.tsx`, `StatusPill.tsx`, and `Modal.tsx`.
-  - Thin 1.25 stroke icons, ink active indicators, rubber-stamp status pills.
-- [x] **Phase 2 — Onboarding + Permissions screens**:
-  - `OnboardingScreen.tsx`: Fraunces display typography, dash step-indicators (32px active, 16px inactive pills), hairline icon frame.
-  - `PermissionsScreen.tsx`: Hairline permission cards, sage-olive "GRANTED" rubber-stamp badge, subtle "GRANT" button, muted offline privacy note.
-- [x] **Phase 3 — Home / Dashboard screen**:
-  - `HomeScreen.tsx`: "Focus" Fraunces hero, IBM Plex Mono numerals, warm palette SVG donut chart, hairline ledger breakdown list, rubber-stamp locked cards, dark ink FAB.
-- [x] **Phase 4 — Add App screen**:
-  - `AddAppScreen.tsx`: Hairline search input, ledger app list row styling, IBM Plex Mono hour/minute steppers, "LOCK IT IN" CTA button.
-- [x] **Phase 5 — Stats screen**:
-  - `StatsScreen.tsx`: Flat hairline-bordered 7-day bars in new palette, over/under limit accent coloring on selected day, IBM Plex Mono numerals, Fraunces titles, day-navigation carousel.
-- [x] **Phase 6 — Settings screen**:
-  - `SettingsScreen.tsx`: Restyled theme selector (System/Light/Dark), Device Admin card, maintenance auto-clean toggle (`updateAutoCleanSetting`), and locked apps viewer in hairline cards.
-- [x] **Phase 7 — Locked / Blackout screen(s)**:
-  - `BlackoutScreen.tsx`: Restyled with espresso background, Fraunces serif headline ("{appName} is dark."), tilted rubber-stamp locked badge, and bone action button.
-  - `BlackoutAccessibilityService.kt`: Ported Vintage Minimalist aesthetic to native Android overlay (`initOverlayView`) with espresso `#1B1712` background, bone `#EDE4D3` serif typography, stamp-red `#B23A2E` rubber-stamp locked badge, bone-muted `#A89A85` text, and rounded 4px bone action button.
-- [x] **Phase 8 — Full consistency pass + regression check**:
-  - All `border-2` eliminated; 100% hairline 1px borders across all screens.
-  - All raw hex codes adhere to the Vintage Minimalist palette.
-  - Icon stroke width standardized to 1.25 (1.5 on FAB).
-  - IBM Plex Mono used consistently across all numbers, timers, limits, and dates.
-  - Clean TypeScript verification (`npx tsc --noEmit` -> 0 errors).
-  - Clean embedded bundle export (`npx expo export:embed` -> 2370 modules bundled).
-  - Clean Android Kotlin compilation (`./gradlew :app:compileDebugKotlin` -> BUILD SUCCESSFUL).
+- [x] **Visual Redesign Implementation (Vintage Minimalist)**:
+  - [x] Design tokens, typography (Fraunces, Inter, IBM Plex Mono) and fonts
+  - [x] Shared components, Onboarding, Permissions, Home, Add App, Stats, Settings, Blackout overlay
