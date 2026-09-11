@@ -1,80 +1,66 @@
 # Active Context
 
-## Current Status: Audit Round 2 - Phase 2 Completed
+## Current Status: Visual Redesign Implementation (Vintage Minimalist) — COMPLETED
 
-### Phase 2: Locked App Backgrounding & Overlay Enforcement (Completed & Verified)
-1. **Root Cause Analysis**:
-   - Competing enforcement state machines: `onAccessibilityEvent` and a 1-second `foregroundMonitorRunnable` ran concurrently without synchronization, racing over `isTransitioningToHome`, `overlayView.visibility`, and handler callbacks.
-   - Self-dismissal bug: The overlay view is attached by `BlackoutAccessibilityService` (`com.blackout.app`). Showing the overlay fired a `TYPE_WINDOW_STATE_CHANGED` event with `pkg = com.blackout.app`. `onAccessibilityEvent` had an early rule that upon seeing `com.blackout.app` immediately called `hideOverlay()` and reset `isTransitioningToHome = false`, prematurely killing the overlay right after it appeared.
-   - Launcher detection gaps: `isLauncherOrHome` used case-sensitive substring matching (`contains("launcher")`) which failed on OEM launchers like Transsion's `XOSLauncher` (capital 'L'), and used `MATCH_DEFAULT_ONLY` which can miss third-party launchers like Niagara `bitpit.launcher`.
-   - Silent failure on HOME: `performGlobalAction(GLOBAL_ACTION_HOME)` return boolean was ignored without retries or fallbacks.
-2. **Implementation Fixes**:
-   - Single authoritative enforcement path: created `enforceBlock(packageName)` used by both `onAccessibilityEvent` and `safetyNetRunnable`.
-   - Demoted `foregroundMonitorRunnable` (1s loop) to a 3-second lightweight `safetyNetRunnable` reusing `enforceBlock`.
-   - Created `sendToHome()`: checks return boolean of `performGlobalAction(GLOBAL_ACTION_HOME)`; if false, logs warning and retries immediately; if retry fails, dispatches explicit Home `Intent(ACTION_MAIN, CATEGORY_HOME, FLAG_ACTIVITY_NEW_TASK)`.
-   - Fixed self-dismissal: `com.blackout.app` window events are explicitly ignored when `isTransitioningToHome == true`.
-   - Case-insensitive launcher detection with broad keyword support (`launcher`, `home`, `trebuchet`, `quickstep`, `nexuslauncher`, `shade`, `bitpit`, `transsion`) and fallback to `queryIntentActivities(ACTION_MAIN, CATEGORY_HOME)`.
-   - Dismiss synchronization: overlay stays visible until positive confirmation of arrival at launcher is received by `onAccessibilityEvent`, then dismisses cleanly after a 400ms settle delay. A 5s safety timeout acts as a fallback.
-   - Updated `accessibility_service_config.xml` to enable `canRetrieveWindowContent="true"` and `flagRetrieveInteractiveWindows`.
-3. **Physical Device Verification (Infinix X6833B, Android 14)**:
-   - Verified via `adb logcat -s BlackoutAccessibility` on locked app (`com.spotify.music`):
-     - `enforceBlock` triggered in 2ms upon app launch.
-     - `performGlobalAction(GLOBAL_ACTION_HOME)` succeeded.
-     - Overlay displayed "SPOTIFY IS DARK".
-     - Device landed cleanly on Niagara launcher (`bitpit.launcher`).
-     - Overlay dismissed after 400ms settle delay once launcher was confirmed.
-     - Rapid re-opening test (5 successive rapid launches): every launch was intercepted within 2ms, zero gap, zero leaks, user bounced to home each time.
+### Visual Redesign Overview
+The application has undergone a comprehensive presentation-layer visual redesign from the stark black-and-white "Monolith" look to the Google Stitch "Vintage Minimalist" direction (analog ledger aesthetic, warm paper `#F4EFE4`/ink `#2B2621`, espresso `#1B1712`/bone `#EDE4D3`, Fraunces + Inter + IBM Plex Mono typography, hairline 1px borders, rubber-stamp badges).
+
+All core business, native enforcement, event-based tracking, theme-synchronization, and Device Admin protections were preserved with zero regressions.
 
 ---
 
-### Phase 3: Theme Desync from "System" Mode (Completed & Verified)
-1. **Root Cause Analysis**:
-   - NativeWind / `react-native-css-interop`'s `setColorScheme` delegates to React Native `Appearance.setColorScheme("light"|"dark")`.
-   - Setting a concrete `"light"` or `"dark"` plants an app-wide override in React Native's `Appearance`.
-   - When switching back to "System", `updateThemeMode` queried `Appearance.getColorScheme()` which returned the override ("light"), and passed that concrete value back to `setColorScheme`, causing the app to stay stuck on light until force close.
-2. **Implementation Fix**:
-   - In `src/context/AppContext.tsx`:
-     - Updated `updateThemeMode` to pass literal `mode` directly to `setColorScheme(mode)` without calling `Appearance.getColorScheme()`. Passing `"system"` clears the override (`Appearance.setColorScheme(null)`).
-     - Updated the `useEffect` to watch `settings.themeMode` and pass `settings.themeMode` directly to `setColorScheme(settings.themeMode)`.
-     - Preserved `sysScheme` state and listeners for `effectiveTheme` used by icon tints and status bars.
-   - Re-exported production Android JS bundle: `android/app/src/main/assets/index.android.bundle`.
-3. **Physical Device Verification (Infinix X6833B, Android 14)**:
-   - System Dark -> App System (Dark) -> Tap Light (Light) -> Tap System (immediately returned to Dark without reopening!).
-   - Manual Dark mode persists properly.
-   - Tested live OS theme switching (`adb shell cmd uimode night no` and `yes`): app responded live in foreground, flipping from Dark to Light and back to Dark seamlessly.
+### Completed Phases Summary
+
+#### Phase 0 — Design Tokens & Font Loading
+- Installed `@expo-google-fonts/fraunces`, `@expo-google-fonts/inter`, `@expo-google-fonts/ibm-plex-mono`.
+- Gated splash screen in `App.tsx` until fonts are loaded via `useFonts` + `SplashScreen.preventAutoHideAsync()`.
+- Added font family definitions to `tailwind.config.js`: `display` (Fraunces), `body` (Inter), `mono` (IBM Plex Mono).
+- Registered named color tokens: `paper`, `paper-surface`, `ink`, `ink-muted`, `hairline`, `espresso`, `espresso-surface`, `bone`, `bone-muted`, `hairline-dark`, `stamp-red`, `stamp-olive`.
+- Set default 1px hairline border width and 2-4px radius scale.
+
+#### Phase 1 — Shared Components
+- `Card.tsx`: 1px hairline borders (`border-hairline dark:border-hairline-dark`), rounded corners, paper/espresso surfaces.
+- `BottomNavBar.tsx`: 1.25 stroke thin line icons, active-tab indication via ink color + label (removed filled highlight block), hairline top border.
+- `NavigationHeader.tsx`: Fraunces serif display title, 1.25 stroke chevron back button in hairline box, hairline bottom border.
+- `Button.tsx`: Rounded 2-4px corners, 1px border, ink primary / hairline secondary / stamp-red danger.
+- `ProgressBar.tsx`: 2px hairline height, stamp-red locked / ink normal.
+- `StatusPill.tsx`: Rubber-stamp border badge with monospace typography (`font-mono-bold text-[10px]`).
+- `Modal.tsx`: Hairline paper/espresso dialog with Fraunces title and stamp-red warning callout.
+
+#### Phase 2 — Onboarding & Permissions Screens
+- `OnboardingScreen.tsx`: Fraunces serif headlines, dash step indicators (32px active pill, 16px inactive pill, replacing continuous bar), hairline icon box with 1.25 stroke icons.
+- `PermissionsScreen.tsx`: Fraunces headline, hairline cards, sage-olive "GRANTED" rubber-stamp badge, subtle hairline "GRANT" button, muted offline privacy note.
+
+#### Phase 3 — Home / Dashboard Screen
+- `HomeScreen.tsx`: "Focus" Fraunces hero, IBM Plex Mono numerals for total time, warm palette SVG donut chart (`#FBF8F1`/`#241F19` canvas with proportional paper/bone arcs), ledger breakdown list with hairline borders, locked app cards with rubber-stamp badges, and dark ink FAB.
+
+#### Phase 4 — Add App Screen
+- `AddAppScreen.tsx`: Hairline search input, ledger app list row styling, IBM Plex Mono hours/minutes stepper controls, "LOCK IT IN" CTA button. Preserved `NativeBridge.getInstalledApps` and limit-setting logic intact.
+
+#### Phase 5 — Stats Screen
+- `StatsScreen.tsx`: Flat hairline-bordered 7-day bars in new palette, over/under limit accent coloring on selected day (stamp-red if above weekly average, sage-olive if within limits), IBM Plex Mono numerals, Fraunces titles, and day-navigation carousel.
+
+#### Phase 6 — Settings Screen
+- `SettingsScreen.tsx`: Restyled theme selector (System / Light / Dark) with hairline containers, Device Admin card, maintenance auto-clean toggle (`updateAutoCleanSetting`), and locked apps viewer in paper/espresso hairline cards.
+
+#### Phase 7 — Locked / Blackout Screen(s) & Native Overlay
+- `BlackoutScreen.tsx`: In-app React screen updated with espresso background, Fraunces serif title ("{appName} is dark."), rubber-stamp locked badge tilted -3°, and bone action button.
+- `BlackoutAccessibilityService.kt`: Ported the Vintage Minimalist design to the native Android overlay (`initOverlayView`): espresso `#1B1712` background, bone `#EDE4D3` serif typography, stamp-red `#B23A2E` rubber-stamp locked badge, bone-muted `#A89A85` copy, and rounded 4px bone action button. Preserved all native blocking, window handling, and touch consumption logic.
+
+#### Phase 8 — Full Consistency Pass & Regression Check
+- All `border-2` replaced with 1px hairline borders (`border`).
+- All raw hex codes match the Vintage Minimalist palette.
+- All icon stroke widths standardized to 1.25 (1.5 on FAB).
+- IBM Plex Mono used consistently across all numbers, timers, limits, and dates.
+- Verified TypeScript compilation: `npx tsc --noEmit` (0 errors).
+- Verified Android bundle export: `npx expo export:embed` (2370 modules bundled cleanly).
+- Verified Kotlin debug compilation: `./gradlew :app:compileDebugKotlin` (BUILD SUCCESSFUL).
 
 ---
 
-### Phase 4: Unfinished Features & Audit Issues (Completed & Verified)
-1. **Auto-Clean Uninstalled Apps Toggle**:
-   - Added a "MAINTENANCE" section card in `src/screens/SettingsScreen.tsx` with a `Switch` wired to `updateAutoCleanSetting`.
-   - Verified on device: switch renders in monochrome theme, toggles from ON to OFF and back to ON, and updates settings state persistently.
-2. **Deduplication of Dead Blocking Logic**:
-   - Analyzed `SecurityHelper.kt` vs `BlackoutAccessibilityService.kt`.
-   - Deleted unused `AppUsageLimitInfo`, `getPackageUsageLimit`, and `isPackageBlocked` from `SecurityHelper.kt`.
-   - Updated `SecurityHelper.hasActiveLocks` to check live usage via `getTodayPackageUsage`, preventing `BlackoutDeviceAdminReceiver` from missing active locks.
-3. **NPM Configuration**:
-   - Added `.npmrc` with `legacy-peer-deps=true` for seamless dependency resolution with React 19 and `lucide-react-native`.
-4. **Android 14 Exact Alarm Hardening & Live Stats**:
-   - In `SecurityHelper.scheduleMidnightReset`: added API 31+ `alarmManager.canScheduleExactAlarms()` check with safe `setAndAllowWhileIdle` fallback to prevent `SecurityException` crashes on Android 14.
-   - Added `SCHEDULE_EXACT_ALARM` permission to `android/app/src/main/AndroidManifest.xml` and `plugins/withBlackoutNativeModule.js`.
-   - Added live 4-second polling interval in `src/screens/StatsScreen.tsx`.
-   - Verified clean compilation: `npx tsc --noEmit` (0 errors) and `./gradlew :app:compileDebugKotlin` / `:app:installDebug` (BUILD SUCCESSFUL).
-
----
-
-### Phase 5: Full Regression Pass (Completed & Verified)
-1. **Onboarding**: Verified persistent state; app boots directly to Home without looping back into onboarding.
-2. **Permissions**: Real-time granted/denied status verified across all 4 system permissions (Usage Access, Overlay, Accessibility, Device Admin).
-3. **App Picker**: Real installed apps list, real package icons, search filter, and immutable limit configuration verified.
-4. **Screen Time Accuracy**: Fine-grained UsageEvents engine verified on device against Digital Wellbeing (3h 5m total, X 1h 0m, Instagram 57m, WhatsApp 17m, YouTube 29m).
-5. **Hard-Lock Enforcement**: Verified `enforceBlock` intercepts locked app launches within 2ms, displays overlay, and bounces to home with zero gap across rapid repeated launches.
-6. **Theme Sync**: Verified System -> Light -> System immediate reversion, and real-time OS night mode switching.
-7. **Device Admin Protection**: Verified deactivation rejection when active locks exist.
-8. **Midnight Reset**: Verified alarm scheduling and lock reset logic with Android 14 `SCHEDULE_EXACT_ALARM` support.
-9. **Build Integrity**: `npx tsc --noEmit` and `./gradlew :app:compileDebugKotlin` pass with 0 errors.
-
----
-
-## Final Status
-All phases (Phase 0 through Phase 5) of the Audit Round 2 Fix Loop are fully implemented and verified on the physical Infinix X6833B (Android 14) test device.
+### What to Visually Check on Device
+1. **Home Screen**: Warm paper/espresso background, Fraunces hero headline, IBM Plex Mono screen time timer, warm donut chart, ledger app list.
+2. **Stats Screen**: Flat hairline 7-day bars with over/under-average accent colors, IBM Plex Mono daily totals.
+3. **Add App Screen**: Hairline search input, app list items, monospace hour/minute stepper, "LOCK IT IN" button.
+4. **Settings Screen**: Hairline theme selector cards, Device Admin activation card, auto-clean toggle switch.
+5. **Locked State**: Launch a locked app or trigger blackout screen to verify the espresso background with the tilted rubber-stamp badge.

@@ -101,5 +101,38 @@
   - [x] Midnight reset: verified alarm scheduling and lock reset logic with Android 14 `SCHEDULE_EXACT_ALARM` support.
   - [x] Compilation: verified `npx tsc --noEmit` (0 errors) and `./gradlew :app:compileDebugKotlin` (BUILD SUCCESSFUL).
 
-## Final Status
+## Final Status (Audit Round 2)
 All Audit Round 2 phases (Phase 0, 1, 2, 3, 4, and 5) are complete and verified on physical hardware (Infinix X6833B, Android 14).
+
+## Visual Redesign Implementation (Vintage Minimalist) — COMPLETED
+- [x] **Phase 0 — Design tokens and font loading**:
+  - `@expo-google-fonts/fraunces`, `@expo-google-fonts/inter`, and `@expo-google-fonts/ibm-plex-mono` installed.
+  - Fonts loaded via `useFonts` in `App.tsx` and splash screen gated until loaded.
+  - Registered `display`, `body`, `mono` in `tailwind.config.js`.
+  - Added named color tokens: `paper`, `paper-surface`, `ink`, `ink-muted`, `hairline`, `espresso`, `espresso-surface`, `bone`, `bone-muted`, `hairline-dark`, `stamp-red`, `stamp-olive`.
+  - Configured 1px hairline border default and 2-4px radius scale.
+- [x] **Phase 1 — Shared components**:
+  - Restyled `Card.tsx`, `BottomNavBar.tsx`, `NavigationHeader.tsx`, `Button.tsx`, `ProgressBar.tsx`, `StatusPill.tsx`, and `Modal.tsx`.
+  - Thin 1.25 stroke icons, ink active indicators, rubber-stamp status pills.
+- [x] **Phase 2 — Onboarding + Permissions screens**:
+  - `OnboardingScreen.tsx`: Fraunces display typography, dash step-indicators (32px active, 16px inactive pills), hairline icon frame.
+  - `PermissionsScreen.tsx`: Hairline permission cards, sage-olive "GRANTED" rubber-stamp badge, subtle "GRANT" button, muted offline privacy note.
+- [x] **Phase 3 — Home / Dashboard screen**:
+  - `HomeScreen.tsx`: "Focus" Fraunces hero, IBM Plex Mono numerals, warm palette SVG donut chart, hairline ledger breakdown list, rubber-stamp locked cards, dark ink FAB.
+- [x] **Phase 4 — Add App screen**:
+  - `AddAppScreen.tsx`: Hairline search input, ledger app list row styling, IBM Plex Mono hour/minute steppers, "LOCK IT IN" CTA button.
+- [x] **Phase 5 — Stats screen**:
+  - `StatsScreen.tsx`: Flat hairline-bordered 7-day bars in new palette, over/under limit accent coloring on selected day, IBM Plex Mono numerals, Fraunces titles, day-navigation carousel.
+- [x] **Phase 6 — Settings screen**:
+  - `SettingsScreen.tsx`: Restyled theme selector (System/Light/Dark), Device Admin card, maintenance auto-clean toggle (`updateAutoCleanSetting`), and locked apps viewer in hairline cards.
+- [x] **Phase 7 — Locked / Blackout screen(s)**:
+  - `BlackoutScreen.tsx`: Restyled with espresso background, Fraunces serif headline ("{appName} is dark."), tilted rubber-stamp locked badge, and bone action button.
+  - `BlackoutAccessibilityService.kt`: Ported Vintage Minimalist aesthetic to native Android overlay (`initOverlayView`) with espresso `#1B1712` background, bone `#EDE4D3` serif typography, stamp-red `#B23A2E` rubber-stamp locked badge, bone-muted `#A89A85` text, and rounded 4px bone action button.
+- [x] **Phase 8 — Full consistency pass + regression check**:
+  - All `border-2` eliminated; 100% hairline 1px borders across all screens.
+  - All raw hex codes adhere to the Vintage Minimalist palette.
+  - Icon stroke width standardized to 1.25 (1.5 on FAB).
+  - IBM Plex Mono used consistently across all numbers, timers, limits, and dates.
+  - Clean TypeScript verification (`npx tsc --noEmit` -> 0 errors).
+  - Clean embedded bundle export (`npx expo export:embed` -> 2370 modules bundled).
+  - Clean Android Kotlin compilation (`./gradlew :app:compileDebugKotlin` -> BUILD SUCCESSFUL).
