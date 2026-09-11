@@ -106,7 +106,11 @@ export const AddAppScreen: React.FC = () => {
     <View className="flex-1 bg-paper dark:bg-espresso">
       <NavigationHeader title="SET TIMER" showBack />
 
-      <ScrollView contentContainerStyle={{ paddingBottom: 60 }} className="px-margin-page pt-4 flex-1">
+      <ScrollView
+        keyboardShouldPersistTaps="handled"
+        contentContainerStyle={{ paddingBottom: 60 }}
+        className="px-margin-page pt-4 flex-1"
+      >
         {/* Step 1: Search & Pick App */}
         <View className="flex-col gap-2 mb-4">
           <Text className="font-body-semibold text-[11px] text-ink-muted dark:text-bone-muted uppercase tracking-widest">

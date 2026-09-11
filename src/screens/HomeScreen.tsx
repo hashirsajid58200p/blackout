@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, ScrollView, TouchableOpacity, Image } from "react-native";
+import { View, Text, ScrollView, TouchableOpacity, Image, Alert } from "react-native";
 import Svg, { Circle } from "react-native-svg";
 import { useApp } from "../context/AppContext";
 import { NavigationHeader } from "../components/NavigationHeader";
@@ -7,7 +7,9 @@ import { BottomNavBar } from "../components/BottomNavBar";
 import { Card } from "../components/ui/Card";
 import { ProgressBar } from "../components/ui/ProgressBar";
 import { StatusPill } from "../components/ui/StatusPill";
-import { Plus, ShieldAlert } from "lucide-react-native";
+import { Plus, ShieldAlert, Lock } from "lucide-react-native";
+import { TrackedApp } from "../types";
+import { StorageService } from "../services/storage";
 
 export const HomeScreen: React.FC = () => {
   const {
@@ -18,8 +20,47 @@ export const HomeScreen: React.FC = () => {
     todayDeviceUsage,
     todayTotalUsageMs,
     refreshUsageStats,
+    unlockTrackedApp,
   } = useApp();
   const [selectedAppPackage, setSelectedAppPackage] = useState<string | null>(null);
+
+  const handleUnlockPress = (app: TrackedApp) => {
+    const now = Date.now();
+    const expiration = app.lockExpirationTimestamp || StorageService.getNextMidnightTimestamp();
+    if (app.isLocked) {
+      if (now < expiration) {
+        Alert.alert(
+          "Lock Active",
+          "This application is locked and cannot be unlocked until midnight in accordance with Blackout rules."
+        );
+        return;
+      }
+      Alert.alert(
+        "Unlock Application",
+        `The lock period has completed. Restore normal access to ${app.appName}?`,
+        [
+          { text: "Cancel", style: "cancel" },
+          {
+            text: "Unlock",
+            style: "destructive",
+            onPress: async () => {
+              const res = await unlockTrackedApp(app.packageName);
+              if (res.success) {
+                Alert.alert("Unlocked", `${app.appName} has been unlocked. Normal access restored.`);
+              } else {
+                Alert.alert("Unlock Error", res.error || "Could not unlock app.");
+              }
+            },
+          },
+        ]
+      );
+    } else {
+      Alert.alert(
+        "Timer Running",
+        `${app.appName} is being monitored with an active daily allowance. It will lock automatically once the configured duration completes.`
+      );
+    }
+  };
 
   const isDark = effectiveTheme === "dark";
   const iconColor = isDark ? "#EDE4D3" : "#2B2621";
@@ -59,7 +100,7 @@ export const HomeScreen: React.FC = () => {
       usedTodayMs: d.usedMs,
       openCount: d.openCount,
       dailyLimitMs: tracked?.dailyLimitMs || 0,
-      isLocked: tracked?.isLocked || (tracked && tracked.dailyLimitMs > 0 && d.usedMs >= tracked.dailyLimitMs) || false,
+      isLocked: tracked?.isLocked || false,
     };
   });
 
@@ -330,6 +371,31 @@ export const HomeScreen: React.FC = () => {
                     </View>
 
                     <ProgressBar progressPercent={percent} isLocked={app.isLocked} />
+
+                    {app.isLocked ? (
+                      <TouchableOpacity
+                        activeOpacity={0.7}
+                        onPress={() => handleUnlockPress(app)}
+                        className="mt-1.5 py-1.5 px-3 border border-stamp-red/40 bg-stamp-red/10 rounded flex-row items-center justify-center gap-1.5"
+                      >
+                        <Lock size={12} color="#B23A2E" strokeWidth={1.25} />
+                        <Text className="font-mono-bold text-[10px] text-stamp-red uppercase tracking-wider">
+                          {Date.now() < (app.lockExpirationTimestamp || StorageService.getNextMidnightTimestamp())
+                            ? "LOCKED UNTIL MIDNIGHT"
+                            : "UNLOCK APPLICATION"}
+                        </Text>
+                      </TouchableOpacity>
+                    ) : (
+                      <TouchableOpacity
+                        activeOpacity={0.7}
+                        onPress={() => handleUnlockPress(app)}
+                        className="mt-1.5 py-1.5 px-3 border border-stamp-olive/30 bg-stamp-olive/5 rounded flex-row items-center justify-center gap-1.5"
+                      >
+                        <Text className="font-mono-bold text-[10px] text-stamp-olive uppercase tracking-wider">
+                          ALLOWANCE ACTIVE • {formatMs(Math.max(0, app.dailyLimitMs - app.usedTodayMs))} REMAINING
+                        </Text>
+                      </TouchableOpacity>
+                    )}
                   </View>
                 </Card>
               );

@@ -73,7 +73,9 @@ object SecurityHelper {
                         val isLocked = item.optBoolean("isLocked", false)
                         val usedTodayMs = item.optDouble("usedTodayMs", 0.0)
                         val dailyLimitMs = item.optDouble("dailyLimitMs", 0.0)
-                        if (pkg.isNotEmpty() && (isLocked || (dailyLimitMs > 0 && usedTodayMs >= dailyLimitMs))) {
+                        val initialUsageMs = item.optDouble("initialUsageMs", 0.0)
+                        val elapsed = Math.max(0.0, usedTodayMs - initialUsageMs)
+                        if (pkg.isNotEmpty() && (isLocked || (dailyLimitMs > 0 && elapsed >= dailyLimitMs))) {
                             blockedSet.add(pkg)
                         }
                     } else {
@@ -158,6 +160,7 @@ object SecurityHelper {
                     if (item != null) {
                         item.put("isLocked", false)
                         item.put("usedTodayMs", 0.0)
+                        item.put("initialUsageMs", 0.0)
                         updatedArray.put(item)
                     } else {
                         updatedArray.put(jsonArray.get(i))
@@ -221,14 +224,17 @@ object SecurityHelper {
                     val isLocked = item.optBoolean("isLocked", false)
                     var usedTodayMs = item.optDouble("usedTodayMs", 0.0)
                     val dailyLimitMs = item.optDouble("dailyLimitMs", 0.0)
+                    val initialUsageMs = item.optDouble("initialUsageMs", 0.0)
                     val pkg = item.optString("packageName")
                     if (dailyLimitMs > 0 && pkg.isNotEmpty()) {
                         val liveUsage = getTodayPackageUsage(context, pkg)
-                        if (liveUsage > usedTodayMs) {
-                            usedTodayMs = liveUsage.toDouble()
+                        val elapsed = Math.max(0.0, liveUsage - initialUsageMs)
+                        if (elapsed > usedTodayMs) {
+                            usedTodayMs = elapsed
                         }
                     }
-                    if (isLocked || (dailyLimitMs > 0 && usedTodayMs >= dailyLimitMs)) {
+                    val elapsed = Math.max(0.0, usedTodayMs - initialUsageMs)
+                    if (isLocked || (dailyLimitMs > 0 && elapsed >= dailyLimitMs)) {
                         return true
                     }
                 } else {
@@ -332,18 +338,20 @@ object SecurityHelper {
             val jsonString = prefs.getString(KEY_LOCKED_APPS_JSON, null) ?: return
             val jsonArray = JSONArray(jsonString)
             val updated = JSONArray()
+            val nextMidnight = getNextMidnightTimestamp()
             for (i in 0 until jsonArray.length()) {
                 val item = jsonArray.optJSONObject(i)
                 if (item != null) {
                     if (item.optString("packageName") == packageName) {
                         item.put("isLocked", true)
+                        item.put("lockedAtTimestamp", System.currentTimeMillis())
+                        item.put("lockExpirationTimestamp", nextMidnight)
                     }
                     updated.put(item)
                 } else {
                     updated.put(jsonArray.get(i))
                 }
             }
-            val nextMidnight = getNextMidnightTimestamp()
             prefs.edit()
                 .putString(KEY_LOCKED_APPS_JSON, updated.toString())
                 .putLong(KEY_LOCK_EXPIRATION, nextMidnight)
@@ -357,6 +365,78 @@ object SecurityHelper {
             Log.d(TAG, "Marked package as locked: $packageName")
         } catch (e: Exception) {
             Log.e(TAG, "Error marking package locked", e)
+        }
+    }
+
+    /**
+     * Unlocks a package ONLY if its lock period has completed (now >= expiration).
+     * Returns true if unlocked successfully, false if locked and lock period is still active.
+     */
+    fun unlockPackage(context: Context, packageName: String): Boolean {
+        try {
+            val prefs = getPreferences(context)
+            val expiration = prefs.getLong(KEY_LOCK_EXPIRATION, 0L)
+            val now = System.currentTimeMillis()
+
+            val jsonString = prefs.getString(KEY_LOCKED_APPS_JSON, null) ?: return true
+            val jsonArray = JSONArray(jsonString)
+            var targetItem: org.json.JSONObject? = null
+            for (i in 0 until jsonArray.length()) {
+                val item = jsonArray.optJSONObject(i) ?: continue
+                if (item.optString("packageName") == packageName) {
+                    targetItem = item
+                    break
+                }
+            }
+
+            if (targetItem != null) {
+                val isLocked = targetItem.optBoolean("isLocked", false)
+                val dailyLimitMs = targetItem.optDouble("dailyLimitMs", 0.0)
+                val usedTodayMs = targetItem.optDouble("usedTodayMs", 0.0)
+                val initialUsageMs = targetItem.optDouble("initialUsageMs", 0.0)
+                val elapsed = Math.max(0.0, usedTodayMs - initialUsageMs)
+                val currentlyLocked = isLocked || (dailyLimitMs > 0 && elapsed >= dailyLimitMs)
+
+                if (currentlyLocked) {
+                    val appExpiration = targetItem.optLong("lockExpirationTimestamp", 0L)
+                    val effectiveExpiration = if (appExpiration > 0) appExpiration else (if (expiration > 0) expiration else getNextMidnightTimestamp())
+                    if (now < effectiveExpiration) {
+                        Log.w(TAG, "Cannot unlock $packageName: lock period active until $effectiveExpiration (now=$now)")
+                        return false
+                    }
+                }
+            }
+
+            // Remove packageName from locked_apps_json
+            val updated = JSONArray()
+            for (i in 0 until jsonArray.length()) {
+                val item = jsonArray.optJSONObject(i)
+                if (item != null) {
+                    if (item.optString("packageName") != packageName) {
+                        updated.put(item)
+                    }
+                } else {
+                    if (jsonArray.optString(i) != packageName) {
+                        updated.put(jsonArray.get(i))
+                    }
+                }
+            }
+
+            val hasLocks = updated.length() > 0
+            prefs.edit()
+                .putString(KEY_LOCKED_APPS_JSON, updated.toString())
+                .putBoolean(KEY_HAS_ACTIVE_LOCKS, hasLocks)
+                .apply()
+
+            val blackoutPrefs = context.getSharedPreferences("BlackoutPrefs", Context.MODE_PRIVATE)
+            blackoutPrefs.edit().putString("locked_apps_json", updated.toString()).apply()
+
+            BlackoutAccessibilityService.lockedPackages.remove(packageName)
+            Log.i(TAG, "Successfully unlocked package: $packageName")
+            return true
+        } catch (e: Exception) {
+            Log.e(TAG, "Error unlocking package $packageName", e)
+            return false
         }
     }
 }

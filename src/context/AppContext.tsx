@@ -41,6 +41,7 @@ interface AppContextType {
     iconBase64?: string,
     iconUri?: string
   ) => Promise<{ success: boolean; error?: string }>;
+  unlockTrackedApp: (packageName: string) => Promise<{ success: boolean; error?: string }>;
   activeBlockApp: TrackedApp | null;
   setActiveBlockApp: (app: TrackedApp | null) => void;
   colorScheme: "light" | "dark";
@@ -213,7 +214,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
     // Sync locked packages list to Native Accessibility Service & EncryptedSharedPreferences
     const lockedPkgs = loadedApps
-      .filter((a) => a.isLocked || a.usedTodayMs >= a.dailyLimitMs)
+      .filter((a) => a.isLocked)
       .map((a) => a.packageName);
 
     NativeBridge.syncLockedPackages(lockedPkgs);
@@ -259,20 +260,25 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
       if (trackedApps.length === 0) return;
       let hasUpdates = false;
+      const now = Date.now();
       const updatedApps = await Promise.all(
         trackedApps.map(async (app) => {
           if (app.packageName.startsWith("custom.")) return app;
-          const realUsedMs = await NativeBridge.getTodayUsageStats(app.packageName);
-          const timeDiff = Math.abs(realUsedMs - app.usedTodayMs);
-          const isNowLocked = realUsedMs >= app.dailyLimitMs;
+          const currentDeviceUsage = await NativeBridge.getTodayUsageStats(app.packageName);
+          const initial = app.initialUsageMs || 0;
+          const elapsed = Math.max(0, currentDeviceUsage - initial);
+          const timeDiff = Math.abs(elapsed - app.usedTodayMs);
+          const isNowLocked = app.dailyLimitMs > 0 && elapsed >= app.dailyLimitMs;
           const lockChanged = !app.isLocked && isNowLocked;
 
           if (timeDiff >= 1000 || lockChanged) {
             hasUpdates = true;
             return {
               ...app,
-              usedTodayMs: realUsedMs,
+              usedTodayMs: elapsed,
               isLocked: app.isLocked || isNowLocked,
+              lockedAtTimestamp: lockChanged ? now : app.lockedAtTimestamp,
+              lockExpirationTimestamp: app.lockExpirationTimestamp || StorageService.getNextMidnightTimestamp(),
             };
           }
           return app;
@@ -283,6 +289,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         setTrackedApps(updatedApps);
         await StorageService.saveTrackedApps(updatedApps);
         NativeBridge.syncLockedAppsToNative(JSON.stringify(updatedApps));
+        const lockedPkgs = updatedApps.filter((a) => a.isLocked).map((a) => a.packageName);
+        NativeBridge.syncLockedPackages(lockedPkgs);
       }
     };
 
@@ -328,6 +336,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return result;
   };
 
+  const unlockTrackedApp = async (packageName: string) => {
+    const result = await StorageService.unlockTrackedApp(packageName);
+    if (result.success) {
+      await refreshData();
+    }
+    return result;
+  };
+
   return (
     <AppContext.Provider
       value={{
@@ -340,6 +356,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         updateThemeMode,
         updateAutoCleanSetting,
         addTrackedApp,
+        unlockTrackedApp,
         activeBlockApp,
         setActiveBlockApp,
         colorScheme: sysScheme,

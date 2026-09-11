@@ -170,6 +170,18 @@ export const NativeBridge = {
     return false;
   },
 
+  async unlockPackage(packageName: string): Promise<boolean> {
+    if (Platform.OS === "android" && BlackoutModule?.unlockPackage) {
+      try {
+        return await BlackoutModule.unlockPackage(packageName);
+      } catch (error) {
+        console.error("NativeBridge.unlockPackage error:", error);
+        return false;
+      }
+    }
+    return true;
+  },
+
   async getInstalledApps(): Promise<Array<{ packageName: string; appName: string; category?: string; iconBase64?: string; iconUri?: string; usedTodayMs?: number }>> {
     if (Platform.OS === "android" && BlackoutModule?.getInstalledApps) {
       try {

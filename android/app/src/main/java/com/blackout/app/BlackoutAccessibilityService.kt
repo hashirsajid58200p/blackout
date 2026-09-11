@@ -299,15 +299,18 @@ class BlackoutAccessibilityService : AccessibilityService() {
                     val isLocked = itemObj.optBoolean("isLocked", false)
                     val dailyLimitMs = itemObj.optDouble("dailyLimitMs", 0.0)
                     var usedTodayMs = itemObj.optDouble("usedTodayMs", 0.0)
+                    val initialUsageMs = itemObj.optDouble("initialUsageMs", 0.0)
 
                     if (dailyLimitMs > 0) {
                         val liveUsage = SecurityHelper.getTodayPackageUsage(this, packageName)
-                        if (liveUsage > usedTodayMs) {
-                            usedTodayMs = liveUsage.toDouble()
+                        val liveElapsed = Math.max(0.0, liveUsage - initialUsageMs)
+                        if (liveElapsed > usedTodayMs) {
+                            usedTodayMs = liveElapsed
                         }
                     }
 
-                    if (isLocked || (dailyLimitMs > 0 && usedTodayMs >= dailyLimitMs)) {
+                    val elapsed = Math.max(0.0, usedTodayMs - initialUsageMs)
+                    if (isLocked || (dailyLimitMs > 0 && elapsed >= dailyLimitMs)) {
                         return true
                     }
                 }

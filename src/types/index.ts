@@ -6,6 +6,9 @@ export interface TrackedApp {
   isLocked: boolean;
   lockDate: string; // "YYYY-MM-DD" — the day this lock applies to
   category?: string;
+  initialUsageMs?: number; // Device usage baseline at moment timer was configured
+  lockExpirationTimestamp?: number; // Milliseconds epoch for 12:00 AM next day
+  lockedAtTimestamp?: number; // Milliseconds epoch when app transitioned to locked
   iconName?: string;
   iconBase64?: string;
   iconUri?: string;

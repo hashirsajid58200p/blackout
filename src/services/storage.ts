@@ -14,7 +14,16 @@ export const getTodayDateString = (): string => {
   return `${year}-${month}-${day}`;
 };
 
+export const getNextMidnightTimestamp = (): number => {
+  const d = new Date();
+  d.setDate(d.getDate() + 1);
+  d.setHours(0, 0, 0, 0);
+  return d.getTime();
+};
+
 export const StorageService = {
+  getNextMidnightTimestamp,
+
   async getSettings(): Promise<Settings> {
     try {
       const data = await AsyncStorage.getItem(SETTINGS_KEY);
@@ -71,8 +80,11 @@ export const StorageService = {
         return {
           ...app,
           usedTodayMs: 0,
+          initialUsageMs: 0,
           isLocked: false,
           lockDate: today,
+          lockExpirationTimestamp: 0,
+          lockedAtTimestamp: undefined,
         };
       }
       return app;
@@ -130,15 +142,19 @@ export const StorageService = {
         initialUsage = 0;
       }
     }
-    const isInitiallyLocked = dailyLimitMs > 0 && initialUsage >= dailyLimitMs;
 
+    const nextMidnight = getNextMidnightTimestamp();
+
+    // App begins in MONITORED / TIMER RUNNING state. Elapsed usage starts at 0.
     const newApp: TrackedApp = {
       packageName,
       appName,
       dailyLimitMs,
-      usedTodayMs: initialUsage,
-      isLocked: isInitiallyLocked,
+      usedTodayMs: 0,
+      initialUsageMs: initialUsage,
+      isLocked: false,
       lockDate: today,
+      lockExpirationTimestamp: nextMidnight,
       category,
       iconName,
       iconBase64,
@@ -150,22 +166,69 @@ export const StorageService = {
     return { success: true };
   },
 
-  async updateAppUsage(packageName: string, usedMs: number): Promise<TrackedApp[]> {
+  async updateAppUsage(packageName: string, currentDeviceUsageMs: number): Promise<TrackedApp[]> {
     const apps = await StorageService.getTrackedApps();
     const updated = apps.map((app) => {
       if (app.packageName === packageName) {
-        const newUsed = Math.max(app.usedTodayMs, usedMs);
-        const shouldLock = newUsed >= app.dailyLimitMs;
+        const initial = app.initialUsageMs || 0;
+        const elapsed = Math.max(0, currentDeviceUsageMs - initial);
+        const shouldLock = app.dailyLimitMs > 0 && elapsed >= app.dailyLimitMs;
+        const lockChanged = !app.isLocked && shouldLock;
         return {
           ...app,
-          usedTodayMs: newUsed,
+          usedTodayMs: elapsed,
           isLocked: app.isLocked || shouldLock,
+          lockedAtTimestamp: lockChanged ? Date.now() : app.lockedAtTimestamp,
+          lockExpirationTimestamp: app.lockExpirationTimestamp || getNextMidnightTimestamp(),
         };
       }
       return app;
     });
     await StorageService.saveTrackedApps(updated);
     return updated;
+  },
+
+  async unlockTrackedApp(packageName: string): Promise<{ success: boolean; error?: string }> {
+    const apps = await StorageService.getTrackedApps();
+    const app = apps.find((a) => a.packageName === packageName);
+    if (!app) {
+      return { success: true };
+    }
+
+    const now = Date.now();
+    const expiration = app.lockExpirationTimestamp || getNextMidnightTimestamp();
+    // Strict verification: locked apps cannot be unlocked before the lock period expires
+    if (app.isLocked && now < expiration) {
+      return {
+        success: false,
+        error: "This application is locked and cannot be unlocked until midnight in accordance with Blackout rules.",
+      };
+    }
+
+    // Call native unlock to verify against native source of truth
+    try {
+      const nativeOk = await NativeBridge.unlockPackage(packageName);
+      if (!nativeOk) {
+        return {
+          success: false,
+          error: "Native security policy prevented unlocking before expiration.",
+        };
+      }
+    } catch (e: any) {
+      return {
+        success: false,
+        error: e?.message || "Cannot unlock before lock period completes.",
+      };
+    }
+
+    // Remove from tracked_apps and sync across systems
+    const updated = apps.filter((a) => a.packageName !== packageName);
+    await StorageService.saveTrackedApps(updated);
+    NativeBridge.syncLockedAppsToNative(JSON.stringify(updated));
+    const lockedPkgs = updated.filter((a) => a.isLocked).map((a) => a.packageName);
+    NativeBridge.syncLockedPackages(lockedPkgs);
+
+    return { success: true };
   },
 
   async isOnboardingCompleted(): Promise<boolean> {

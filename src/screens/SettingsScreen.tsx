@@ -1,11 +1,13 @@
 import React from "react";
-import { View, Text, ScrollView, TouchableOpacity, Image, Switch } from "react-native";
+import { View, Text, ScrollView, TouchableOpacity, Image, Switch, Alert } from "react-native";
 import { useApp } from "../context/AppContext";
 import { NavigationHeader } from "../components/NavigationHeader";
 import { BottomNavBar } from "../components/BottomNavBar";
 import { Card } from "../components/ui/Card";
 import { NativeBridge } from "../services/nativeBridge";
-import { Moon, Sun, Monitor, ShieldCheck, Info, Lock, Trash2, ChevronRight } from "lucide-react-native";
+import { Moon, Sun, Monitor, ShieldCheck, Info, Lock, Trash2, ChevronRight, Unlock } from "lucide-react-native";
+import { TrackedApp } from "../types";
+import { StorageService } from "../services/storage";
 
 export const SettingsScreen: React.FC = () => {
   const {
@@ -16,6 +18,7 @@ export const SettingsScreen: React.FC = () => {
     permissions,
     setCurrentScreen,
     effectiveTheme,
+    unlockTrackedApp,
   } = useApp();
 
   const isDark = effectiveTheme === "dark";
@@ -32,6 +35,44 @@ export const SettingsScreen: React.FC = () => {
     await NativeBridge.requestDeviceAdmin();
     const active = await NativeBridge.isDeviceAdminActive();
     setIsAdminActive(active);
+  };
+
+  const handleUnlockPress = (app: TrackedApp) => {
+    const now = Date.now();
+    const expiration = app.lockExpirationTimestamp || StorageService.getNextMidnightTimestamp();
+    if (app.isLocked) {
+      if (now < expiration) {
+        Alert.alert(
+          "Lock Active",
+          "This application is currently locked and cannot be unlocked until midnight in accordance with Blackout rules."
+        );
+        return;
+      }
+      Alert.alert(
+        "Unlock Application",
+        `The lock period has completed. Restore normal access to ${app.appName}?`,
+        [
+          { text: "Cancel", style: "cancel" },
+          {
+            text: "Unlock",
+            style: "destructive",
+            onPress: async () => {
+              const res = await unlockTrackedApp(app.packageName);
+              if (res.success) {
+                Alert.alert("Unlocked", `${app.appName} has been unlocked. Normal daily behavior restored.`);
+              } else {
+                Alert.alert("Unlock Error", res.error || "Could not unlock app.");
+              }
+            },
+          },
+        ]
+      );
+    } else {
+      Alert.alert(
+        "Timer Running",
+        `${app.appName} is being monitored with an active daily allowance. It will lock automatically once the configured duration completes.`
+      );
+    }
   };
 
   const themeOptions: Array<{ mode: "system" | "light" | "dark"; label: string; icon: any }> = [
@@ -177,7 +218,7 @@ export const SettingsScreen: React.FC = () => {
         <View className="flex-col gap-2.5 mb-6">
           <View className="flex-row justify-between items-center px-1">
             <Text className="font-body-semibold text-[11px] text-ink-muted dark:text-bone-muted uppercase tracking-widest">
-              ACTIVE TODAY'S LOCKS (VIEW ONLY)
+              ACTIVE TODAY'S LOCKS
             </Text>
             <Lock size={14} strokeWidth={1.25} color={iconColor} />
           </View>
@@ -190,9 +231,11 @@ export const SettingsScreen: React.FC = () => {
             </Card>
           ) : (
             trackedApps.map((app) => (
-              <View
+              <TouchableOpacity
                 key={app.packageName}
-                className="flex-row justify-between items-center py-3 px-3.5 border border-hairline dark:border-hairline-dark bg-paper-surface dark:bg-espresso-surface rounded"
+                activeOpacity={0.7}
+                onPress={() => handleUnlockPress(app)}
+                className="flex-row justify-between items-center py-3 px-3.5 border border-hairline dark:border-hairline-dark bg-paper-surface dark:bg-espresso-surface rounded active:bg-ink/5 dark:active:bg-bone/5"
               >
                 <View className="flex-row items-center gap-2.5 flex-1 pr-2">
                   {app.iconUri ? (
@@ -218,10 +261,15 @@ export const SettingsScreen: React.FC = () => {
                     {app.appName}
                   </Text>
                 </View>
-                <Text className="font-mono text-xs text-ink-muted dark:text-bone-muted uppercase">
-                  {Math.round(app.dailyLimitMs / (1000 * 60))}M DAILY LIMIT
-                </Text>
-              </View>
+                <View className="flex-row items-center gap-2">
+                  <Text className={`font-mono-bold text-[10px] uppercase ${app.isLocked ? "text-stamp-red" : "text-stamp-olive"}`}>
+                    {app.isLocked ? "LOCKED" : "RUNNING"}
+                  </Text>
+                  <Text className="font-mono text-xs text-ink-muted dark:text-bone-muted uppercase">
+                    • {Math.round(app.dailyLimitMs / (1000 * 60))}M
+                  </Text>
+                </View>
+              </TouchableOpacity>
             ))
           )}
 

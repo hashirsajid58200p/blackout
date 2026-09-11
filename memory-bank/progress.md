@@ -1,6 +1,11 @@
 # Progress Tracker
 
 ## Completed Features
+- [x] **Persistent Issues Fix Loop (Issues 1, 2, 3)**:
+  - [x] **Issue 1 (Locked app premature unlock blocked)**: Enforced via `SecurityHelper.unlockPackage`, `StorageService.unlockTrackedApp`, and UI alerts. Locked apps cannot be unlocked before midnight across all paths, navigations, and app restarts. Unlock becomes available once lock period completes.
+  - [x] **Issue 2 (Screen-time calculation & timing drift resolved)**: Root cause resolved in `BlackoutModule.kt` by removing `isSystem` discard filter on launchable pre-installed packages (Phone, Chrome, Calculator, Deskclock, etc.). Restored ~16m discrepancy without hardcoded offsets.
+  - [x] **Issue 3 (Delayed lock until timer completes)**: Root cause resolved by using `initialUsageMs` as the baseline. Configured apps enter `MONITORED / TIMER RUNNING` ("ACTIVE") and only lock when elapsed usage >= configured limit.
+  - [x] Verified on physical Android 14 test device (`Infinix_X6833B`).
 - [x] **Project Scaffolding**: Expo SDK 54, React Native 0.81.5, TypeScript, NativeWind v4 with Tailwind CSS.
 - [x] **Monolith Design System**: High-contrast monochrome palette, sharp geometry, custom typography tokens, full dark/light mode support.
 - [x] **Onboarding & Permission Flows**:

@@ -246,7 +246,7 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
 
                 when (type) {
                     UsageEvents.Event.ACTIVITY_RESUMED -> {
-                        if (currentPkg != null && currentPkg != pkg) {
+                        if (currentPkg != null) {
                             val duration = time - currentStart
                             if (duration > 0) {
                                 usageMap[currentPkg!!] = (usageMap[currentPkg!!] ?: 0L) + duration
@@ -346,20 +346,11 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
                     continue
                 }
 
-                // Filter out pure system apps without launcher updates
-                val appInfo = try {
-                    pm.getApplicationInfo(packageName, 0)
-                } catch (e: Exception) {
-                    continue
-                }
-                val isSystem = (appInfo.flags and ApplicationInfo.FLAG_SYSTEM) != 0 &&
-                               (appInfo.flags and ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) == 0
-                if (isSystem) continue
-
                 if (pm.getLaunchIntentForPackage(packageName) == null) {
                     continue
                 }
 
+                val appInfo = resolveInfo.activityInfo?.applicationInfo ?: continue
                 addedPackages.add(packageName)
                 val appName = resolveInfo.loadLabel(pm).toString()
                 val usedTodayMs = usageMap[packageName] ?: 0L
@@ -423,10 +414,6 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
                         }
                         if (timeMs <= 0) continue
                         try {
-                            val appInfo = pm.getApplicationInfo(pkg, 0)
-                            val isSystem = (appInfo.flags and ApplicationInfo.FLAG_SYSTEM) != 0 &&
-                                           (appInfo.flags and ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) == 0
-                            if (isSystem) continue
                             if (pm.getLaunchIntentForPackage(pkg) != null) {
                                 dayTotalMs += timeMs
                             }
@@ -453,10 +440,6 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
 
                         for ((pkg, timeMs) in packageUsageMap) {
                             try {
-                                val appInfo = pm.getApplicationInfo(pkg, 0)
-                                val isSystem = (appInfo.flags and ApplicationInfo.FLAG_SYSTEM) != 0 &&
-                                               (appInfo.flags and ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) == 0
-                                if (isSystem) continue
                                 if (pm.getLaunchIntentForPackage(pkg) != null) {
                                     dayTotalMs += timeMs
                                 }
@@ -534,10 +517,6 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
                 }
                 if (timeMs <= 0) continue
                 try {
-                    val appInfo = pm.getApplicationInfo(pkg, 0)
-                    val isSystem = (appInfo.flags and ApplicationInfo.FLAG_SYSTEM) != 0 &&
-                                   (appInfo.flags and ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) == 0
-                    if (isSystem) continue
                     if (pm.getLaunchIntentForPackage(pkg) == null) continue
                     filteredList.add(Triple(pkg, timeMs, openCountMap[pkg] ?: 0))
                 } catch (e: Exception) {}
@@ -583,6 +562,21 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
             promise.resolve(true)
         } catch (e: Exception) {
             promise.reject("UNINSTALL_ERROR", e.message)
+        }
+    }
+
+    @ReactMethod
+    fun unlockPackage(packageName: String, promise: Promise) {
+        try {
+            val success = SecurityHelper.unlockPackage(reactApplicationContext, packageName)
+            if (success) {
+                promise.resolve(true)
+            } else {
+                promise.reject("LOCKED", "This application is locked and cannot be unlocked until the lock period completes at midnight.")
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "unlockPackage error", e)
+            promise.reject("UNLOCK_ERROR", e.message)
         }
     }
 }

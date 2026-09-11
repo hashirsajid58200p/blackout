@@ -1,11 +1,17 @@
 # Active Context
 
-## Current Status: Visual Redesign Implementation (Vintage Minimalist) — COMPLETED
+## Current Status: Persistent App Fixes (Issues 1, 2, 3) — COMPLETED & VERIFIED ON DEVICE
 
-### Visual Redesign Overview
-The application has undergone a comprehensive presentation-layer visual redesign from the stark black-and-white "Monolith" look to the Google Stitch "Vintage Minimalist" direction (analog ledger aesthetic, warm paper `#F4EFE4`/ink `#2B2621`, espresso `#1B1712`/bone `#EDE4D3`, Fraunces + Inter + IBM Plex Mono typography, hairline 1px borders, rubber-stamp badges).
-
-All core business, native enforcement, event-based tracking, theme-synchronization, and Device Admin protections were preserved with zero regressions.
+### Persistent Issues Resolution Overview
+1. **Issue 1 (Locked App Premature Unlock Blocked)**:
+   - Enforced strict lock retention in native `SecurityHelper.unlockPackage` and TypeScript `StorageService.unlockTrackedApp`. Unlocking is prohibited and rejected across all UI paths, navigation, restarts, or state manipulations while `now < lockExpirationTimestamp` (midnight).
+   - In `HomeScreen` and `SettingsScreen`, locked apps display `"LOCKED UNTIL MIDNIGHT"`. Tapping while locked displays an alert informing the user that premature unlock is prohibited. Once the lock period has completed, the action becomes available to unlock the app.
+2. **Issue 2 (Screen-Time Calculation & Timing Drift Resolved)**:
+   - Root cause identified: In `BlackoutModule.kt`, `(appInfo.flags and ApplicationInfo.FLAG_SYSTEM) != 0 && (appInfo.flags and ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) == 0` was discarding launchable pre-installed system apps (Phone, Chrome, Calculator, Deskclock, Settings).
+   - Removing this filter restored missing usage (~16 minutes), bringing Blackout's screen-time calculation in exact parity with Android Digital Wellbeing without hardcoded offsets.
+3. **Issue 3 (Delayed Lock Until Configured Timer Completes)**:
+   - Root cause identified: `StorageService.addTrackedApp` and `AppContext.tsx` were comparing total daily usage since midnight against the timer limit (`dailyLimitMs`), causing apps already used earlier today (e.g. WhatsApp with 21m) to lock immediately on 5m timer creation.
+   - Introduced `initialUsageMs` as the baseline at timer configuration. Tracking calculates `elapsed = Math.max(0, currentDeviceUsage - initialUsageMs)`. Newly added apps stay in `MONITORED / TIMER RUNNING` state ("ACTIVE") and only lock when elapsed usage >= configured limit. Verified live with Calculator and Spotify on physical hardware.
 
 ---
 
