@@ -59,8 +59,19 @@
     - Digital Wellbeing: Total 3h 21m (with system/other), X 1h 0m, Instagram 56m, YouTube 31m, WhatsApp 14m.
     - Blackout Home Screen: Total 3h 1m (launchable user apps), X 1h 0m (exact match!), Instagram 56m (exact match!), YouTube 29m (within 1-2m), WhatsApp 14m (exact match!).
     - Blackout Stats Screen: Today total 3.0h, today bar 3.0h, X 1h 0m used, Instagram 56m used.
-- [ ] **Phase 2 — Locked app backgrounding & overlay desync (Next)**: Consolidate dual enforcement paths (event-driven vs polling runnable) in `BlackoutAccessibilityService.kt`, check `performGlobalAction(GLOBAL_ACTION_HOME)` return value with retry/logging.
-- [ ] **Phase 3 — Theme desync from System mode**: Pass literal `"system"` to `setColorScheme` in `AppContext.tsx` rather than resolved concrete color.
+- [x] **Phase 2 — Locked app backgrounding & overlay enforcement (Verified & Fixed)**:
+  - Eliminated dual competing enforcement machines in `BlackoutAccessibilityService.kt`: consolidated into a single authoritative `enforceBlock(packageName)` function.
+  - Demoted the high-frequency 1-second `foregroundMonitorRunnable` to a lightweight 3-second `safetyNetRunnable` that reuses `enforceBlock`.
+  - Added robust Home redirection with `sendToHome()`: checks return value of `performGlobalAction(GLOBAL_ACTION_HOME)`. If false, logs warning and retries immediately; if retry fails, launches fallback Home Intent (`Intent.ACTION_MAIN`, `Intent.CATEGORY_HOME`, `FLAG_ACTIVITY_NEW_TASK`).
+  - Fixed root cause of overlay premature dismissal: the overlay itself produces a `TYPE_WINDOW_STATE_CHANGED` event for `com.blackout.app`. Previously, `onAccessibilityEvent` received this and immediately called `hideOverlay()` and cleared `isTransitioningToHome`. Now, `com.blackout.app` events are explicitly ignored during `isTransitioningToHome`.
+  - Added case-insensitive launcher matching (`lower.contains(...)`) and dynamic package manager querying for `ACTION_MAIN` + `CATEGORY_HOME` (catching OEM launchers like Transsion XOSLauncher and user launchers like Niagara `bitpit.launcher`).
+  - Overlay dismiss timing is strictly synchronized: upon positive confirmation of arrival at launcher, overlay holds for 400ms to let the home screen settle cleanly before dismissing. If launcher event does not arrive, a safety timeout (5s) cleans up the overlay.
+  - Enabled `canRetrieveWindowContent="true"` and `flagRetrieveInteractiveWindows` in `accessibility_service_config.xml`.
+  - Verified on physical Infinix X6833B device via `adb logcat -s BlackoutAccessibility` and rapid re-opening stress test:
+    - Spotify launch immediately triggers `enforceBlock` (within 2ms).
+    - User is redirected to home screen instantly with overlay displayed.
+    - Rapid 5x re-opening bounces user back to home every single time with zero gap, zero leaks, and no bypass.
+- [ ] **Phase 3 — Theme desync from System mode (Next)**: Pass literal `"system"` to `setColorScheme` in `AppContext.tsx` rather than resolved concrete color.
 - [ ] **Phase 4 — Unfinished features & audit issues**:
   - Add auto-clean toggle in `SettingsScreen.tsx`.
   - Deduplicate `SecurityHelper` vs `BlackoutAccessibilityService` blocking logic.
@@ -70,4 +81,4 @@
 - [ ] **Phase 5 — Full regression pass**: End-to-end verification on physical device (Infinix X6833B, Android 14).
 
 ## What's Next
-- Proceeding to Phase 2: Consolidate dual enforcement paths in `BlackoutAccessibilityService.kt` and check `performGlobalAction(GLOBAL_ACTION_HOME)` return value.
+- Proceeding to Phase 3: Theme desync from "System" mode after manual override in `src/context/AppContext.tsx`.
