@@ -1,8 +1,10 @@
 # Active Context
 
-## Current Status: Audit Round 3 — COMPLETED & VERIFIED ON PHYSICAL HARDWARE (Infinix X6833B)
-
-### Audit Round 3 Summary of Resolved Issues
+## Current Status: Phase 1 — App Debugging & Issue Discovery (Complete)
+- **Mode**: QA Engineer + Codebase Auditor (Investigate Only, No Fixes Applied per prompt Hard Rule).
+- **Tested Environment**: Physical hardware Infinix X6833B (Infinix NOTE 30), Android 14 (API 34), 1080x2460.
+- **Report Created**: `ISSUES_REPORT.md` (Committed locally to Git).
+- **Summary**: 0 Critical, 3 High, 4 Medium, 4 Low issues uncovered across native Kotlin modules, navigation lifecycle, and UI synchronization.
 
 1. **Phase 1 — Live Time Lock Expiration & Self-Healing (Fixed & Verified)**:
    - **Root Cause**: `SecurityHelper.markPackageLocked()` recorded `lockExpirationTimestamp`, but neither `BlackoutAccessibilityService.isAppBlocked()` nor `SecurityHelper.hasActiveLocks()` read this field. The system depended entirely on external midnight alarms or JS app reopen. Furthermore, `AppContext.tsx` had a one-way ratchet (`isLocked: app.isLocked || isNowLocked`).

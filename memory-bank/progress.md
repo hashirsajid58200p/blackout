@@ -1,6 +1,11 @@
 # Progress Tracker
 
 ## Completed Features
+- [x] **Phase 1 — App Debugging & Issue Discovery (Hardware-Tested QA Audit)**:
+  - Exhaustive live device audit conducted on connected Infinix X6833B (Android 14, API 34).
+  - Clean build verified: TypeScript (0 errors), Gradle assembleDebug (clean, 28s), ADB installation.
+  - Complete issue documentation authored to `ISSUES_REPORT.md`: 11 issues cataloged (0 Critical, 3 High, 4 Medium, 4 Low) with exact root cause hypotheses and repro steps.
+  - Strictly respected Hard Rule: zero code modifications / fixes applied during this session.
 - [x] **Audit Round 3 (Verified on Physical Device Infinix X6833B)**:
   - [x] **Phase 1 — Locks expire on live time**: Read `lockExpirationTimestamp` in `BlackoutAccessibilityService.isAppBlocked()` and `SecurityHelper.kt`. Expired apps immediately allowed without waiting for alarms or app reopen. Fixed OEM `transsion` launcher check bug. Broke JS one-way ratchet in `AppContext.fetchUsage`.
   - [x] **Phase 2 — Screen-time total system apps regression resolved**: Restored `FLAG_SYSTEM` filter strictly in `getDayUsageStats()` and `getWeeklyUsageStats()`. Kept `getInstalledApps()` unfiltered by system flag. Total usage matches Digital Wellbeing.
