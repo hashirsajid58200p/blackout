@@ -71,8 +71,18 @@
     - Spotify launch immediately triggers `enforceBlock` (within 2ms).
     - User is redirected to home screen instantly with overlay displayed.
     - Rapid 5x re-opening bounces user back to home every single time with zero gap, zero leaks, and no bypass.
-- [ ] **Phase 3 — Theme desync from System mode (Next)**: Pass literal `"system"` to `setColorScheme` in `AppContext.tsx` rather than resolved concrete color.
-- [ ] **Phase 4 — Unfinished features & audit issues**:
+- [x] **Phase 3 — Theme desync from System mode (Verified & Fixed)**:
+  - Root cause resolved: `react-native-css-interop`'s `setColorScheme` internally delegates to RN `Appearance.setColorScheme("light"|"dark")`, which plants an app-wide override. Previously, switching to "System" called `Appearance.getColorScheme()` which read the override previously planted and re-passed a concrete value, leaving the app permanently stuck.
+  - Implemented the fix in `src/context/AppContext.tsx`:
+    - Updated `updateThemeMode` to pass the literal string `mode` directly to `setColorScheme(mode)` without calling `Appearance.getColorScheme()`. Passing `"system"` clears the RN Appearance override.
+    - Updated `useEffect` to pass `settings.themeMode` directly to `setColorScheme(settings.themeMode)`.
+    - Preserved `sysScheme` state and listeners (`useRNColorScheme`, `Appearance.addChangeListener`, and native `onSystemThemeChanged`) for `effectiveTheme` used by icon colors and status bars.
+  - Re-exported production Android JS bundle.
+  - Verified on physical Infinix X6833B device:
+    - System Dark -> App System (Dark) -> Switch to Light (Light) -> Switch back to System (immediately returns to Dark without reopen).
+    - Manual Dark mode persists.
+    - Live OS dark mode toggle (`adb shell cmd uimode night no/yes`): app updates live in the foreground immediately.
+- [ ] **Phase 4 — Unfinished features & audit issues (Next)**:
   - Add auto-clean toggle in `SettingsScreen.tsx`.
   - Deduplicate `SecurityHelper` vs `BlackoutAccessibilityService` blocking logic.
   - Add `.npmrc` with `legacy-peer-deps=true`.
@@ -81,4 +91,4 @@
 - [ ] **Phase 5 — Full regression pass**: End-to-end verification on physical device (Infinix X6833B, Android 14).
 
 ## What's Next
-- Proceeding to Phase 3: Theme desync from "System" mode after manual override in `src/context/AppContext.tsx`.
+- Proceeding to Phase 4: Unfinished features and issues found in audit.

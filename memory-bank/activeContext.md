@@ -27,14 +27,32 @@
 
 ---
 
+### Phase 3: Theme Desync from "System" Mode (Completed & Verified)
+1. **Root Cause Analysis**:
+   - NativeWind / `react-native-css-interop`'s `setColorScheme` delegates to React Native `Appearance.setColorScheme("light"|"dark")`.
+   - Setting a concrete `"light"` or `"dark"` plants an app-wide override in React Native's `Appearance`.
+   - When switching back to "System", `updateThemeMode` queried `Appearance.getColorScheme()` which returned the override ("light"), and passed that concrete value back to `setColorScheme`, causing the app to stay stuck on light until force close.
+2. **Implementation Fix**:
+   - In `src/context/AppContext.tsx`:
+     - Updated `updateThemeMode` to pass literal `mode` directly to `setColorScheme(mode)` without calling `Appearance.getColorScheme()`. Passing `"system"` clears the override (`Appearance.setColorScheme(null)`).
+     - Updated the `useEffect` to watch `settings.themeMode` and pass `settings.themeMode` directly to `setColorScheme(settings.themeMode)`.
+     - Preserved `sysScheme` state and listeners for `effectiveTheme` used by icon tints and status bars.
+   - Re-exported production Android JS bundle: `android/app/src/main/assets/index.android.bundle`.
+3. **Physical Device Verification (Infinix X6833B, Android 14)**:
+   - System Dark -> App System (Dark) -> Tap Light (Light) -> Tap System (immediately returned to Dark without reopening!).
+   - Manual Dark mode persists properly.
+   - Tested live OS theme switching (`adb shell cmd uimode night no` and `yes`): app responded live in foreground, flipping from Dark to Light and back to Dark seamlessly.
+
+---
+
 ## Next Phase
-- **Phase 3 — Theme desync from "System" mode after manual override**:
-  - Exact root cause identified in prompt: `nativewind` / `react-native-css-interop`'s `setColorScheme` delegates to React Native `Appearance.setColorScheme`. Passing concrete `"light"` or `"dark"` plants an app-wide override.
-  - When user switches back to "System", `updateThemeMode` in `src/context/AppContext.tsx` currently queries `Appearance.getColorScheme()`, which returns the override planted previously, and calls `setColorScheme(concrete)`.
-  - Fix: Never resolve `"system"` to a concrete value. Pass literal `"system"` directly to `setColorScheme("system")` (clearing RN override), and in the `useEffect` pass `settings.themeMode` directly.
-  - Test live theme switching on physical device.
+- **Phase 4 — Unfinished features and audit issues**:
+  1. Add auto-clean toggle in `SettingsScreen.tsx` wired to `updateAutoCleanSetting`.
+  2. Deduplicate blocking-state logic: evaluate `SecurityHelper.kt` vs `BlackoutAccessibilityService.kt` (`EncryptedSharedPreferences` vs `BlackoutPrefs`).
+  3. Add `.npmrc` with `legacy-peer-deps=true`.
+  4. Screen sweep & verify Android 14 exact alarm permission handling in `SecurityHelper.scheduleMidnightReset`.
 
 ## Manual Checks for Founder
-- Try opening Spotify (which has an active lock): observe instant redirection to Home screen with "SPOTIFY IS DARK" overlay.
-- Rapidly tap Spotify multiple times: observe that it bounces back immediately with zero leak.
-- Open Blackout: verify Home dashboard and Stats screen remain clean and responsive.
+- Go to Settings -> Theme Mode: toggle between System, Light, and Dark.
+- Notice switching from Light back to System returns immediately to the system dark theme without requiring app restart.
+- Open Spotify: verify hard-lock redirection remains rock-solid.

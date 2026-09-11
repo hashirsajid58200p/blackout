@@ -123,8 +123,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
   }, []);
 
   useEffect(() => {
-    setColorScheme(effectiveTheme);
-  }, [effectiveTheme, setColorScheme]);
+    setColorScheme(settings.themeMode);
+  }, [settings.themeMode, setColorScheme]);
 
   // ── Synchronized permissions check ──────────────────────────────────────────
   const refreshPermissions = useCallback(async (): Promise<boolean> => {
@@ -294,14 +294,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     const newSettings = { ...settings, themeMode: mode };
     setSettings(newSettings);
     await StorageService.saveSettings(newSettings);
-    if (mode === "system") {
-      const current = Appearance.getColorScheme();
-      const scheme = current === "dark" ? "dark" : "light";
-      setSysScheme(scheme);
-      setColorScheme(scheme);
-    } else {
-      setColorScheme(mode);
-    }
+    setColorScheme(mode);
   };
 
   const updateAutoCleanSetting = async (enabled: boolean) => {
