@@ -1,7 +1,7 @@
-# Issues Report — September 11, 2026 (Run 1)
+# Issues Report — September 11, 2026 (Run 2 — UI Responsiveness & Edge-Sticking Audit)
 
 ## Summary
-- Critical: 0 | High: 3 | Medium: 4 | Low: 4
+- Critical: 0 | High: 3 | Medium: 8 | Low: 8
 - Device tested: Infinix X6833B (Infinix NOTE 30), Android 14 (API level 34), Resolution 1080x2460
 - Build status: clean (TypeScript: clean 0 errors; Gradle: clean assembleDebug in 28s; ADB install: clean)
 
@@ -219,3 +219,141 @@
   3. Look at Blackout's Home screen; the status continues to show secured until the app loses and regains window focus.
 - Evidence: In `AppContext.tsx`, `refreshPermissions()` is attached exclusively to `AppState.addEventListener('change', ...)` and initial mount.
 - Suspected Root Cause: Absence of periodic polling or an explicit native event callback dispatched by `BlackoutAccessibilityService.onServiceConnected()` / `onUnbind()` to React Native when the service connection state changes.
+
+---
+
+### ISSUE-12 — Unresponsive Extremity Sticking (`justify-between`) on 7-Day Activity Header in StatsScreen
+- Category: UI
+- Severity: Medium
+- File(s): `src/screens/StatsScreen.tsx` (lines 200–210)
+- Description: In `StatsScreen`, the "7-Day Activity" bar chart card header is constructed using `<View className="flex-row items-center justify-between mb-4 pb-2 border-b border-hairline dark:border-hairline-dark">`. The left element (BarChart2 icon + "7-DAY ACTIVITY") and the right element ("117.5H TOTAL") are pinned hard to opposite extremities of the container without internal horizontal insets relative to the border-bottom separator line. On smaller devices (320px–360px width) or when system accessibility font scaling is enlarged, the elements crowd the card's boundaries and risk colliding with each other because neither container has responsive flex-shrink constraints or proportional padding.
+- Steps to Reproduce:
+  1. Open Blackout and navigate to the "Stats" tab.
+  2. Inspect the 7-Day Activity card.
+  3. Notice that "7-DAY ACTIVITY" touches the far left edge of the border-bottom line and "117.5H TOTAL" is pressed against the far right edge without breathing room.
+  4. On narrow screen sizes or high DPI font scaling, the text wraps or touches borders awkwardly.
+- Evidence: Visual capture in `screen_stats.png` and `screen_stats_monday.png` shows "7-DAY ACTIVITY" and "117.5H TOTAL" abutting the card edges. Code in `StatsScreen.tsx:200–210`:
+  ```tsx
+  <View className="flex-row items-center justify-between mb-4 pb-2 border-b border-hairline dark:border-hairline-dark">
+    <View className="flex-row items-center gap-2">
+      <BarChart2 size={16} strokeWidth={1.25} color={iconColor} />
+      <Text className="font-body-semibold text-xs text-ink dark:text-bone uppercase tracking-wider">
+        7-Day Activity
+      </Text>
+    </View>
+    <Text className="font-mono text-[10px] text-ink-muted dark:text-bone-muted uppercase">
+      {formatHours(totalWeeklyMs)} TOTAL
+    </Text>
+  </View>
+  ```
+- Suspected Root Cause: Using raw `justify-between` without proportional horizontal padding (`px-1` or `px-2`), flex-shrink constraints, or max-width thresholds against the card's perimeter border.
+
+---
+
+### ISSUE-13 — Unresponsive Extremity Sticking on "Today's Usage Overview" Card Header in HomeScreen
+- Category: UI
+- Severity: Medium
+- File(s): `src/screens/HomeScreen.tsx` (lines 198–205)
+- Description: In `HomeScreen`, the primary donut chart card uses `<View className="w-full flex-row justify-between items-center mb-4">`. Just like in StatsScreen, "TODAY'S USAGE OVERVIEW" is pushed to the extreme left edge of the card, while the total usage metric ("7h 39m") is pushed to the extreme right edge. There is zero horizontal padding or responsive flex spacing, producing an uncomfortably rigid, edge-sticking visual layout across different screen sizes.
+- Steps to Reproduce:
+  1. Launch Blackout on device.
+  2. Inspect the topmost card "Today's Usage Overview" on the Home dashboard.
+  3. Notice "TODAY'S USAGE OVERVIEW" and "7h 39m" are jammed against the left and right card padding boundaries with no responsive margin.
+- Evidence: Live capture `launch_screen.png`. Code in `HomeScreen.tsx:198–205`:
+  ```tsx
+  <View className="w-full flex-row justify-between items-center mb-4">
+    <Text className="font-body-semibold text-[11px] text-ink-muted dark:text-bone-muted uppercase tracking-widest">
+      Today's Usage Overview
+    </Text>
+    <Text className="font-mono-bold text-xs text-ink dark:text-bone">
+      {formatMs(totalUsedTodayMs)}
+    </Text>
+  </View>
+  ```
+- Suspected Root Cause: Same pattern as Issue 12: `w-full flex-row justify-between` without internal margin insets, flex-shrink handling, or responsive container padding.
+
+---
+
+### ISSUE-14 — Floating Action Button (FAB) Overlays and Occludes Scrollable Content in HomeScreen
+- Category: UI
+- Severity: Medium
+- File(s): `src/screens/HomeScreen.tsx` (lines 408–415)
+- Description: The Add App floating action button (`+`) is anchored with absolute coordinates: `className="absolute bottom-20 right-6 w-14 h-14 ... z-40"`. Because the usage breakdown list inside the ScrollView extends into this coordinate space, the circular FAB physically floats over the right side of the bottom list item. On the physical device (1080x2460), the 8th row ("Calculator 4m (") is partially occluded and its right-hand content is unreadable and touch-blocked.
+- Steps to Reproduce:
+  1. Open Blackout with 8 or more apps active in today's usage breakdown.
+  2. Observe the bottom of the card on the Home screen.
+  3. Notice the floating button circles directly over the text of the last item in the breakdown list.
+- Evidence: Real hardware capture `launch_screen.png` clearly shows the white/bone FAB circle directly covering "4m (" of the Calculator app row.
+- Suspected Root Cause: The FAB is rendered as a floating overlay over an unpadded ScrollView without a dedicated floating action gutter or bottom spacer inside the card.
+
+---
+
+### ISSUE-15 — App Usage Breakdown Legend Rows Lack Responsive Truncation and Flex Constraints in HomeScreen
+- Category: UI
+- Severity: Low
+- File(s): `src/screens/HomeScreen.tsx` (lines 280–298)
+- Description: In the Home screen's usage breakdown legend, each row renders an app name on the left and a detailed metric string on the right: `{formatMs(seg.usedTodayMs)} ({percentOfTotal}%){seg.openCount ? " • " + seg.openCount + " opens" : ""}`. Because the right-hand text container has no `flex-shrink` restriction or responsive truncation on compact displays, long strings (e.g. `3h 16m (43%) • 224 opens`) crowd long app names, causing horizontal cramping and pushing text hard against the right edge of the card.
+- Steps to Reproduce:
+  1. Have an app with high opens (e.g., WhatsApp with 294 opens or Instagram with 224 opens).
+  2. View the Home screen on a 360px device or with "Large Text" enabled in Android Accessibility Settings.
+  3. Observe the row text pushing hard against the card border with no margin.
+- Evidence: Visual capture `launch_screen.png` shows rows with long strings (`3h 16m (43%) • 224 opens`) running edge-to-edge.
+- Suspected Root Cause: Right-hand metric text lacks `shrink` or breakpoint-aware formatting (e.g., dropping open counts on small screens or using responsive flex layout).
+
+---
+
+### ISSUE-16 — 7-Day Bar Chart Horizontal Cramping & Missing Dynamic Label Scaling in StatsScreen
+- Category: UI
+- Severity: Medium
+- File(s): `src/screens/StatsScreen.tsx` (lines 212–260)
+- Description: The 7-day bar chart packs seven columns into a single `flex-row justify-between items-end h-44 pt-2 px-1`. The numeric usage indicators above each bar (`formatHours(item.totalUsageMs)`) render values like `53.9h` and `117.5h`. On screens narrower than 375px (or when font scaling is increased in Android display settings), these 7 numeric labels touch, overlap, or run off the container edges due to the absence of min-width constraints, flexible spacing, or responsive abbreviation.
+- Steps to Reproduce:
+  1. Open Stats screen.
+  2. Observe the 7 numeric labels above the vertical bars (`11.4h  12.7h  53.9h  15.1h  8.1h  8.6h  7.7h`).
+  3. Notice how tightly packed they are horizontally with `px-1` padding.
+  4. On narrow devices, numbers with 3+ characters touch each other without separation.
+- Evidence: Live capture `screen_stats_monday.png` shows the 7 duration labels horizontally squeezed together across the 7 bars.
+- Suspected Root Cause: Seven columns with fixed font sizes in a single unscrollable flex-row with insufficient padding and no dynamic font sizing.
+
+---
+
+### ISSUE-17 — Selected Day Summary Two-Column Divider Crowding on Historical Logs in StatsScreen
+- Category: UI
+- Severity: Low
+- File(s): `src/screens/StatsScreen.tsx` (lines 176–196)
+- Description: The summary card renders a two-column layout (`flex-row justify-around items-center`) with a centered hairline divider (`w-px h-10`). On past days, the left column header text is generated dynamically via `{getSelectedDayLabel()} TOTAL`, producing strings such as "MON, SEP 7 TOTAL". On compact devices, this wide header text expands horizontally and presses against the center divider and outer card boundaries without responsive text wrapping or font size clamping.
+- Steps to Reproduce:
+  1. In Stats screen, navigate to a past day like Monday Sep 7 or Wednesday Sep 9.
+  2. Notice the left label reads "MON, SEP 7 TOTAL".
+  3. On small screen viewports (360px), the text crowds the vertical hairline divider and outer padding.
+- Evidence: `screen_stats_monday.png` displays "MON, SEP 7 TOTAL" spanning close to the center divider line.
+- Suspected Root Cause: Dynamic multi-word uppercase date strings in a fixed two-column layout without `flex-1`, `text-center`, and `numberOfLines={1}` / `adjustsFontSizeToFit` controls.
+
+---
+
+### ISSUE-18 — Hardcoded Fixed-Pixel Margin Offsets (`ml-[28px]`, `ml-[46px]`) Causing Responsive Misalignment in Permissions and Add App Screens
+- Category: UI
+- Severity: Low
+- File(s): `src/screens/PermissionsScreen.tsx` (line 143), `src/screens/AddAppScreen.tsx` (line 205)
+- Description: Multiple sub-texts use hardcoded negative/positive margin pixel values to manually simulate indentation (e.g. `ml-[28px]` in PermissionsScreen descriptions, `ml-[46px]` in AddAppScreen usage sub-texts) instead of proper nested flexbox layout. When device font size or display scaling is toggled in Android OS, the text breaks alignment with the icon/title above it, either drifting inward or colliding with adjacent borders.
+- Steps to Reproduce:
+  1. Inspect `PermissionsScreen.tsx` line 143: `<Text className="... ml-[28px] ...">`.
+  2. Inspect `AddAppScreen.tsx` line 205: `<Text className="... ml-[46px] ...">`.
+  3. Change system font size to "Largest" in Android Settings and return to Blackout.
+  4. Notice the description text is misaligned with the header text above it.
+- Evidence: Static code inspection in `PermissionsScreen.tsx:143` and `AddAppScreen.tsx:205`.
+- Suspected Root Cause: Using arbitrary pixel margins (`ml-[28px]`, `ml-[46px]`) rather than grouping icon and title in a flex container with consistent layout padding.
+
+---
+
+### ISSUE-19 — Active Locks & Maintenance Row Cards Rigid Extremity Clamping in SettingsScreen
+- Category: UI
+- Severity: Low
+- File(s): `src/screens/SettingsScreen.tsx` (lines 190–215, 233–274)
+- Description: Both the "Auto-Clean Uninstalled Apps" switch row and the "Active Today's Locks" list items utilize unconstrained `flex-row justify-between`. The status pill and duration (`RUNNING • 60M`) and the Android Switch toggle sit hard against the right edge of the card container, with insufficient proportional spacing between the left content and right control on narrow viewports.
+- Steps to Reproduce:
+  1. Open Settings screen.
+  2. Scroll down to "MAINTENANCE" and "ACTIVE TODAY'S LOCKS".
+  3. Inspect the right edge alignment of the switch and status text pills.
+- Evidence: Captured in `screen_settings.png` and `screen_settings_scrolled.png`.
+- Suspected Root Cause: Unbounded `justify-between` without internal card padding hierarchy or flex-shrink protection.
