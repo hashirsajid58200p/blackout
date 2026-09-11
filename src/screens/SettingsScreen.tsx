@@ -5,7 +5,7 @@ import { NavigationHeader } from "../components/NavigationHeader";
 import { BottomNavBar } from "../components/BottomNavBar";
 import { Card } from "../components/ui/Card";
 import { NativeBridge } from "../services/nativeBridge";
-import { Moon, Sun, Monitor, ShieldCheck, Info, Lock, Trash2 } from "lucide-react-native";
+import { Moon, Sun, Monitor, ShieldCheck, Info, Lock, Trash2, ChevronRight } from "lucide-react-native";
 
 export const SettingsScreen: React.FC = () => {
   const {
@@ -19,7 +19,7 @@ export const SettingsScreen: React.FC = () => {
   } = useApp();
 
   const isDark = effectiveTheme === "dark";
-  const iconColor = isDark ? "#ffffff" : "#000000";
+  const iconColor = isDark ? "#EDE4D3" : "#2B2621";
   const isAutoCleanEnabled = settings.autoCleanUninstalled !== false;
 
   const [isAdminActive, setIsAdminActive] = React.useState(false);
@@ -41,13 +41,18 @@ export const SettingsScreen: React.FC = () => {
   ];
 
   return (
-    <View className="flex-1 bg-background dark:bg-black">
+    <View className="flex-1 bg-paper dark:bg-espresso">
       <NavigationHeader title="SETTINGS" showBack />
 
       <ScrollView contentContainerStyle={{ paddingBottom: 100 }} className="px-margin-page pt-4 flex-1">
+        {/* Title: Serif Display */}
+        <Text numberOfLines={1} className="font-display font-semibold text-3xl text-ink dark:text-bone tracking-tight mb-4">
+          Preferences
+        </Text>
+
         {/* Section 1: Appearance / Theme */}
-        <View className="flex-col gap-3 mb-8">
-          <Text className="font-bold text-xs text-secondary dark:text-zinc-400 uppercase tracking-widest">
+        <View className="flex-col gap-2.5 mb-6">
+          <Text className="font-body-semibold text-[11px] text-ink-muted dark:text-bone-muted uppercase tracking-widest px-1">
             THEME MODE
           </Text>
 
@@ -57,29 +62,29 @@ export const SettingsScreen: React.FC = () => {
               const isSelected = settings.themeMode === item.mode;
               const buttonIconColor = isSelected
                 ? isDark
-                  ? "#000000"
-                  : "#ffffff"
+                  ? "#1B1712"
+                  : "#F4EFE4"
                 : isDark
-                ? "#ffffff"
-                : "#000000";
+                ? "#EDE4D3"
+                : "#2B2621";
 
               return (
                 <TouchableOpacity
                   key={item.mode}
-                  activeOpacity={0.8}
+                  activeOpacity={0.7}
                   onPress={() => updateThemeMode(item.mode)}
-                  className={`flex-1 p-4 border-2 flex-col items-center gap-2 ${
+                  className={`flex-1 py-3.5 px-2 border rounded flex-col items-center gap-2 ${
                     isSelected
-                      ? "border-primary bg-primary dark:bg-white dark:border-white"
-                      : "border-primary dark:border-white bg-surface-container-lowest dark:bg-black"
+                      ? "border-ink bg-ink dark:border-bone dark:bg-bone"
+                      : "border-hairline dark:border-hairline-dark bg-paper-surface dark:bg-espresso-surface active:bg-ink/5 dark:active:bg-bone/5"
                   }`}
                 >
-                  <IconComp size={22} color={buttonIconColor} />
+                  <IconComp size={18} strokeWidth={1.25} color={buttonIconColor} />
                   <Text
-                    className={`font-bold text-xs uppercase ${
+                    className={`font-body-semibold text-xs uppercase tracking-wider ${
                       isSelected
-                        ? "text-white dark:text-black"
-                        : "text-primary dark:text-white"
+                        ? "text-paper dark:text-espresso"
+                        : "text-ink dark:text-bone"
                     }`}
                   >
                     {item.label}
@@ -91,44 +96,44 @@ export const SettingsScreen: React.FC = () => {
         </View>
 
         {/* Section 2: Device Admin Uninstall Protection */}
-        <View className="flex-col gap-3 mb-8">
-          <Text className="font-bold text-xs text-secondary dark:text-zinc-400 uppercase tracking-widest">
+        <View className="flex-col gap-2.5 mb-6">
+          <Text className="font-body-semibold text-[11px] text-ink-muted dark:text-bone-muted uppercase tracking-widest px-1">
             UNINSTALL PROTECTION (DEVICE ADMIN)
           </Text>
 
-          <View className="border-2 border-primary dark:border-white p-4 bg-surface-container-lowest dark:bg-black flex-col rounded-none">
+          <View className="border border-hairline dark:border-hairline-dark p-4 bg-paper-surface dark:bg-espresso-surface flex-col rounded">
             <View className="flex-row items-center gap-2.5 mb-1.5">
-              <View className="w-5 h-5 items-center justify-center">
-                <ShieldCheck size={20} color={iconColor} />
-              </View>
+              <ShieldCheck size={18} strokeWidth={1.25} color={iconColor} />
               <Text
                 numberOfLines={1}
-                className="font-bold text-sm uppercase tracking-wider text-primary dark:text-white flex-1 leading-5"
+                className="font-body-semibold text-sm uppercase tracking-wider text-ink dark:text-bone flex-1"
               >
-                PREVENT UNINSTALLING BLACKOUT
+                PREVENT UNINSTALLING
               </Text>
             </View>
 
-            <Text className="text-xs text-secondary dark:text-zinc-400 ml-[30px] leading-4 mb-3">
-              Activate Android Device Administrator privileges to prevent users from uninstalling Blackout to bypass locked apps.
+            <Text className="font-body text-xs text-ink-muted dark:text-bone-muted ml-7 leading-relaxed mb-3">
+              Activate Android Device Administrator privileges to prevent bypassing locked applications by removing Blackout.
             </Text>
 
             <View className="flex-row justify-end">
               <TouchableOpacity
-                activeOpacity={0.8}
+                activeOpacity={0.7}
                 onPress={handleRequestDeviceAdmin}
-                className={`px-3 py-1.5 border-2 border-primary dark:border-white ${
-                  isAdminActive ? "bg-primary dark:bg-white" : "bg-transparent"
+                className={`px-3 py-1.5 border rounded ${
+                  isAdminActive
+                    ? "bg-stamp-olive border-stamp-olive"
+                    : "border-hairline dark:border-hairline-dark bg-paper dark:bg-espresso active:bg-ink/5 dark:active:bg-bone/5"
                 }`}
               >
                 <Text
-                  className={`font-bold text-xs uppercase ${
+                  className={`font-body-semibold text-xs uppercase tracking-wider ${
                     isAdminActive
-                      ? "text-white dark:text-black"
-                      : "text-primary dark:text-white"
+                      ? "text-white"
+                      : "text-ink dark:text-bone"
                   }`}
                 >
-                  {isAdminActive ? "PROTECTION ACTIVE" : "ACTIVATE DEVICE ADMIN"}
+                  {isAdminActive ? "PROTECTION ACTIVE" : "ACTIVATE ADMIN"}
                 </Text>
               </TouchableOpacity>
             </View>
@@ -136,136 +141,148 @@ export const SettingsScreen: React.FC = () => {
         </View>
 
         {/* Section: Auto-Clean Maintenance */}
-        <View className="flex-col gap-3 mb-8">
-          <Text className="font-bold text-xs text-secondary dark:text-zinc-400 uppercase tracking-widest">
+        <View className="flex-col gap-2.5 mb-6">
+          <Text className="font-body-semibold text-[11px] text-ink-muted dark:text-bone-muted uppercase tracking-widest px-1">
             MAINTENANCE
           </Text>
 
-          <View className="border-2 border-primary dark:border-white p-4 bg-surface-container-lowest dark:bg-black flex-col rounded-none">
+          <View className="border border-hairline dark:border-hairline-dark p-4 bg-paper-surface dark:bg-espresso-surface flex-col rounded">
             <View className="flex-row items-center justify-between">
-              <View className="flex-1 mr-4">
+              <View className="flex-1 mr-3">
                 <View className="flex-row items-center gap-2.5 mb-1.5">
-                  <View className="w-5 h-5 items-center justify-center">
-                    <Trash2 size={20} color={iconColor} />
-                  </View>
-                  <Text className="font-bold text-sm uppercase tracking-wider text-primary dark:text-white leading-5">
+                  <Trash2 size={18} strokeWidth={1.25} color={iconColor} />
+                  <Text className="font-body-semibold text-sm uppercase tracking-wider text-ink dark:text-bone">
                     AUTO-CLEAN UNINSTALLED APPS
                   </Text>
                 </View>
-                <Text className="text-xs text-secondary dark:text-zinc-400 ml-[30px] leading-4">
-                  Automatically remove tracked apps from Blackout when they are uninstalled from this device.
+                <Text className="font-body text-xs text-ink-muted dark:text-bone-muted ml-7 leading-relaxed">
+                  Automatically purge tracked configurations when an application is uninstalled from Android.
                 </Text>
               </View>
 
               <Switch
                 value={isAutoCleanEnabled}
                 onValueChange={(val) => updateAutoCleanSetting(val)}
-                trackColor={{ false: "#52525b", true: isDark ? "#ffffff" : "#000000" }}
-                thumbColor={isAutoCleanEnabled ? (isDark ? "#000000" : "#ffffff") : "#a1a1aa"}
+                trackColor={{
+                  false: isDark ? "#3B3327" : "#D9CEB9",
+                  true: isDark ? "#EDE4D3" : "#2B2621",
+                }}
+                thumbColor={isAutoCleanEnabled ? (isDark ? "#1B1712" : "#F4EFE4") : (isDark ? "#6E6459" : "#FAF6EE")}
               />
             </View>
           </View>
         </View>
 
-        {/* Section 3: Manage Tracked Apps (View Only) */}
-        <View className="flex-col gap-3 mb-8">
-          <View className="flex-row justify-between items-center">
-            <Text className="font-bold text-xs text-secondary dark:text-zinc-400 uppercase tracking-widest">
+        {/* Section 3: Active Today's Locks (View Only) */}
+        <View className="flex-col gap-2.5 mb-6">
+          <View className="flex-row justify-between items-center px-1">
+            <Text className="font-body-semibold text-[11px] text-ink-muted dark:text-bone-muted uppercase tracking-widest">
               ACTIVE TODAY'S LOCKS (VIEW ONLY)
             </Text>
-            <Lock size={14} color={isDark ? "#a3a3a3" : "#7e7576"} />
+            <Lock size={14} strokeWidth={1.25} color={iconColor} />
           </View>
 
           {trackedApps.length === 0 ? (
-            <Card className="py-4 items-center">
-              <Text className="text-xs font-bold text-secondary dark:text-zinc-400 uppercase">
+            <Card className="py-4 items-center border border-hairline dark:border-hairline-dark bg-paper-surface dark:bg-espresso-surface rounded">
+              <Text className="font-body text-xs text-ink-muted dark:text-bone-muted uppercase">
                 No active locks configured
               </Text>
             </Card>
           ) : (
             trackedApps.map((app) => (
-              <Card key={app.packageName} className="flex-row justify-between items-center py-3.5 px-4 rounded-none">
+              <View
+                key={app.packageName}
+                className="flex-row justify-between items-center py-3 px-3.5 border border-hairline dark:border-hairline-dark bg-paper-surface dark:bg-espresso-surface rounded"
+              >
                 <View className="flex-row items-center gap-2.5 flex-1 pr-2">
-                  <View className="w-6 h-6 items-center justify-center">
-                    {app.iconUri ? (
-                      <Image
-                        source={{ uri: app.iconUri }}
-                        style={{ width: 22, height: 22 }}
-                        resizeMode="contain"
-                      />
-                    ) : app.iconBase64 ? (
-                      <Image
-                        source={{ uri: `data:image/png;base64,${app.iconBase64}` }}
-                        style={{ width: 22, height: 22 }}
-                        resizeMode="contain"
-                      />
-                    ) : (
-                      <View className="w-4 h-4 bg-primary dark:bg-white rounded-none" />
-                    )}
-                  </View>
-                  <Text numberOfLines={1} className="font-bold text-sm text-primary dark:text-white uppercase tracking-wider flex-1">
+                  {app.iconUri ? (
+                    <Image
+                      source={{ uri: app.iconUri }}
+                      className="w-7 h-7 rounded border border-hairline dark:border-hairline-dark"
+                      resizeMode="cover"
+                    />
+                  ) : app.iconBase64 ? (
+                    <Image
+                      source={{ uri: `data:image/png;base64,${app.iconBase64}` }}
+                      className="w-7 h-7 rounded border border-hairline dark:border-hairline-dark"
+                      resizeMode="cover"
+                    />
+                  ) : (
+                    <View className="w-7 h-7 bg-paper dark:bg-espresso border border-hairline dark:border-hairline-dark rounded items-center justify-center">
+                      <Text className="font-body-semibold text-xs text-ink-muted dark:text-bone-muted">
+                        {app.appName.charAt(0).toUpperCase()}
+                      </Text>
+                    </View>
+                  )}
+                  <Text numberOfLines={1} className="font-body-semibold text-sm text-ink dark:text-bone uppercase tracking-wider flex-1">
                     {app.appName}
                   </Text>
                 </View>
-                <Text className="text-xs font-bold uppercase text-secondary dark:text-zinc-400">
-                  {Math.round(app.dailyLimitMs / (1000 * 60))}m daily limit
+                <Text className="font-mono text-xs text-ink-muted dark:text-bone-muted uppercase">
+                  {Math.round(app.dailyLimitMs / (1000 * 60))}M DAILY LIMIT
                 </Text>
-              </Card>
+              </View>
             ))
           )}
 
-          <Text className="text-xs text-secondary dark:text-zinc-500 italic">
+          <Text className="font-body italic text-xs text-ink-muted dark:text-bone-muted px-1 mt-1">
             Note: In accordance with Blackout rules, active daily limits cannot be paused, edited, or deleted until midnight.
           </Text>
         </View>
 
         {/* Section 4: Permissions Status */}
-        <View className="flex-col gap-3 mb-8">
-          <Text className="font-bold text-xs text-secondary dark:text-zinc-400 uppercase tracking-widest">
+        <View className="flex-col gap-2.5 mb-6">
+          <Text className="font-body-semibold text-[11px] text-ink-muted dark:text-bone-muted uppercase tracking-widest px-1">
             PERMISSIONS STATUS
           </Text>
 
           <TouchableOpacity
-            activeOpacity={0.8}
+            activeOpacity={0.7}
             onPress={() => setCurrentScreen("permissions")}
-            className="border-2 border-primary dark:border-white bg-surface-container-lowest dark:bg-black p-4 flex-col rounded-none"
+            className="border border-hairline dark:border-hairline-dark bg-paper-surface dark:bg-espresso-surface p-4 flex-col rounded active:bg-ink/5 dark:active:bg-bone/5"
           >
-            <View className="flex-row items-center gap-2.5 mb-1.5">
-              <View className="w-5 h-5 items-center justify-center">
-                <ShieldCheck size={20} color={iconColor} />
+            <View className="flex-row items-center justify-between">
+              <View className="flex-row items-center gap-2.5 flex-1">
+                <ShieldCheck size={18} strokeWidth={1.25} color={iconColor} />
+                <View className="flex-1">
+                  <Text
+                    numberOfLines={1}
+                    className="font-body-semibold text-sm uppercase tracking-wider text-ink dark:text-bone"
+                  >
+                    SYSTEM PERMISSIONS
+                  </Text>
+                  <Text className="font-body text-xs text-ink-muted dark:text-bone-muted mt-0.5">
+                    {permissions.usageStats && permissions.overlay && permissions.accessibility
+                      ? "ALL 3 PERMISSIONS GRANTED"
+                      : "ACTION REQUIRED — TAP TO REVIEW"}
+                  </Text>
+                </View>
               </View>
-              <Text
-                numberOfLines={1}
-                className="font-bold text-sm uppercase tracking-wider text-primary dark:text-white flex-1 leading-5"
-              >
-                SYSTEM PERMISSIONS
-              </Text>
+              <ChevronRight size={16} strokeWidth={1.25} color={iconColor} />
             </View>
-            <Text className="text-xs text-secondary dark:text-zinc-400 ml-[30px] leading-4">
-              {permissions.usageStats && permissions.overlay && permissions.accessibility
-                ? "ALL 3 PERMISSIONS GRANTED"
-                : "ACTION REQUIRED — TAP TO REVIEW"}
-            </Text>
           </TouchableOpacity>
         </View>
 
         {/* Section 5: About Blackout */}
-        <View className="flex-col gap-3 mb-8">
-          <Text className="font-bold text-xs text-secondary dark:text-zinc-400 uppercase tracking-widest">
+        <View className="flex-col gap-2.5 mb-6">
+          <Text className="font-body-semibold text-[11px] text-ink-muted dark:text-bone-muted uppercase tracking-widest px-1">
             ABOUT BLACKOUT
           </Text>
 
-          <Card className="flex-col p-4 rounded-none">
-            <View className="flex-row items-center gap-2.5 mb-1.5">
-              <View className="w-5 h-5 items-center justify-center">
-                <Info size={20} color={iconColor} />
+          <Card className="flex-col p-4 rounded border border-hairline dark:border-hairline-dark bg-paper-surface dark:bg-espresso-surface">
+            <View className="flex-row items-center justify-between mb-1.5">
+              <View className="flex-row items-center gap-2.5">
+                <Info size={18} strokeWidth={1.25} color={iconColor} />
+                <Text className="font-body-semibold text-sm text-ink dark:text-bone uppercase tracking-wider">
+                  BLACKOUT
+                </Text>
               </View>
-              <Text className="font-bold text-sm text-primary dark:text-white uppercase tracking-wider leading-5">
-                BLACKOUT V1.0.0
+              <Text className="font-mono text-xs text-ink-muted dark:text-bone-muted">
+                v1.0.0
               </Text>
             </View>
-            <Text className="text-xs text-secondary dark:text-zinc-400 ml-[30px] leading-relaxed">
-              Blackout is an offline, zero-telemetry Android digital wellbeing tool designed for uncompromised cognitive focus.
+            <Text className="font-body text-xs text-ink-muted dark:text-bone-muted ml-7 leading-relaxed">
+              An analog-inspired, offline, zero-telemetry Android digital wellbeing utility engineered for uncompromised cognitive focus.
             </Text>
           </Card>
         </View>
