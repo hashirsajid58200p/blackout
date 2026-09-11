@@ -226,24 +226,10 @@ class BlackoutAccessibilityService : AccessibilityService() {
                     var usedTodayMs = itemObj.optDouble("usedTodayMs", 0.0)
 
                     if (dailyLimitMs > 0) {
-                        try {
-                            val calendar = java.util.Calendar.getInstance(java.util.TimeZone.getDefault()).apply {
-                                set(java.util.Calendar.HOUR_OF_DAY, 0)
-                                set(java.util.Calendar.MINUTE, 0)
-                                set(java.util.Calendar.SECOND, 0)
-                                set(java.util.Calendar.MILLISECOND, 0)
-                            }
-                            val usageStatsManager = getSystemService(Context.USAGE_STATS_SERVICE) as? android.app.usage.UsageStatsManager
-                            val stats = usageStatsManager?.queryUsageStats(
-                                android.app.usage.UsageStatsManager.INTERVAL_DAILY,
-                                calendar.timeInMillis,
-                                System.currentTimeMillis()
-                            )
-                            val liveUsage = stats?.find { it.packageName == packageName }?.totalTimeInForeground ?: 0L
-                            if (liveUsage > usedTodayMs) {
-                                usedTodayMs = liveUsage.toDouble()
-                            }
-                        } catch (e: Exception) {}
+                        val liveUsage = SecurityHelper.getTodayPackageUsage(this, packageName)
+                        if (liveUsage > usedTodayMs) {
+                            usedTodayMs = liveUsage.toDouble()
+                        }
                     }
 
                     if (isLocked || (dailyLimitMs > 0 && usedTodayMs >= dailyLimitMs)) {

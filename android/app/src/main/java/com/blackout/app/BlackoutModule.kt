@@ -2,6 +2,7 @@ package com.blackout.app
 
 import android.app.AppOpsManager
 import android.app.admin.DevicePolicyManager
+import android.app.usage.UsageEvents
 import android.app.usage.UsageStats
 import android.app.usage.UsageStatsManager
 import android.content.ComponentName
@@ -212,26 +213,93 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
         }
     }
 
+    /**
+     * Extracts precise foreground session durations since local midnight from UsageEvents.
+     * Accurately pauses during screen-off / lock and caps ongoing sessions at endTime.
+     */
+    private fun getTodayUsageEventsMap(context: Context): Pair<Map<String, Long>, Map<String, Int>> {
+        val usageStatsManager = context.getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
+        val usageMap = mutableMapOf<String, Long>()
+        val openCountMap = mutableMapOf<String, Int>()
+
+        val calendar = Calendar.getInstance(TimeZone.getDefault()).apply {
+            set(Calendar.HOUR_OF_DAY, 0)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }
+        val startTime = calendar.timeInMillis
+        val endTime = System.currentTimeMillis()
+
+        try {
+            val events = usageStatsManager.queryEvents(startTime, endTime)
+            val event = UsageEvents.Event()
+
+            var currentPkg: String? = null
+            var currentStart = 0L
+
+            while (events.hasNextEvent()) {
+                events.getNextEvent(event)
+                val pkg = event.packageName ?: continue
+                val time = event.timeStamp
+                val type = event.eventType
+
+                when (type) {
+                    UsageEvents.Event.ACTIVITY_RESUMED -> {
+                        if (currentPkg != null && currentPkg != pkg) {
+                            val duration = time - currentStart
+                            if (duration > 0) {
+                                usageMap[currentPkg!!] = (usageMap[currentPkg!!] ?: 0L) + duration
+                            }
+                        }
+                        if (currentPkg != pkg) {
+                            openCountMap[pkg] = (openCountMap[pkg] ?: 0) + 1
+                        }
+                        currentPkg = pkg
+                        currentStart = time
+                    }
+                    UsageEvents.Event.ACTIVITY_PAUSED -> {
+                        if (currentPkg != null && currentPkg == pkg) {
+                            val duration = time - currentStart
+                            if (duration > 0) {
+                                usageMap[pkg] = (usageMap[pkg] ?: 0L) + duration
+                            }
+                            currentPkg = null
+                            currentStart = 0L
+                        }
+                    }
+                    16 /* SCREEN_NON_INTERACTIVE */,
+                    17 /* KEYGUARD_SHOWN */,
+                    26 /* DEVICE_SHUTDOWN */ -> {
+                        if (currentPkg != null) {
+                            val duration = time - currentStart
+                            if (duration > 0) {
+                                usageMap[currentPkg!!] = (usageMap[currentPkg!!] ?: 0L) + duration
+                            }
+                            currentPkg = null
+                            currentStart = 0L
+                        }
+                    }
+                }
+            }
+
+            if (currentPkg != null && currentStart > 0L) {
+                val duration = endTime - currentStart
+                if (duration > 0) {
+                    usageMap[currentPkg!!] = (usageMap[currentPkg!!] ?: 0L) + duration
+                }
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error querying UsageEvents in getTodayUsageEventsMap", e)
+        }
+
+        return Pair(usageMap, openCountMap)
+    }
+
     @ReactMethod
     fun getTodayUsage(packageName: String, promise: Promise) {
         try {
-            val calendar = Calendar.getInstance(TimeZone.getDefault()).apply {
-                set(Calendar.HOUR_OF_DAY, 0)
-                set(Calendar.MINUTE, 0)
-                set(Calendar.SECOND, 0)
-                set(Calendar.MILLISECOND, 0)
-            }
-            val startTime = calendar.timeInMillis
-            val endTime = System.currentTimeMillis()
-
-            val usageStatsManager = reactApplicationContext.getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
-            // INTERVAL_DAILY gives the exact aggregated time for the day
-            val stats = usageStatsManager.queryUsageStats(UsageStatsManager.INTERVAL_DAILY, startTime, endTime)
-
-            // To get time for a specific app:
-            val appStat = stats?.find { it.packageName == packageName }
-            val totalTimeMs = appStat?.totalTimeInForeground ?: 0L
-
+            val totalTimeMs = SecurityHelper.getTodayPackageUsage(reactApplicationContext, packageName)
             Log.d(TAG, "getTodayUsage for $packageName: $totalTimeMs ms")
             promise.resolve(totalTimeMs.toDouble())
         } catch (e: Exception) {
@@ -248,17 +316,7 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
             val addedPackages = mutableSetOf<String>()
             val selfPkg = reactApplicationContext.packageName
 
-            val calendar = Calendar.getInstance(TimeZone.getDefault()).apply {
-                set(Calendar.HOUR_OF_DAY, 0)
-                set(Calendar.MINUTE, 0)
-                set(Calendar.SECOND, 0)
-                set(Calendar.MILLISECOND, 0)
-            }
-            val startTime = calendar.timeInMillis
-            val endTime = System.currentTimeMillis()
-
-            val usageStatsManager = reactApplicationContext.getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
-            val stats = usageStatsManager.queryUsageStats(UsageStatsManager.INTERVAL_DAILY, startTime, endTime)
+            val (usageMap, _) = getTodayUsageEventsMap(reactApplicationContext)
 
             // Detect home launcher apps
             val homeIntent = Intent(Intent.ACTION_MAIN, null).apply { addCategory(Intent.CATEGORY_HOME) }
@@ -304,8 +362,7 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
 
                 addedPackages.add(packageName)
                 val appName = resolveInfo.loadLabel(pm).toString()
-                val appStat = stats?.find { it.packageName == packageName }
-                val usedTodayMs = appStat?.totalTimeInForeground ?: 0L
+                val usedTodayMs = usageMap[packageName] ?: 0L
 
                 val iconUri = getAppIconUri(pm, appInfo)
 
@@ -353,29 +410,58 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
                 val dayStart = dayCal.timeInMillis
                 val dayEnd = if (i == 6) System.currentTimeMillis() else (dayStart + (24 * 3600 * 1000) - 1)
 
-                val stats = usageStatsManager.queryUsageStats(UsageStatsManager.INTERVAL_DAILY, dayStart, dayEnd)
                 var dayTotalMs = 0L
-                if (stats != null) {
-                    val seenPackages = mutableSetOf<String>()
-                    for (stat in stats) {
-                        val pkg = stat.packageName ?: continue
-                        if (seenPackages.contains(pkg)) continue
+
+                if (i == 6) {
+                    // Today: use event-accurate foreground durations
+                    val (todayMap, _) = getTodayUsageEventsMap(reactApplicationContext)
+                    for ((pkg, timeMs) in todayMap) {
                         if (pkg == selfPkg || pkg == "com.blackout.app" || pkg.startsWith("com.blackout") ||
                             pkg == "android" || pkg.contains("systemui") || pkg.contains("launcher") ||
                             pkg.contains("navigationbar") || homePackages.contains(pkg)) {
                             continue
                         }
-                        if (stat.totalTimeInForeground <= 0) continue
+                        if (timeMs <= 0) continue
                         try {
                             val appInfo = pm.getApplicationInfo(pkg, 0)
                             val isSystem = (appInfo.flags and ApplicationInfo.FLAG_SYSTEM) != 0 &&
                                            (appInfo.flags and ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) == 0
                             if (isSystem) continue
                             if (pm.getLaunchIntentForPackage(pkg) != null) {
-                                seenPackages.add(pkg)
-                                dayTotalMs += stat.totalTimeInForeground
+                                dayTotalMs += timeMs
                             }
                         } catch (e: Exception) {}
+                    }
+                } else {
+                    // Past days: INTERVAL_BEST with maxOf per package to prevent bucket duplication
+                    val stats = usageStatsManager.queryUsageStats(UsageStatsManager.INTERVAL_BEST, dayStart, dayEnd)
+                    if (stats != null) {
+                        val packageUsageMap = mutableMapOf<String, Long>()
+                        for (stat in stats) {
+                            val pkg = stat.packageName ?: continue
+                            if (pkg == selfPkg || pkg == "com.blackout.app" || pkg.startsWith("com.blackout") ||
+                                pkg == "android" || pkg.contains("systemui") || pkg.contains("launcher") ||
+                                pkg.contains("navigationbar") || homePackages.contains(pkg)) {
+                                continue
+                            }
+                            if (stat.totalTimeInForeground <= 0) continue
+                            val existing = packageUsageMap[pkg] ?: 0L
+                            if (stat.totalTimeInForeground > existing) {
+                                packageUsageMap[pkg] = stat.totalTimeInForeground
+                            }
+                        }
+
+                        for ((pkg, timeMs) in packageUsageMap) {
+                            try {
+                                val appInfo = pm.getApplicationInfo(pkg, 0)
+                                val isSystem = (appInfo.flags and ApplicationInfo.FLAG_SYSTEM) != 0 &&
+                                               (appInfo.flags and ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) == 0
+                                if (isSystem) continue
+                                if (pm.getLaunchIntentForPackage(pkg) != null) {
+                                    dayTotalMs += timeMs
+                                }
+                            } catch (e: Exception) {}
+                        }
                     }
                 }
 
@@ -417,62 +503,65 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
             val homeApps = pm.queryIntentActivities(homeIntent, PackageManager.MATCH_DEFAULT_ONLY)
             val homePackages = homeApps.map { it.activityInfo.packageName }.toSet()
 
-            val stats = usageStatsManager.queryUsageStats(UsageStatsManager.INTERVAL_DAILY, startTime, endTime)
             val array = WritableNativeArray()
             val selfPkg = reactApplicationContext.packageName
 
-            if (stats != null) {
-                val seenPackages = mutableSetOf<String>()
-                val filteredStats = stats.filter { stat ->
-                    val pkg = stat.packageName ?: return@filter false
-                    // 1. Exclude Blackout itself
-                    if (pkg == selfPkg || pkg == "com.blackout.app" || pkg.startsWith("com.blackout")) {
-                        return@filter false
+            val (packageUsageMap, openCountMap) = if (dayOffset == 0) {
+                // Today: event-accurate foreground usage and launch counts
+                getTodayUsageEventsMap(reactApplicationContext)
+            } else {
+                // Past days: INTERVAL_BEST with maxOf per package
+                val stats = usageStatsManager.queryUsageStats(UsageStatsManager.INTERVAL_BEST, startTime, endTime)
+                val map = mutableMapOf<String, Long>()
+                stats?.forEach { stat ->
+                    val pkg = stat.packageName ?: return@forEach
+                    val existing = map[pkg] ?: 0L
+                    if (stat.totalTimeInForeground > existing) {
+                        map[pkg] = stat.totalTimeInForeground
                     }
-                    // 2. Exclude system UI, launcher, navigation bar, and pure android framework
-                    if (pkg.contains("systemui") || pkg.contains("launcher") || pkg.contains("navigationbar") ||
-                        pkg == "android" || homePackages.contains(pkg)) {
-                        return@filter false
-                    }
-                    if (stat.totalTimeInForeground <= 0) {
-                        return@filter false
-                    }
-                    try {
-                        val appInfo = pm.getApplicationInfo(pkg, 0)
-                        val isSystem = (appInfo.flags and ApplicationInfo.FLAG_SYSTEM) != 0 &&
-                                       (appInfo.flags and ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) == 0
-                        if (isSystem) return@filter false
-                        if (pm.getLaunchIntentForPackage(pkg) == null) return@filter false
-                    } catch (e: Exception) {
-                        return@filter false
-                    }
-                    true
-                }.sortedByDescending { it.totalTimeInForeground }
-
-                for (stat in filteredStats) {
-                    val pkg = stat.packageName ?: continue
-                    if (seenPackages.contains(pkg)) continue
-                    seenPackages.add(pkg)
-
-                    val timeMs = stat.totalTimeInForeground
-                    var appName = pkg
-                    try {
-                        val appInfo = pm.getApplicationInfo(pkg, 0)
-                        appName = pm.getApplicationLabel(appInfo).toString()
-                    } catch (e: Exception) {}
-
-                    val iconUri = getAppIconUriByPackage(pm, pkg)
-
-                    val map = WritableNativeMap().apply {
-                        putString("packageName", pkg)
-                        putString("appName", appName)
-                        putDouble("usedMs", timeMs.toDouble())
-                        putInt("openCount", 0)
-                        putString("iconUri", iconUri)
-                        putString("iconBase64", "")
-                    }
-                    array.pushMap(map)
                 }
+                Pair(map, emptyMap<String, Int>())
+            }
+
+            val filteredList = mutableListOf<Triple<String, Long, Int>>()
+            for ((pkg, timeMs) in packageUsageMap) {
+                if (pkg == selfPkg || pkg == "com.blackout.app" || pkg.startsWith("com.blackout")) {
+                    continue
+                }
+                if (pkg.contains("systemui") || pkg.contains("launcher") || pkg.contains("navigationbar") ||
+                    pkg == "android" || homePackages.contains(pkg)) {
+                    continue
+                }
+                if (timeMs <= 0) continue
+                try {
+                    val appInfo = pm.getApplicationInfo(pkg, 0)
+                    val isSystem = (appInfo.flags and ApplicationInfo.FLAG_SYSTEM) != 0 &&
+                                   (appInfo.flags and ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) == 0
+                    if (isSystem) continue
+                    if (pm.getLaunchIntentForPackage(pkg) == null) continue
+                    filteredList.add(Triple(pkg, timeMs, openCountMap[pkg] ?: 0))
+                } catch (e: Exception) {}
+            }
+            filteredList.sortByDescending { it.second }
+
+            for ((pkg, timeMs, openCount) in filteredList) {
+                var appName = pkg
+                try {
+                    val appInfo = pm.getApplicationInfo(pkg, 0)
+                    appName = pm.getApplicationLabel(appInfo).toString()
+                } catch (e: Exception) {}
+
+                val iconUri = getAppIconUriByPackage(pm, pkg)
+
+                val map = WritableNativeMap().apply {
+                    putString("packageName", pkg)
+                    putString("appName", appName)
+                    putDouble("usedMs", timeMs.toDouble())
+                    putInt("openCount", openCount)
+                    putString("iconUri", iconUri)
+                    putString("iconBase64", "")
+                }
+                array.pushMap(map)
             }
 
             Log.d(TAG, "getDayUsageStats for dayOffset $dayOffset returned ${array.size()} apps")

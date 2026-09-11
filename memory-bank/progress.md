@@ -45,15 +45,29 @@
   - The Expo config plugin now strictly handles AndroidManifest injection, XML resources (`accessibility_service_config.xml`, `device_admin.xml`, `strings.xml`), and `MainApplication` package registration.
   - Verified `package.json` scripts do not contain `expo prebuild --clean`.
   - Verified compilation: `npm run tsc` (0 errors) and `./gradlew :app:compileDebugKotlin` (BUILD SUCCESSFUL).
-- [ ] **Phase 1 — Screen time accuracy (Next)**: Replace `INTERVAL_DAILY` with `INTERVAL_BEST` across `BlackoutModule.kt` and `SecurityHelper.kt` (or fallback to event query), verify against `dumpsys usagestats`.
-- [ ] **Phase 2 — Locked app backgrounding & overlay desync**: Consolidate dual enforcement paths (event-driven vs polling runnable) in `BlackoutAccessibilityService.kt`, check `performGlobalAction(GLOBAL_ACTION_HOME)` return value with retry/logging.
+- [x] **Phase 1 — Screen time accuracy (Verified & Fixed)**:
+  - Tested `UsageStatsManager.INTERVAL_BEST` on physical device (Infinix X6833B, Android 14) and discovered that `queryUsageStats(INTERVAL_BEST, ...)` returned multiple overlapping/historical buckets summing to 10h 20m (Instagram: 4h 34m) while Google Digital Wellbeing showed only 3h 21m (Instagram: 56m).
+  - Implemented the fine-grained event-based engine using `UsageEvents.queryEvents(startTime, endTime)`:
+    - Walks events in chronological order, pairing `ACTIVITY_RESUMED` with subsequent `ACTIVITY_PAUSED` or new `ACTIVITY_RESUMED` for accurate foreground session calculation.
+    - Explicitly handles `SCREEN_NON_INTERACTIVE` (16), `KEYGUARD_SHOWN` (17), and `DEVICE_SHUTDOWN` (26) to immediately close ongoing foreground sessions so screen-off / locked device time is never counted as app usage.
+    - Caps active foreground sessions at `endTime`.
+    - Returns launch counts (`openCount`) tracked per app.
+  - Wired event-based usage into `BlackoutModule.kt` (`getTodayUsage`, `getInstalledApps`, `getDayUsageStats` for `dayOffset == 0`, and `getWeeklyUsageStats` today bar), `SecurityHelper.kt` (`getTodayPackageUsage`, `getPackageUsageLimit`), and `BlackoutAccessibilityService.kt` (`isAppBlocked`).
+  - For past days (`dayOffset < 0` and past weekly bars), deduplicated `queryUsageStats` using `maxOf(existing, stat.totalTimeInForeground)` to prevent multi-bucket summation.
+  - Re-exported the embedded Android bundle to eliminate a stale runtime crash (`systemColorScheme`).
+  - Verified on physical device against Google Digital Wellbeing:
+    - Digital Wellbeing: Total 3h 21m (with system/other), X 1h 0m, Instagram 56m, YouTube 31m, WhatsApp 14m.
+    - Blackout Home Screen: Total 3h 1m (launchable user apps), X 1h 0m (exact match!), Instagram 56m (exact match!), YouTube 29m (within 1-2m), WhatsApp 14m (exact match!).
+    - Blackout Stats Screen: Today total 3.0h, today bar 3.0h, X 1h 0m used, Instagram 56m used.
+- [ ] **Phase 2 — Locked app backgrounding & overlay desync (Next)**: Consolidate dual enforcement paths (event-driven vs polling runnable) in `BlackoutAccessibilityService.kt`, check `performGlobalAction(GLOBAL_ACTION_HOME)` return value with retry/logging.
 - [ ] **Phase 3 — Theme desync from System mode**: Pass literal `"system"` to `setColorScheme` in `AppContext.tsx` rather than resolved concrete color.
 - [ ] **Phase 4 — Unfinished features & audit issues**:
   - Add auto-clean toggle in `SettingsScreen.tsx`.
   - Deduplicate `SecurityHelper` vs `BlackoutAccessibilityService` blocking logic.
   - Add `.npmrc` with `legacy-peer-deps=true`.
+  - Fix Android 14 `SCHEDULE_EXACT_ALARM` SecurityException in `SecurityHelper.scheduleMidnightReset`.
   - Complete screen sweep.
 - [ ] **Phase 5 — Full regression pass**: End-to-end verification on physical device (Infinix X6833B, Android 14).
 
 ## What's Next
-- Proceeding to Phase 1 in the next loop iteration.
+- Proceeding to Phase 2: Consolidate dual enforcement paths in `BlackoutAccessibilityService.kt` and check `performGlobalAction(GLOBAL_ACTION_HOME)` return value.

@@ -2,6 +2,8 @@ package com.blackout.app
 
 import android.app.AlarmManager
 import android.app.PendingIntent
+import android.app.usage.UsageEvents
+import android.app.usage.UsageStatsManager
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
@@ -237,6 +239,81 @@ object SecurityHelper {
      * Reads usedTodayMs and dailyLimitMs from locked_apps_json in SharedPreferences,
      * cross-checking with UsageStatsManager for the most real-time data.
      */
+    /**
+     * Calculates the millisecond foreground usage of a package since local midnight
+     * using fine-grained UsageEvents to ensure exact parity with Digital Wellbeing.
+     * Accurately pauses on screen lock / off and eliminates historical bucket inflation.
+     */
+    fun getTodayPackageUsage(context: Context, packageName: String): Long {
+        try {
+            val usageStatsManager = context.getSystemService(Context.USAGE_STATS_SERVICE) as? UsageStatsManager ?: return 0L
+            val calendar = Calendar.getInstance(TimeZone.getDefault()).apply {
+                set(Calendar.HOUR_OF_DAY, 0)
+                set(Calendar.MINUTE, 0)
+                set(Calendar.SECOND, 0)
+                set(Calendar.MILLISECOND, 0)
+            }
+            val startTime = calendar.timeInMillis
+            val endTime = System.currentTimeMillis()
+            val events = usageStatsManager.queryEvents(startTime, endTime) ?: return 0L
+            val event = UsageEvents.Event()
+
+            var totalUsage = 0L
+            var currentPkg: String? = null
+            var currentStart = 0L
+
+            while (events.hasNextEvent()) {
+                events.getNextEvent(event)
+                val pkg = event.packageName ?: continue
+                val time = event.timeStamp
+                val type = event.eventType
+
+                when (type) {
+                    UsageEvents.Event.ACTIVITY_RESUMED -> {
+                        if (currentPkg != null && currentPkg == packageName) {
+                            val duration = time - currentStart
+                            if (duration > 0) totalUsage += duration
+                        }
+                        currentPkg = pkg
+                        currentStart = time
+                    }
+                    UsageEvents.Event.ACTIVITY_PAUSED -> {
+                        if (currentPkg != null && currentPkg == pkg) {
+                            if (pkg == packageName) {
+                                val duration = time - currentStart
+                                if (duration > 0) totalUsage += duration
+                            }
+                            currentPkg = null
+                            currentStart = 0L
+                        }
+                    }
+                    16 /* SCREEN_NON_INTERACTIVE */,
+                    17 /* KEYGUARD_SHOWN */,
+                    26 /* DEVICE_SHUTDOWN */ -> {
+                        if (currentPkg != null) {
+                            if (currentPkg == packageName) {
+                                val duration = time - currentStart
+                                if (duration > 0) totalUsage += duration
+                            }
+                            currentPkg = null
+                            currentStart = 0L
+                        }
+                    }
+                }
+            }
+
+            if (currentPkg != null && currentPkg == packageName && currentStart > 0L) {
+                val duration = endTime - currentStart
+                if (duration > 0) totalUsage += duration
+            }
+
+            return totalUsage
+        } catch (e: Exception) {
+            Log.e(TAG, "Error in getTodayPackageUsage for $packageName", e)
+            return 0L
+        }
+    }
+
     fun getPackageUsageLimit(context: Context, packageName: String): AppUsageLimitInfo? {
         return try {
             val prefs = getPreferences(context)
@@ -249,28 +326,10 @@ object SecurityHelper {
                     val limit = item.optDouble("dailyLimitMs", 0.0).toLong()
                     var used = item.optDouble("usedTodayMs", 0.0).toLong()
 
-                    // Cross-check with UsageStatsManager for real-time foreground time
-                    try {
-                        val usageStatsManager = context.getSystemService(Context.USAGE_STATS_SERVICE) as? android.app.usage.UsageStatsManager
-                        if (usageStatsManager != null) {
-                            val calendar = Calendar.getInstance(TimeZone.getDefault()).apply {
-                                set(Calendar.HOUR_OF_DAY, 0)
-                                set(Calendar.MINUTE, 0)
-                                set(Calendar.SECOND, 0)
-                                set(Calendar.MILLISECOND, 0)
-                            }
-                            val stats = usageStatsManager.queryUsageStats(
-                                android.app.usage.UsageStatsManager.INTERVAL_DAILY,
-                                calendar.timeInMillis,
-                                System.currentTimeMillis()
-                            )
-                            val stat = stats?.find { it.packageName == packageName }
-                            if (stat != null && stat.totalTimeInForeground > used) {
-                                used = stat.totalTimeInForeground
-                            }
-                        }
-                    } catch (e: Exception) {
-                        // ignore
+                    // Cross-check with event-accurate foreground usage since midnight
+                    val liveUsage = getTodayPackageUsage(context, packageName)
+                    if (liveUsage > used) {
+                        used = liveUsage
                     }
 
                     return AppUsageLimitInfo(
