@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from "react";
 import { View, Text, ScrollView, TouchableOpacity, Image } from "react-native";
-import Svg, { Defs, LinearGradient, Stop, Rect } from "react-native-svg";
 import { useApp } from "../context/AppContext";
 import { NavigationHeader } from "../components/NavigationHeader";
 import { BottomNavBar } from "../components/BottomNavBar";
@@ -26,7 +25,7 @@ export const StatsScreen: React.FC = () => {
     refreshUsageStats,
   } = useApp();
   const isDark = effectiveTheme === "dark";
-  const iconColor = isDark ? "#ffffff" : "#000000";
+  const iconColor = isDark ? "#EDE4D3" : "#2B2621";
 
   // dayOffset: 0 = Today, -1 = Yesterday, -2 = 2 days ago, ... up to -6
   const [selectedDayOffset, setSelectedDayOffset] = useState<number>(0);
@@ -37,21 +36,6 @@ export const StatsScreen: React.FC = () => {
     const interval = setInterval(refreshUsageStats, 4000);
     return () => clearInterval(interval);
   }, [refreshUsageStats]);
-
-  // Dynamic continuous monochrome lightness generator
-  const getDynamicMonochromeShade = (index: number, total: number, isDarkTheme: boolean): string => {
-    if (total <= 1) {
-      return isDarkTheme ? "hsl(0, 0%, 100%)" : "hsl(0, 0%, 0%)";
-    }
-    const ratio = index / (total - 1);
-    if (isDarkTheme) {
-      const lightness = Math.round(100 - ratio * 65);
-      return `hsl(0, 0%, ${lightness}%)`;
-    } else {
-      const lightness = Math.round(ratio * 70);
-      return `hsl(0, 0%, ${lightness}%)`;
-    }
-  };
 
   // Fetch specific historical day app breakdown if selectedDayOffset < 0
   useEffect(() => {
@@ -112,6 +96,7 @@ export const StatsScreen: React.FC = () => {
       })();
 
   const totalWeeklyMs = activeWeeklyStats.reduce((acc, curr) => acc + curr.totalUsageMs, 0);
+  const weeklyAverageMs = totalWeeklyMs / 7;
   const maxUsage = Math.max(1, ...activeWeeklyStats.map((w) => w.totalUsageMs));
 
   // Selected Day Label
@@ -144,136 +129,139 @@ export const StatsScreen: React.FC = () => {
   };
 
   return (
-    <View className="flex-1 bg-background dark:bg-black">
+    <View className="flex-1 bg-paper dark:bg-espresso">
       <NavigationHeader title="STATS" showBack />
 
       <ScrollView contentContainerStyle={{ paddingBottom: 100 }} className="px-margin-page pt-4 flex-1">
-        {/* Title: Single Line */}
-        <Text numberOfLines={1} className="font-bold text-3xl text-primary dark:text-white uppercase tracking-tight mb-3">
-          SCREEN TIME
+        {/* Title: Serif Display */}
+        <Text numberOfLines={1} className="font-display font-semibold text-3xl text-ink dark:text-bone tracking-tight mb-3">
+          Screen Time
         </Text>
 
         {/* Date Selector Carousel */}
-        <View className="flex-row items-center justify-between border-2 border-primary dark:border-white p-2 bg-surface-container-lowest dark:bg-black rounded-none mb-6">
+        <View className="flex-row items-center justify-between border border-hairline dark:border-hairline-dark p-2 bg-paper-surface dark:bg-espresso-surface rounded mb-5">
           <TouchableOpacity
-            activeOpacity={0.8}
+            activeOpacity={0.7}
             disabled={selectedDayOffset <= -6}
             onPress={() => setSelectedDayOffset((prev) => Math.max(-6, prev - 1))}
-            className={`p-2 border border-primary dark:border-white min-w-[36px] items-center justify-center ${
-              selectedDayOffset <= -6 ? "opacity-20" : "active:bg-primary/10"
+            className={`w-9 h-9 border border-hairline dark:border-hairline-dark rounded items-center justify-center ${
+              selectedDayOffset <= -6 ? "opacity-25" : "active:bg-ink/5 dark:active:bg-bone/5"
             }`}
           >
-            <ChevronLeft size={18} color={iconColor} />
+            <ChevronLeft size={16} strokeWidth={1.25} color={iconColor} />
           </TouchableOpacity>
 
           <View className="flex-col items-center">
-            <Text className="font-bold text-sm uppercase text-primary dark:text-white tracking-widest">
+            <Text className="font-body-semibold text-xs uppercase text-ink dark:text-bone tracking-widest">
               {getSelectedDayLabel()}
             </Text>
-            <Text className="text-[10px] font-bold text-secondary dark:text-zinc-400 uppercase tracking-widest mt-0.5">
-              {selectedDayOffset === 0 ? "CURRENT DATE" : "HISTORICAL RECORD"}
+            <Text className="text-[10px] font-mono text-ink-muted dark:text-bone-muted uppercase tracking-wider mt-0.5">
+              {selectedDayOffset === 0 ? "CURRENT RECORD" : "ARCHIVED LOG"}
             </Text>
           </View>
 
           <TouchableOpacity
-            activeOpacity={0.8}
+            activeOpacity={0.7}
             disabled={selectedDayOffset >= 0}
             onPress={() => setSelectedDayOffset((prev) => Math.min(0, prev + 1))}
-            className={`p-2 border border-primary dark:border-white min-w-[36px] items-center justify-center ${
-              selectedDayOffset >= 0 ? "opacity-20" : "active:bg-primary/10"
+            className={`w-9 h-9 border border-hairline dark:border-hairline-dark rounded items-center justify-center ${
+              selectedDayOffset >= 0 ? "opacity-25" : "active:bg-ink/5 dark:active:bg-bone/5"
             }`}
           >
-            <ChevronRight size={18} color={iconColor} />
+            <ChevronRight size={16} strokeWidth={1.25} color={iconColor} />
           </TouchableOpacity>
         </View>
 
         {/* Selected Day Summary Card */}
-        <Card className="flex-row justify-around items-center py-5 mb-6 rounded-none">
+        <Card className="flex-row justify-around items-center py-4 mb-5 rounded border border-hairline dark:border-hairline-dark bg-paper-surface dark:bg-espresso-surface">
           <View className="flex-col items-center">
-            <Text className="font-bold text-xs text-secondary dark:text-zinc-400 uppercase tracking-widest">
+            <Text className="font-body-semibold text-[10px] text-ink-muted dark:text-bone-muted uppercase tracking-widest">
               {getSelectedDayLabel()} TOTAL
             </Text>
-            <Text className="font-bold text-3xl text-primary dark:text-white mt-1">
+            <Text className="font-mono-bold text-2xl text-ink dark:text-bone mt-1">
               {formatHours(selectedDayTotalMs)}
             </Text>
           </View>
 
-          <View className="w-[1.5px] h-10 bg-primary dark:bg-white" />
+          <View className="w-px h-10 bg-hairline dark:bg-hairline-dark" />
 
           <View className="flex-col items-center">
-            <Text className="font-bold text-xs text-secondary dark:text-zinc-400 uppercase tracking-widest">
-              7-DAY AVG
+            <Text className="font-body-semibold text-[10px] text-ink-muted dark:text-bone-muted uppercase tracking-widest">
+              7-DAY AVERAGE
             </Text>
-            <Text className="font-bold text-3xl text-primary dark:text-white mt-1">
-              {formatHours(totalWeeklyMs / 7)}
+            <Text className="font-mono-bold text-2xl text-ink dark:text-bone mt-1">
+              {formatHours(weeklyAverageMs)}
             </Text>
           </View>
         </Card>
 
-        {/* 7-Day Smooth Vertical Gradient Blending Bar Chart */}
-        <Card className="p-4 mb-6 rounded-none flex-col">
-          <View className="flex-row items-center gap-2.5 mb-4">
-            <View className="w-5 h-5 items-center justify-center">
-              <BarChart2 size={20} color={iconColor} />
+        {/* 7-Day Flat Hairline Bar Chart */}
+        <Card className="p-4 mb-5 rounded border border-hairline dark:border-hairline-dark bg-paper-surface dark:bg-espresso-surface flex-col">
+          <View className="flex-row items-center justify-between mb-4 pb-2 border-b border-hairline dark:border-hairline-dark">
+            <View className="flex-row items-center gap-2">
+              <BarChart2 size={16} strokeWidth={1.25} color={iconColor} />
+              <Text className="font-body-semibold text-xs text-ink dark:text-bone uppercase tracking-wider">
+                7-Day Activity
+              </Text>
             </View>
-            <Text className="font-bold text-sm text-primary dark:text-white uppercase tracking-wider leading-5">
-              LAST 7 DAYS TRACKER
+            <Text className="font-mono text-[10px] text-ink-muted dark:text-bone-muted uppercase">
+              {formatHours(totalWeeklyMs)} TOTAL
             </Text>
           </View>
 
           <View className="flex-row justify-between items-end h-44 pt-2 px-1">
             {activeWeeklyStats.map((item, idx) => {
-              const heightPercent = Math.min(100, Math.max(10, Math.round((item.totalUsageMs / maxUsage) * 100)));
+              const heightPercent = Math.min(100, Math.max(8, Math.round((item.totalUsageMs / maxUsage) * 100)));
               const isSelected = idx === selectedIndex;
               const dayOffsetForBar = idx - 6;
+              const isOverAverage = item.totalUsageMs > weeklyAverageMs;
+
+              let barBg = "bg-hairline/60 dark:bg-hairline-dark/80";
+              let barBorder = "border-hairline dark:border-hairline-dark";
+
+              if (isSelected) {
+                if (isOverAverage) {
+                  barBg = "bg-stamp-red";
+                  barBorder = "border-stamp-red";
+                } else {
+                  barBg = "bg-stamp-olive";
+                  barBorder = "border-stamp-olive";
+                }
+              }
 
               return (
                 <TouchableOpacity
                   key={idx}
-                  activeOpacity={0.8}
+                  activeOpacity={0.7}
                   onPress={() => setSelectedDayOffset(dayOffsetForBar)}
                   className="flex-col items-center gap-1.5 flex-1"
                 >
                   {/* Usage duration above each bar */}
-                  <Text className={`text-[10px] font-bold ${isSelected ? "text-primary dark:text-white" : "text-secondary dark:text-zinc-500"}`}>
+                  <Text className={`font-mono text-[10px] ${isSelected ? "font-mono-bold text-ink dark:text-bone" : "text-ink-muted dark:text-bone-muted"}`}>
                     {formatHours(item.totalUsageMs)}
                   </Text>
 
-                  {/* Smooth Vertical Gradient Blending Bar */}
+                  {/* Flat hairline-bordered bar */}
                   <View className="w-full h-28 justify-end items-center px-1">
                     <View
                       style={{ height: `${heightPercent}%` }}
-                      className={`w-full rounded-none overflow-hidden ${
-                        isSelected
-                          ? "border-2 border-primary dark:border-white"
-                          : "border border-primary/40 dark:border-zinc-700"
+                      className={`w-full rounded-sm border ${barBg} ${barBorder}`}
+                    />
+                  </View>
+
+                  {/* Day label */}
+                  <View className="items-center">
+                    <Text
+                      className={`text-xs ${
+                        isSelected ? "font-body-semibold text-ink dark:text-bone" : "font-body text-ink-muted dark:text-bone-muted"
                       }`}
                     >
-                      <Svg width="100%" height="100%" preserveAspectRatio="none">
-                        <Defs>
-                          <LinearGradient id={`smoothBarGrad-${idx}`} x1="0" y1="0" x2="0" y2="1">
-                            <Stop offset="0%" stopColor={isDark ? "#71717a" : "#d4d4d8"} />
-                            <Stop offset="50%" stopColor={isDark ? "#d4d4d8" : "#3f3f46"} />
-                            <Stop offset="100%" stopColor={isDark ? "#ffffff" : "#000000"} />
-                          </LinearGradient>
-                        </Defs>
-                        <Rect
-                          x="0"
-                          y="0"
-                          width="100%"
-                          height="100%"
-                          fill={`url(#smoothBarGrad-${idx})`}
-                        />
-                      </Svg>
-                    </View>
+                      {item.day}
+                    </Text>
+                    {isSelected && (
+                      <View className="w-1 h-1 rounded-full bg-ink dark:bg-bone mt-0.5" />
+                    )}
                   </View>
-                  <Text
-                    className={`font-bold text-xs ${
-                      isSelected ? "text-primary dark:text-white underline" : "text-secondary dark:text-zinc-400"
-                    }`}
-                  >
-                    {item.day}
-                  </Text>
                 </TouchableOpacity>
               );
             })}
@@ -281,52 +269,53 @@ export const StatsScreen: React.FC = () => {
         </Card>
 
         {/* Sorted App Usage Breakdown */}
-        <View className="flex-col gap-3">
-          <Text className="font-bold text-xs text-secondary dark:text-zinc-400 uppercase tracking-widest">
-            {getSelectedDayLabel()} APP USAGE (MOST USED TOP)
+        <View className="flex-col gap-2.5">
+          <Text className="font-body-semibold text-[11px] text-ink-muted dark:text-bone-muted uppercase tracking-widest px-1">
+            {getSelectedDayLabel()} APPLICATION BREAKDOWN
           </Text>
 
           {dayApps.length === 0 ? (
-            <Card className="py-6 items-center">
-              <Text className="text-xs font-bold text-secondary dark:text-zinc-400 uppercase">
+            <Card className="py-6 items-center border border-hairline dark:border-hairline-dark bg-paper-surface dark:bg-espresso-surface rounded">
+              <Text className="font-body text-xs text-ink-muted dark:text-bone-muted uppercase">
                 No app usage recorded for this date
               </Text>
             </Card>
           ) : (
-            dayApps.map((app, appIdx) => {
-              const shadeColor = getDynamicMonochromeShade(appIdx, dayApps.length, isDark);
-
+            dayApps.map((app) => {
               return (
-                <Card key={app.packageName} className="flex-row justify-between items-center py-3.5 px-4 rounded-none">
+                <View
+                  key={app.packageName}
+                  className="flex-row justify-between items-center py-3 px-3.5 border border-hairline dark:border-hairline-dark bg-paper-surface dark:bg-espresso-surface rounded"
+                >
                   <View className="flex-row items-center gap-2.5 flex-1 pr-2">
                     {app.iconUri ? (
                       <Image
                         source={{ uri: app.iconUri }}
-                        className="w-10 h-10 rounded-lg"
+                        className="w-8 h-8 rounded border border-hairline dark:border-hairline-dark"
                         resizeMode="cover"
                       />
                     ) : app.iconBase64 ? (
                       <Image
                         source={{ uri: `data:image/png;base64,${app.iconBase64}` }}
-                        className="w-10 h-10 rounded-lg"
+                        className="w-8 h-8 rounded border border-hairline dark:border-hairline-dark"
                         resizeMode="cover"
                       />
                     ) : (
-                      <View className="w-10 h-10 rounded-lg bg-gray-200 dark:bg-gray-700 items-center justify-center">
-                        <Text className="text-lg font-bold text-gray-500 dark:text-gray-400">
+                      <View className="w-8 h-8 rounded border border-hairline dark:border-hairline-dark bg-paper dark:bg-espresso items-center justify-center">
+                        <Text className="font-body-semibold text-xs text-ink-muted dark:text-bone-muted">
                           {app.appName.charAt(0).toUpperCase()}
                         </Text>
                       </View>
                     )}
-                    <Text numberOfLines={1} className="font-bold text-sm text-primary dark:text-white uppercase tracking-wider flex-1">
+                    <Text numberOfLines={1} className="font-body-semibold text-sm text-ink dark:text-bone uppercase tracking-wide flex-1">
                       {app.appName}
                     </Text>
                   </View>
 
-                  <Text className="font-bold text-xs text-primary dark:text-white uppercase">
-                    {formatMs(app.usedMs)} USED
+                  <Text className="font-mono text-xs text-ink-muted dark:text-bone-muted uppercase">
+                    {formatMs(app.usedMs)}
                   </Text>
-                </Card>
+                </View>
               );
             })
           )}
