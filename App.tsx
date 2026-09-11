@@ -1,7 +1,27 @@
 import "./global.css";
-import React from "react";
-import { View, StatusBar, Appearance } from "react-native";
+import React, { useEffect } from "react";
+import { View, StatusBar } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+import * as SplashScreen from "expo-splash-screen";
+import { useFonts } from "expo-font";
+import {
+  Fraunces_400Regular,
+  Fraunces_500Medium,
+  Fraunces_600SemiBold,
+  Fraunces_700Bold,
+} from "@expo-google-fonts/fraunces";
+import {
+  Inter_400Regular,
+  Inter_500Medium,
+  Inter_600SemiBold,
+  Inter_700Bold,
+} from "@expo-google-fonts/inter";
+import {
+  IBMPlexMono_400Regular,
+  IBMPlexMono_500Medium,
+  IBMPlexMono_600SemiBold,
+  IBMPlexMono_700Bold,
+} from "@expo-google-fonts/ibm-plex-mono";
 import { AppProvider, useApp } from "./src/context/AppContext";
 import { OnboardingScreen } from "./src/screens/OnboardingScreen";
 import { PermissionsScreen } from "./src/screens/PermissionsScreen";
@@ -10,6 +30,8 @@ import { AddAppScreen } from "./src/screens/AddAppScreen";
 import { BlackoutScreen } from "./src/screens/BlackoutScreen";
 import { StatsScreen } from "./src/screens/StatsScreen";
 import { SettingsScreen } from "./src/screens/SettingsScreen";
+
+SplashScreen.preventAutoHideAsync().catch(() => {});
 
 const MainContent: React.FC = () => {
   const { currentScreen, effectiveTheme } = useApp();
@@ -38,7 +60,7 @@ const MainContent: React.FC = () => {
   const isDark = effectiveTheme === "dark";
 
   return (
-    <View className="flex-1 bg-background dark:bg-black">
+    <View className="flex-1 bg-background dark:bg-espresso">
       <StatusBar
         translucent
         backgroundColor="transparent"
@@ -50,6 +72,31 @@ const MainContent: React.FC = () => {
 };
 
 export default function App() {
+  const [fontsLoaded, fontError] = useFonts({
+    Fraunces_400Regular,
+    Fraunces_500Medium,
+    Fraunces_600SemiBold,
+    Fraunces_700Bold,
+    Inter_400Regular,
+    Inter_500Medium,
+    Inter_600SemiBold,
+    Inter_700Bold,
+    IBMPlexMono_400Regular,
+    IBMPlexMono_500Medium,
+    IBMPlexMono_600SemiBold,
+    IBMPlexMono_700Bold,
+  });
+
+  useEffect(() => {
+    if (fontsLoaded || fontError) {
+      SplashScreen.hideAsync().catch(() => {});
+    }
+  }, [fontsLoaded, fontError]);
+
+  if (!fontsLoaded && !fontError) {
+    return null;
+  }
+
   return (
     <SafeAreaProvider>
       <AppProvider>
