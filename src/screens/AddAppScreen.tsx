@@ -11,7 +11,7 @@ import { InstalledAppInfo } from "../types";
 export const AddAppScreen: React.FC = () => {
   const { trackedApps, addTrackedApp, setCurrentScreen, effectiveTheme } = useApp();
   const isDark = effectiveTheme === "dark";
-  const iconColor = isDark ? "#EDE4D3" : "#2B2621";
+  const iconColor = isDark ? "#E6E8EC" : "#1A2030";
 
   const [appsList, setAppsList] = useState<InstalledAppInfo[]>([]);
   const [loading, setLoading] = useState(true);
@@ -98,8 +98,8 @@ export const AddAppScreen: React.FC = () => {
               value={searchQuery}
               onChangeText={setSearchQuery}
               placeholder="SEARCH INSTALLED APPS..."
-              placeholderTextColor={isDark ? "#A89A85" : "#6E6459"}
-              className="flex-1 ml-2.5 font-body text-sm text-ink dark:text-bone uppercase"
+              placeholderTextColor={isDark ? "#8C93A6" : "#5C6478"}
+              className="flex-1 font-body text-sm text-ink dark:text-bone py-2 px-1"
             />
           </View>
         </View>
@@ -107,7 +107,7 @@ export const AddAppScreen: React.FC = () => {
         {/* Loading Indicator */}
         {loading ? (
           <View className="py-12 items-center justify-center flex-col gap-3">
-            <ActivityIndicator size="large" color={isDark ? "#EDE4D3" : "#2B2621"} />
+            <ActivityIndicator size="large" color={isDark ? "#E6E8EC" : "#1A2030"} />
             <Text className="font-body-semibold text-xs text-ink-muted dark:text-bone-muted uppercase tracking-wider">
               SCANNING INSTALLED APPS...
             </Text>
@@ -186,7 +186,7 @@ export const AddAppScreen: React.FC = () => {
                         </Text>
                       ) : isSelected ? (
                         <View className="w-5 h-5 rounded-full bg-ink dark:bg-bone items-center justify-center">
-                          <Check size={11} color={isDark ? "#1B1712" : "#F4EFE4"} strokeWidth={2} />
+                          <Check size={11} color={isDark ? "#12161F" : "#E6E8EC"} strokeWidth={2} />
                         </View>
                       ) : null}
                     </View>

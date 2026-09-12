@@ -23,6 +23,7 @@ import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.core.app.NotificationCompat
 import org.json.JSONArray
+import java.util.Calendar
 
 class BlackoutAccessibilityService : AccessibilityService() {
 
@@ -295,7 +296,29 @@ class BlackoutAccessibilityService : AccessibilityService() {
                 val itemObj = jsonArray.optJSONObject(i) ?: continue
                 val pkg = itemObj.optString("packageName")
                 if (pkg == packageName) { // STRICT EQUALITY
-                    val lockExpirationTimestamp = itemObj.optLong("lockExpirationTimestamp", 0L)
+                    var lockExpirationTimestamp = itemObj.optLong("lockExpirationTimestamp", 0L)
+                    if (lockExpirationTimestamp <= 0L) {
+                        val lockDate = itemObj.optString("lockDate", "")
+                        if (lockDate.isNotEmpty()) {
+                            try {
+                                val parts = lockDate.split("-")
+                                if (parts.size == 3) {
+                                    val cal = Calendar.getInstance().apply {
+                                        set(Calendar.YEAR, parts[0].toInt())
+                                        set(Calendar.MONTH, parts[1].toInt() - 1)
+                                        set(Calendar.DAY_OF_MONTH, parts[2].toInt())
+                                        add(Calendar.DAY_OF_YEAR, 1)
+                                        set(Calendar.HOUR_OF_DAY, 0)
+                                        set(Calendar.MINUTE, 0)
+                                        set(Calendar.SECOND, 0)
+                                        set(Calendar.MILLISECOND, 0)
+                                    }
+                                    lockExpirationTimestamp = cal.timeInMillis
+                                }
+                            } catch (e: Exception) {}
+                        }
+                    }
+
                     if (lockExpirationTimestamp > 0L && now >= lockExpirationTimestamp) {
                         // Lock period has expired! App is NOT blocked.
                         Log.d(TAG, "Lock expired for $packageName (now=$now >= expiration=$lockExpirationTimestamp). Allowing access.")
@@ -363,7 +386,7 @@ class BlackoutAccessibilityService : AccessibilityService() {
         val layout = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER
-            setBackgroundColor(Color.parseColor("#1B1712")) // Vintage Minimalist Espresso
+            setBackgroundColor(Color.parseColor("#12161F")) // Navy Vintage Dark Background
             setPadding(64, 64, 64, 64)
             isClickable = true
             isFocusable = true
@@ -377,7 +400,7 @@ class BlackoutAccessibilityService : AccessibilityService() {
             gravity = Gravity.CENTER
             val drawable = android.graphics.drawable.GradientDrawable().apply {
                 shape = android.graphics.drawable.GradientDrawable.OVAL
-                setColor(Color.parseColor("#241F19")) // espresso-surface
+                setColor(Color.parseColor("#1B2030")) // espresso-surface / navy lifted
                 setStroke((1.5f * resources.displayMetrics.density).toInt(), Color.parseColor("#B23A2E")) // stamp-red
             }
             background = drawable
@@ -401,7 +424,7 @@ class BlackoutAccessibilityService : AccessibilityService() {
         // Title: BLACKOUT
         val titleText = TextView(this).apply {
             text = "BLACKOUT"
-            setTextColor(Color.parseColor("#EDE4D3")) // bone
+            setTextColor(Color.parseColor("#E6E8EC")) // bone / slate-white
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 28f)
             typeface = android.graphics.Typeface.SERIF
             gravity = Gravity.CENTER
@@ -412,7 +435,7 @@ class BlackoutAccessibilityService : AccessibilityService() {
         // Subtitle: TARGET APP IS DARK
         appNameTextView = TextView(this).apply {
             text = "APP IS DARK"
-            setTextColor(Color.parseColor("#EDE4D3")) // bone
+            setTextColor(Color.parseColor("#E6E8EC")) // bone / slate-white
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
             typeface = android.graphics.Typeface.SERIF
             gravity = Gravity.CENTER
@@ -424,7 +447,7 @@ class BlackoutAccessibilityService : AccessibilityService() {
         // Warning / Lock explanation
         warningTextView = TextView(this).apply {
             text = "Daily screen time allowance reached.\nApplication is locked until 12:00 AM midnight.\nDiscipline by design."
-            setTextColor(Color.parseColor("#A89A85")) // bone-muted
+            setTextColor(Color.parseColor("#8C93A6")) // bone-muted
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
             gravity = Gravity.CENTER
             setPadding(0, 8, 0, 40)
@@ -435,12 +458,12 @@ class BlackoutAccessibilityService : AccessibilityService() {
         // Action Button: RETURN TO HOME SCREEN
         val homeButton = Button(this).apply {
             text = "RETURN TO HOME SCREEN"
-            setTextColor(Color.parseColor("#1B1712")) // espresso
+            setTextColor(Color.parseColor("#12161F")) // dark navy
             val btnDrawable = android.graphics.drawable.GradientDrawable().apply {
                 shape = android.graphics.drawable.GradientDrawable.RECTANGLE
                 cornerRadius = 4f * resources.displayMetrics.density
-                setColor(Color.parseColor("#EDE4D3")) // bone
-                setStroke((1f * resources.displayMetrics.density).toInt(), Color.parseColor("#EDE4D3"))
+                setColor(Color.parseColor("#E6E8EC")) // slate-white
+                setStroke((1f * resources.displayMetrics.density).toInt(), Color.parseColor("#E6E8EC"))
             }
             background = btnDrawable
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
@@ -667,7 +690,7 @@ class BlackoutAccessibilityService : AccessibilityService() {
                 val layout = LinearLayout(this).apply {
                     orientation = LinearLayout.VERTICAL
                     gravity = Gravity.CENTER
-                    setBackgroundColor(Color.parseColor("#EE1B1712"))
+                    setBackgroundColor(Color.parseColor("#EE12161F"))
                     val padH = (24 * resources.displayMetrics.density).toInt()
                     val padV = (16 * resources.displayMetrics.density).toInt()
                     setPadding(padH, padV, padH, padV)
@@ -685,7 +708,7 @@ class BlackoutAccessibilityService : AccessibilityService() {
 
                 val numText = TextView(this).apply {
                     text = countdownSeconds.toString()
-                    setTextColor(Color.parseColor("#EDE4D3"))
+                    setTextColor(Color.parseColor("#E6E8EC"))
                     setTextSize(TypedValue.COMPLEX_UNIT_SP, 40f)
                     typeface = android.graphics.Typeface.DEFAULT_BOLD
                     gravity = Gravity.CENTER
@@ -696,7 +719,7 @@ class BlackoutAccessibilityService : AccessibilityService() {
 
                 val subText = TextView(this).apply {
                     text = "$targetAppName LOCKS IN ${countdownSeconds}s"
-                    setTextColor(Color.parseColor("#A89A85"))
+                    setTextColor(Color.parseColor("#8C93A6"))
                     setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
                     typeface = android.graphics.Typeface.DEFAULT_BOLD
                     gravity = Gravity.CENTER

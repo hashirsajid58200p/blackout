@@ -10,7 +10,7 @@ export const OnboardingScreen: React.FC = () => {
   const { setCurrentScreen, refreshPermissions, effectiveTheme } = useApp();
   const insets = useSafeAreaInsets();
   const isDark = effectiveTheme === "dark";
-  const iconColor = isDark ? "#EDE4D3" : "#2B2621";
+  const iconColor = isDark ? "#E6E8EC" : "#1A2030";
   const [slideIndex, setSlideIndex] = useState(0);
 
   const topPadding =

@@ -25,7 +25,7 @@ export const StatsScreen: React.FC = () => {
     refreshUsageStats,
   } = useApp();
   const isDark = effectiveTheme === "dark";
-  const iconColor = isDark ? "#EDE4D3" : "#2B2621";
+  const iconColor = isDark ? "#E6E8EC" : "#1A2030";
 
   // dayOffset: 0 = Today, -1 = Yesterday, -2 = 2 days ago, ... up to -6
   const [selectedDayOffset, setSelectedDayOffset] = useState<number>(0);

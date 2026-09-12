@@ -1,39 +1,40 @@
 # Active Context
 
-## Current Status: Phase 2 — Comprehensive Issues Resolution (Complete & Hardware Verified)
-- **Mode**: Issue Resolution & Quality Assurance on Physical Hardware.
+## Current Status: Audit Round 4 — Comprehensive Fixes & Hardware Verification (Complete)
+- **Mode**: Audit Round 4 Execution & Verification on Physical Hardware.
 - **Tested Environment**: Physical hardware Infinix X6833B (Infinix NOTE 30), Android 14 (API 34), 1080x2460.
-- **Resolved Issues**: All 19 issues cataloged in `ISSUES_REPORT.md` (0 Critical, 3 High, 8 Medium, 8 Low) resolved and verified on live device.
-- **Build Verification**: `npm run tsc` (0 errors), `./gradlew assembleDebug --no-daemon` with offline self-contained JS bundle (`debuggableVariants = []`), streamed install to `10275333B5001336`.
+- **Target Issues Addressed**:
+  1. Untrack / remove from lock list before limit is reached (`isLocked === false`).
+  2. Overnight enforcement bypass / retroactive `lockExpirationTimestamp` backfill.
+  3. Open count exact 2x overcounting fixed via 2000ms transition debouncing.
+  4. Circular countdown badge overlaid on app icons on Home screen.
+  5. Complete palette overhaul to unified "Navy Vintage" theme in both Light and Dark modes.
+- **Build Verification**: `npx tsc --noEmit` (0 errors), offline embedded JS bundle (`expo export:embed`), `./gradlew assembleDebug --no-daemon` clean build, direct APK installation to `10275333B5001336`.
 
-### Key Resolutions Verified on Device:
-1. **ISSUE-01 (Multi-day screen time aggregation bug in Stats)**:
-   - Enforced `INTERVAL_DAILY` in `getWeeklyUsageHistory` and `getDayUsageStats` with timestamp intersection (`firstTimeStamp < dayEnd && lastTimeStamp > dayStart`) and 24h daily attribution clamp.
-   - Verified on device: 7-day total dropped from 117h to accurate 70.0h; Monday dropped from impossible 53.9h to 16.2h; all daily totals are strictly within 24h.
-2. **ISSUE-02 (Android hardware/gesture Back navigation)**:
-   - Added `BackHandler` listener in `App.tsx` navigating to `"home"` whenever the user is on any secondary screen (`stats`, `settings`, `add_app`, `permissions`).
-   - Verified on device: hardware back key seamlessly returns from Settings, Stats, Add App, and Permissions to Home.
-3. **ISSUE-03 (Missing RECEIVE_BOOT_COMPLETED)**:
-   - Added `<uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />` to `AndroidManifest.xml` and Expo config plugin `withBlackoutNativeModule.js`.
-4. **ISSUE-04 (Placebo Custom Lock button removal)**:
-   - Pruned fake "Custom Lock" button from `AddAppScreen.tsx`. Step 2 only renders the functional "LOCK IT IN — [APP NAME]" button.
-5. **ISSUE-05 (Cold launch flash of Permissions Required notice)**:
-   - Added `isInitialized` guard to `AppContext.tsx` and `HomeScreen.tsx`. Splash screen hides smoothly without any transient red alert flash.
-6. **ISSUE-06 (Dead code & orphaned screen route: BlackoutScreen)**:
-   - Deleted `src/screens/BlackoutScreen.tsx`, removed `blackout` from `ScreenType` in `AppContext.tsx` and `App.tsx`.
-7. **ISSUE-07 (Outdated permission count in SettingsScreen)**:
-   - Updated copy to "ALL 4 PERMISSIONS GRANTED"; verified on device.
-8. **ISSUE-08 (Inconsistent theme colors in native overlay)**:
-   - Aligned `BlackoutAccessibilityService.kt` countdown overlay styling with Vintage Minimalist palette (`#EE1B1712`, `#EDE4D3`, `#B23A2E`, `#A89A85`).
-9. **ISSUE-09 (Dead imports cleanup)**:
-   - Removed unused imports across `AddAppScreen`, `SettingsScreen`, `NavigationHeader`, `BottomNavBar`.
-10. **ISSUE-10 (SecurityHelper.scheduleMidnightReset Android 14+ exact alarm fallback)**:
-    - Added resilient `catch (e: SecurityException)` fallback to `setAndAllowWhileIdle`.
-11. **ISSUE-11 (Dynamic permissions polling)**:
-    - Added 4-second active interval polling in `AppContext.tsx` when permissions are missing or screen is `permissions`.
-12. **ISSUE-12 through ISSUE-17 (UI Responsiveness & Edge-Sticking Layouts)**:
-    - Added responsive inner padding, flex gaps, and `shrink-0` to 7-Day Activity header (`px-2`), Today's Overview header (`px-1`), breakdown metrics, bar chart bars (`px-0.5`), and two-column stat summaries.
-13. **ISSUE-18 (Brittle Margin Indents Removed)**:
-    - Replaced hardcoded `ml-[28px]` and `ml-[46px]` in `PermissionsScreen` and `AddAppScreen` with responsive nested flex layouts.
-14. **ISSUE-19 (Unused State Cleanup)**:
-    - Pruned dead `activeBlockApp` state and unused actions from `AppContext.tsx`.
+### Round 4 Hardware Verification Evidence:
+1. **Phase 1 (Untrack / Remove Before Limit Reached)**:
+   - Added `StorageService.removeTrackedApp(packageName)` with strict guard preventing removal if `isLocked === true`.
+   - Added `AppContext.removeTrackedApp` with immediate native SharedPreferences synchronization (`syncLockedAppsToNative` and `syncLockedPackages`).
+   - Added UI trash affordance (`Trash2`) on unlocked rows in `HomeScreen.tsx`.
+   - Hardware verified: Untracked Calculator (`com.transsion.calculator`). Inspected `/data/data/com.blackout.app/shared_prefs/BlackoutPrefs.xml` via `adb shell run-as com.blackout.app cat` — confirmed Calculator was purged immediately from both JSON and locked package set. Actively locked app (`SIMOSA`) displayed no trash affordance and remained strictly immutable until midnight.
+2. **Phase 2 (Overnight Enforcement Bypass / Retroactive Timestamp Backfill)**:
+   - In `storage.ts` (`applyMidnightResetIfNeeded`), added backfill for any locked app missing `lockExpirationTimestamp` by computing local midnight following `lockDate` and persisting to both JS storage and native.
+   - In `BlackoutAccessibilityService.kt` and `SecurityHelper.kt`, added native fallback parsing `lockDate` to compute expiration timestamp if `lockExpirationTimestamp <= 0L`.
+3. **Phase 3 (Open Count Exactly 2x Overcounting Fixed)**:
+   - Root Cause: On Android 14 (API 34), activity transition animations fire intermediate `ACTIVITY_PAUSED` events that set `currentPkg = null`. The subsequent `ACTIVITY_RESUMED` for the same app saw `currentPkg != pkg` and incremented the counter a second time.
+   - Fix: Added 2000ms debouncing window in `BlackoutModule.kt` tracking `lastClosedPkg`, `lastClosedTime`, and `lastOpenTimeMap[pkg]`.
+   - Hardware verified:
+     - YouTube single deliberate open: count incremented from 1 -> 2 (+1 exact).
+     - Chrome single deliberate open: count incremented from 3 -> 4 (+1 exact).
+     - X single deliberate open: count incremented from 1 -> 2 (+1 exact).
+     - Unopened apps remained identical.
+4. **Phase 4 (Circular Countdown Badge on App Icons)**:
+   - Built `CountdownBadge` component in `HomeScreen.tsx` positioned absolutely on top-left of app icons.
+   - Displays whole minutes remaining (`remainingMs > 10000`) and transitions to second-by-second countdown in the final 10 seconds.
+   - Hardware verified: Badge rendered cleanly on tracked app icon showing minutes remaining; transitions to stamp red in final urgency.
+5. **Phase 5 (Navy Vintage Theme Palette Overhaul)**:
+   - Fully replaced warm cream/rust palette with unified Navy Vintage family in both Light and Dark modes.
+   - Light Tokens: Background `#E6E8EC` (pale slate-white), Surface `#EFF1F4`, Text `#1A2030` (navy ink), Muted `#5C6478`, Border `#C9CDD6`.
+   - Dark Tokens: Background `#12161F` (near-black navy ink), Surface `#1B2030`, Text `#E6E8EC` (pale slate-white), Muted `#8C93A6`, Border `#2A3145`.
+   - Shared Accents: Locked/Warning `#B23A2E` (stamp red), Safe/Unlocked `#4F7566` (aged-bronze verdigris).
+   - Hardware verified: Captured screenshots across Home, Settings, and Stats in both Light and Dark modes. High-contrast typography and border fidelity confirmed.

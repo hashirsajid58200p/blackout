@@ -237,6 +237,9 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
 
             var currentPkg: String? = null
             var currentStart = 0L
+            var lastClosedPkg: String? = null
+            var lastClosedTime = 0L
+            val lastOpenTimeMap = mutableMapOf<String, Long>()
 
             while (events.hasNextEvent()) {
                 events.getNextEvent(event)
@@ -252,8 +255,13 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
                                 usageMap[currentPkg!!] = (usageMap[currentPkg!!] ?: 0L) + duration
                             }
                         }
-                        if (currentPkg != pkg) {
-                            openCountMap[pkg] = (openCountMap[pkg] ?: 0) + 1
+                        val isSamePkgReopen = (lastClosedPkg == pkg && (time - lastClosedTime) < 2000L)
+                        val isRapidDuplicate = (time - (lastOpenTimeMap[pkg] ?: 0L)) < 2000L
+                        if (!isSamePkgReopen && !isRapidDuplicate) {
+                            if (currentPkg != pkg) {
+                                openCountMap[pkg] = (openCountMap[pkg] ?: 0) + 1
+                                lastOpenTimeMap[pkg] = time
+                            }
                         }
                         currentPkg = pkg
                         currentStart = time
@@ -264,6 +272,8 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
                             if (duration > 0) {
                                 usageMap[pkg] = (usageMap[pkg] ?: 0L) + duration
                             }
+                            lastClosedPkg = pkg
+                            lastClosedTime = time
                             currentPkg = null
                             currentStart = 0L
                         }
@@ -276,6 +286,8 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
                             if (duration > 0) {
                                 usageMap[currentPkg!!] = (usageMap[currentPkg!!] ?: 0L) + duration
                             }
+                            lastClosedPkg = currentPkg
+                            lastClosedTime = time
                             currentPkg = null
                             currentStart = 0L
                         }

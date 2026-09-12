@@ -16,7 +16,7 @@ export const NavigationHeader: React.FC<NavigationHeaderProps> = ({
   const { currentScreen, setCurrentScreen, effectiveTheme } = useApp();
   const insets = useSafeAreaInsets();
   const isDark = effectiveTheme === "dark";
-  const iconColor = isDark ? "#EDE4D3" : "#2B2621";
+  const iconColor = isDark ? "#E6E8EC" : "#1A2030";
 
   // Calculate safe top padding for all Android notches/camera punch-holes and iOS status bars
   const topPadding =

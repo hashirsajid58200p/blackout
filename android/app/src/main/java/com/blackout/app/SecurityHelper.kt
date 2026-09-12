@@ -246,7 +246,28 @@ object SecurityHelper {
             for (i in 0 until jsonArray.length()) {
                 val item = jsonArray.optJSONObject(i)
                 if (item != null) {
-                    val itemExpiration = item.optLong("lockExpirationTimestamp", 0L)
+                    var itemExpiration = item.optLong("lockExpirationTimestamp", 0L)
+                    if (itemExpiration <= 0L) {
+                        val lockDate = item.optString("lockDate", "")
+                        if (lockDate.isNotEmpty()) {
+                            try {
+                                val parts = lockDate.split("-")
+                                if (parts.size == 3) {
+                                    val cal = Calendar.getInstance().apply {
+                                        set(Calendar.YEAR, parts[0].toInt())
+                                        set(Calendar.MONTH, parts[1].toInt() - 1)
+                                        set(Calendar.DAY_OF_MONTH, parts[2].toInt())
+                                        add(Calendar.DAY_OF_YEAR, 1)
+                                        set(Calendar.HOUR_OF_DAY, 0)
+                                        set(Calendar.MINUTE, 0)
+                                        set(Calendar.SECOND, 0)
+                                        set(Calendar.MILLISECOND, 0)
+                                    }
+                                    itemExpiration = cal.timeInMillis
+                                }
+                            } catch (e: Exception) {}
+                        }
+                    }
                     if (itemExpiration > 0L && now >= itemExpiration) {
                         continue // Lock for this item has expired
                     }

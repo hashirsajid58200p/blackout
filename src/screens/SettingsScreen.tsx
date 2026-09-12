@@ -19,10 +19,11 @@ export const SettingsScreen: React.FC = () => {
     setCurrentScreen,
     effectiveTheme,
     unlockTrackedApp,
+    removeTrackedApp,
   } = useApp();
 
   const isDark = effectiveTheme === "dark";
-  const iconColor = isDark ? "#EDE4D3" : "#2B2621";
+  const iconColor = isDark ? "#E6E8EC" : "#1A2030";
   const isAutoCleanEnabled = settings.autoCleanUninstalled !== false;
 
   const [isAdminActive, setIsAdminActive] = React.useState(false);
@@ -69,8 +70,23 @@ export const SettingsScreen: React.FC = () => {
       );
     } else {
       Alert.alert(
-        "Timer Running",
-        `${app.appName} is being monitored with an active daily allowance. It will lock automatically once the configured duration completes.`
+        "Allowance Active",
+        `${app.appName} has an active allowance and is not yet locked. Would you like to stop tracking and remove this limit?`,
+        [
+          { text: "Keep Active", style: "cancel" },
+          {
+            text: "Remove Limit",
+            style: "destructive",
+            onPress: async () => {
+              const res = await removeTrackedApp(app.packageName);
+              if (res.success) {
+                Alert.alert("Removed", `Daily limit for ${app.appName} has been removed.`);
+              } else {
+                Alert.alert("Cannot Remove", res.error || "Could not remove app.");
+              }
+            },
+          },
+        ]
       );
     }
   };
@@ -103,11 +119,11 @@ export const SettingsScreen: React.FC = () => {
               const isSelected = settings.themeMode === item.mode;
               const buttonIconColor = isSelected
                 ? isDark
-                  ? "#1B1712"
-                  : "#F4EFE4"
+                  ? "#12161F"
+                  : "#E6E8EC"
                 : isDark
-                ? "#EDE4D3"
-                : "#2B2621";
+                ? "#E6E8EC"
+                : "#1A2030";
 
               return (
                 <TouchableOpacity
@@ -205,10 +221,10 @@ export const SettingsScreen: React.FC = () => {
                 value={isAutoCleanEnabled}
                 onValueChange={(val) => updateAutoCleanSetting(val)}
                 trackColor={{
-                  false: isDark ? "#3B3327" : "#D9CEB9",
-                  true: isDark ? "#EDE4D3" : "#2B2621",
+                  false: isDark ? "#2A3145" : "#C9CDD6",
+                  true: isDark ? "#E6E8EC" : "#1A2030",
                 }}
-                thumbColor={isAutoCleanEnabled ? (isDark ? "#1B1712" : "#F4EFE4") : (isDark ? "#6E6459" : "#FAF6EE")}
+                thumbColor={isAutoCleanEnabled ? (isDark ? "#12161F" : "#E6E8EC") : (isDark ? "#8C93A6" : "#EFF1F4")}
               />
             </View>
           </View>

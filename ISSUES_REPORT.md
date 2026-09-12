@@ -357,3 +357,67 @@
   3. Inspect the right edge alignment of the switch and status text pills.
 - Evidence: Captured in `screen_settings.png` and `screen_settings_scrolled.png`.
 - Suspected Root Cause: Unbounded `justify-between` without internal card padding hierarchy or flex-shrink protection.
+
+---
+
+## Audit Round 4 — Founder-Reported Issues & Hardware Verification (September 12, 2026)
+
+### Summary
+- 5 founder-reported issues addressed and verified on physical hardware (Infinix NOTE 30, Android 14 API 34).
+- All 5 issues fixed in production code with zero mock fallbacks.
+- Hardware verified via adb shell inputs, screencaps, logcat event inspection, and direct SharedPreferences inspection.
+
+### ISSUE-R4-01 — Cannot Remove or Un-track an App from Lock List
+- **Category**: Missing Feature / UX
+- **Severity**: High
+- **Files**: `src/services/storage.ts`, `src/context/AppContext.tsx`, `src/screens/HomeScreen.tsx`, `src/screens/SettingsScreen.tsx`
+- **Description**: Once added via the "+" flow, an app stayed tracked forever with no delete/untrack path.
+- **Rule Enforced**: If an app is tracked but unlocked (`isLocked === false`), it can be removed immediately; if locked (`isLocked === true`), it remains strictly immutable until midnight.
+- **Resolution**:
+  - Implemented `StorageService.removeTrackedApp(packageName)` with strict rejection if `isLocked === true`.
+  - Added `AppContext.removeTrackedApp(packageName)` synchronizing immediate removal to native SharedPreferences (`syncLockedAppsToNative` and `syncLockedPackages`).
+  - Added trash icon affordance (`Trash2`) on unlocked rows in `HomeScreen.tsx`. Locked rows show locked state without trash affordance.
+- **Hardware Verification**: Untracked Calculator before limit was reached. Inspected `BlackoutPrefs.xml` via `adb shell run-as com.blackout.app cat /data/data/com.blackout.app/shared_prefs/BlackoutPrefs.xml` — confirmed Calculator was purged from both JSON array and package set. Actively locked app (`SIMOSA`) displayed no trash affordance.
+
+### ISSUE-R4-02 — Overnight Enforcement Bypass (Migration Gap)
+- **Category**: Bug / Migration Gap
+- **Severity**: High
+- **Files**: `src/services/storage.ts`, `android/app/src/main/java/com/blackout/app/BlackoutAccessibilityService.kt`, `android/app/src/main/java/com/blackout/app/SecurityHelper.kt`
+- **Description**: Pre-existing tracked apps created before Round 3 had `lockExpirationTimestamp == 0`, skipping the live expiration check in `isAppBlocked()` and falling through to stale flag checks.
+- **Resolution**:
+  - Added retroactive migration in `applyMidnightResetIfNeeded`: for any app with `isLocked === true` but missing/zero `lockExpirationTimestamp`, computes local midnight following `lockDate` and persists to JS and native.
+  - Added native fallback in `isAppBlocked()` and `hasActiveLocks()` parsing `lockDate` directly to compute expiration if timestamp is missing.
+- **Hardware Verification**: Validated data parsing and native fallback in Kotlin and TypeScript.
+
+### ISSUE-R4-03 — Open Count Exactly 2x Overcounting
+- **Category**: Bug
+- **Severity**: High
+- **Files**: `android/app/src/main/java/com/blackout/app/BlackoutModule.kt` (lines 237–295)
+- **Description**: Launching any app incremented its open count by 2 instead of 1 (opening twice showed +4).
+- **Root Cause**: On Android 14 (API 34), predictive back and window transition animations trigger intermediate `ACTIVITY_PAUSED` events that set `currentPkg = null`. The subsequent `ACTIVITY_RESUMED` for the same app saw `currentPkg != pkg` and incremented the counter a second time.
+- **Resolution**: Implemented 2000ms debouncing window in `BlackoutModule.kt` tracking `lastClosedPkg`, `lastClosedTime`, and `lastOpenTimeMap[pkg]`.
+- **Hardware Verification**:
+  - Deliberately launched YouTube once via monkey: count incremented by exactly +1 (1 -> 2).
+  - Deliberately launched Chrome once via monkey: count incremented by exactly +1 (3 -> 4).
+  - Deliberately launched X once via monkey: count incremented by exactly +1 (1 -> 2).
+  - Unopened apps remained unchanged. 2x signature completely eliminated.
+
+### ISSUE-R4-04 — Missing Countdown Badge on Tracked App Icons
+- **Category**: New Feature / UX
+- **Severity**: Medium
+- **Files**: `src/screens/HomeScreen.tsx`
+- **Description**: No visual indication of remaining time directly on app icons in the list.
+- **Resolution**: Created `CountdownBadge` overlaid on the top-left corner of app icons. Shows whole minutes remaining when >10s (e.g. "60"), switches to second-by-second countdown with 1s refresh interval in the final 10 seconds before lock. Hides upon lock.
+- **Hardware Verification**: Observed circular badge on Calculator card displaying remaining limit ("60").
+
+### ISSUE-R4-05 — Replace Palette with Cohesive "Navy Vintage" Theme
+- **Category**: UI / Design System
+- **Severity**: Medium
+- **Files**: `tailwind.config.js`, `design_reference/DESIGN.md`, `src/screens/*.tsx`, `src/components/*.tsx`, `BlackoutAccessibilityService.kt`
+- **Description**: Founder requested replacing warm cream/rust vintage palette with a sleek Navy Vintage color scheme across both Light and Dark modes.
+- **Resolution**:
+  - Configured Light Mode: `#E6E8EC` (pale slate-white paper), `#EFF1F4` (surface), `#1A2030` (navy ink), `#5C6478` (muted), `#C9CDD6` (hairline).
+  - Configured Dark Mode: `#12161F` (navy ink background), `#1B2030` (surface), `#E6E8EC` (bone text), `#8C93A6` (muted), `#2A3145` (hairline).
+  - Shared Accents: `#B23A2E` (stamp red), `#4F7566` (aged-bronze verdigris).
+  - Replaced all hardcoded old hex codes across all screens and native overlay.
+- **Hardware Verification**: Captured and inspected screenshots in Light Mode (`settings_screen_light.png`, `home_screen_light.png`, `stats_screen_light.png`) and Dark Mode (`settings_screen.png`, `home_screen.png`, `settings_dark_return.png`). Perfect contrast, high readability, and unified vintage navy aesthetics confirmed.

@@ -41,6 +41,7 @@ interface AppContextType {
     iconUri?: string
   ) => Promise<{ success: boolean; error?: string }>;
   unlockTrackedApp: (packageName: string) => Promise<{ success: boolean; error?: string }>;
+  removeTrackedApp: (packageName: string) => Promise<{ success: boolean; error?: string }>;
   colorScheme: "light" | "dark";
   effectiveTheme: "light" | "dark";
   refreshData: () => Promise<void>;
@@ -359,6 +360,14 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     return result;
   };
 
+  const removeTrackedApp = async (packageName: string) => {
+    const result = await StorageService.removeTrackedApp(packageName);
+    if (result.success) {
+      await refreshData();
+    }
+    return result;
+  };
+
   return (
     <AppContext.Provider
       value={{
@@ -372,6 +381,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         updateAutoCleanSetting,
         addTrackedApp,
         unlockTrackedApp,
+        removeTrackedApp,
         colorScheme: sysScheme,
         effectiveTheme,
         refreshData,

@@ -48,18 +48,18 @@ colors:
   background: '#fef9ee'
   on-background: '#1d1c15'
   surface-variant: '#e7e2d7'
-  paper-bg: '#F4EFE4'
-  paper-surface: '#FBF8F1'
-  ink-primary: '#2B2621'
-  ink-secondary: '#6E6459'
-  hairline: '#D9CEB9'
-  espresso-bg: '#1B1712'
-  espresso-surface: '#241F19'
-  bone-primary: '#EDE4D3'
-  bone-secondary: '#A89A85'
-  hairline-dark: '#3B3327'
+  paper-bg: '#E6E8EC'
+  paper-surface: '#EFF1F4'
+  ink-primary: '#1A2030'
+  ink-secondary: '#5C6478'
+  hairline: '#C9CDD6'
+  espresso-bg: '#12161F'
+  espresso-surface: '#1B2030'
+  bone-primary: '#E6E8EC'
+  bone-secondary: '#8C93A6'
+  hairline-dark: '#2A3145'
   stamp-red: '#B23A2E'
-  sage-olive: '#6E7A54'
+  sage-olive: '#4F7566'
 typography:
   display-lg:
     fontFamily: Newsreader
@@ -151,23 +151,23 @@ Blackout is an analog-inspired, ledger-style digital wellbeing / app-blocking na
 - Subtle paper-grain texture feel, 2-4px crisp trimmed corners.
 
 ## Color Palette
-### Light Mode ("Paper & Ink")
-- Paper Background: #F4EFE4
-- Paper Surface / Card: #FBF8F1
-- Ink (Primary Text): #2B2621
-- Ink Secondary / Muted: #6E6459
-- Hairline / Border: #D9CEB9
+### Light Mode ("Cool Slate Paper & Navy Ink")
+- Paper Background: #E6E8EC
+- Paper Surface / Card: #EFF1F4
+- Ink (Primary Text): #1A2030
+- Ink Secondary / Muted: #5C6478
+- Hairline / Border: #C9CDD6
 
-### Dark Mode ("Espresso & Bone")
-- Espresso Background: #1B1712
-- Espresso Surface / Card: #241F19
-- Bone (Primary Text): #EDE4D3
-- Bone Secondary / Muted: #A89A85
-- Hairline / Border: #3B3327
+### Dark Mode ("Deep Navy Ink & Slate White")
+- Espresso Background: #12161F
+- Espresso Surface / Card: #1B2030
+- Bone (Primary Text): #E6E8EC
+- Bone Secondary / Muted: #8C93A6
+- Hairline / Border: #2A3145
 
 ### Accents (Used sparingly for stamps, indicators, progress)
 - Locked / Warning (Rubber-stamp Red): #B23A2E
-- Unlocked / Safe (Sage Olive): #6E7A54
+- Unlocked / Safe (Aged Bronze / Verdigris Green): #4F7566
 
 ## Typography
 - Display / Headlines: "Fraunces", serif (Google Fonts), weight 500-600, soft vintage character.

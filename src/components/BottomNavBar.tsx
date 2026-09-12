@@ -25,11 +25,11 @@ export const BottomNavBar: React.FC = () => {
         const isActive = currentScreen === item.id;
         const iconColor = isActive
           ? isDark
-            ? "#EDE4D3"
-            : "#2B2621"
+            ? "#E6E8EC"
+            : "#1A2030"
           : isDark
-          ? "#A89A85"
-          : "#6E6459";
+          ? "#8C93A6"
+          : "#5C6478";
 
         return (
           <TouchableOpacity

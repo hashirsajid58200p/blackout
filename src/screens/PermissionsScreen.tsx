@@ -10,7 +10,7 @@ export const PermissionsScreen: React.FC = () => {
   const { permissions, refreshPermissions, setCurrentScreen, effectiveTheme } = useApp();
   const insets = useSafeAreaInsets();
   const isDark = effectiveTheme === "dark";
-  const iconColor = isDark ? "#EDE4D3" : "#2B2621";
+  const iconColor = isDark ? "#E6E8EC" : "#1A2030";
 
   const topPadding =
     Platform.OS === "android"
@@ -127,7 +127,7 @@ export const PermissionsScreen: React.FC = () => {
                     <View className="w-5 h-5 items-center justify-center mt-0.5 shrink-0">
                       <IconComponent
                         size={18}
-                        color={item.isGranted ? "#6E7A54" : iconColor}
+                        color={item.isGranted ? "#4F7566" : iconColor}
                         strokeWidth={1.25}
                       />
                     </View>
@@ -148,7 +148,7 @@ export const PermissionsScreen: React.FC = () => {
                   <View className="flex-row justify-end">
                     {item.isGranted ? (
                       <View className="bg-stamp-olive/10 border border-stamp-olive px-2.5 py-1 rounded-sm flex-row items-center justify-center gap-1.5 min-w-[76px]">
-                        <CheckCircle2 size={11} color="#6E7A54" strokeWidth={1.25} />
+                        <CheckCircle2 size={11} color="#4F7566" strokeWidth={1.25} />
                         <Text className="text-[10px] font-mono-bold text-stamp-olive uppercase tracking-wider">
                           GRANTED
                         </Text>

@@ -76,7 +76,26 @@ export const StorageService = {
     let modified = false;
 
     const updatedApps = apps.map((app) => {
-      const isExpired = Boolean(app.lockExpirationTimestamp && now >= app.lockExpirationTimestamp);
+      // Backfill retroactive lockExpirationTimestamp if missing or 0 on locked app
+      let expiration = app.lockExpirationTimestamp;
+      if (app.isLocked && (!expiration || expiration <= 0)) {
+        modified = true;
+        if (app.lockDate) {
+          const parts = app.lockDate.split("-").map(Number);
+          if (parts.length === 3) {
+            const lockDateObj = new Date(parts[0], parts[1] - 1, parts[2]);
+            lockDateObj.setDate(lockDateObj.getDate() + 1);
+            lockDateObj.setHours(0, 0, 0, 0);
+            expiration = lockDateObj.getTime();
+          } else {
+            expiration = getNextMidnightTimestamp();
+          }
+        } else {
+          expiration = getNextMidnightTimestamp();
+        }
+      }
+
+      const isExpired = Boolean(expiration && now >= expiration);
       const isNewDay = app.lockDate !== today;
 
       if (isNewDay || isExpired) {
@@ -91,11 +110,23 @@ export const StorageService = {
           lockedAtTimestamp: undefined,
         };
       }
+
+      if (expiration && expiration !== app.lockExpirationTimestamp) {
+        modified = true;
+        return {
+          ...app,
+          lockExpirationTimestamp: expiration,
+        };
+      }
+
       return app;
     });
 
     if (modified) {
       await StorageService.saveTrackedApps(updatedApps);
+      NativeBridge.syncLockedAppsToNative(JSON.stringify(updatedApps));
+      const lockedPkgs = updatedApps.filter((a) => a.isLocked).map((a) => a.packageName);
+      NativeBridge.syncLockedPackages(lockedPkgs);
     }
     return updatedApps;
   },
@@ -226,6 +257,37 @@ export const StorageService = {
     }
 
     // Remove from tracked_apps and sync across systems
+    const updated = apps.filter((a) => a.packageName !== packageName);
+    await StorageService.saveTrackedApps(updated);
+    NativeBridge.syncLockedAppsToNative(JSON.stringify(updated));
+    const lockedPkgs = updated.filter((a) => a.isLocked).map((a) => a.packageName);
+    NativeBridge.syncLockedPackages(lockedPkgs);
+
+    return { success: true };
+  },
+
+  /**
+   * Removes a tracked app before it is locked.
+   * If the app is actively locked, rejects removal with an error to preserve the immutable lock rule.
+   */
+  async removeTrackedApp(packageName: string): Promise<{ success: boolean; error?: string }> {
+    const apps = await StorageService.getTrackedApps();
+    const app = apps.find((a) => a.packageName === packageName);
+    if (!app) {
+      return { success: true };
+    }
+
+    const now = Date.now();
+    const isExpired = Boolean(app.lockExpirationTimestamp && now >= app.lockExpirationTimestamp);
+    const currentlyLocked = app.isLocked && !isExpired;
+
+    if (currentlyLocked) {
+      return {
+        success: false,
+        error: "This application is locked and cannot be removed until midnight in accordance with Blackout rules.",
+      };
+    }
+
     const updated = apps.filter((a) => a.packageName !== packageName);
     await StorageService.saveTrackedApps(updated);
     NativeBridge.syncLockedAppsToNative(JSON.stringify(updated));

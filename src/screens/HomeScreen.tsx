@@ -7,9 +7,58 @@ import { BottomNavBar } from "../components/BottomNavBar";
 import { Card } from "../components/ui/Card";
 import { ProgressBar } from "../components/ui/ProgressBar";
 import { StatusPill } from "../components/ui/StatusPill";
-import { Plus, ShieldAlert, Lock } from "lucide-react-native";
+import { Plus, ShieldAlert, Lock, Trash2 } from "lucide-react-native";
 import { TrackedApp } from "../types";
 import { StorageService } from "../services/storage";
+
+const CountdownBadge: React.FC<{
+  remainingMs: number;
+  isLocked: boolean;
+}> = ({ remainingMs, isLocked }) => {
+  const [localRemaining, setLocalRemaining] = useState(remainingMs);
+
+  useEffect(() => {
+    setLocalRemaining(remainingMs);
+  }, [remainingMs]);
+
+  useEffect(() => {
+    if (isLocked || localRemaining <= 0 || localRemaining > 10000) {
+      return;
+    }
+    const timer = setInterval(() => {
+      setLocalRemaining((prev) => Math.max(0, prev - 1000));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [isLocked, localRemaining <= 10000 && localRemaining > 0]);
+
+  if (isLocked || localRemaining <= 0) {
+    return null;
+  }
+
+  const isLast10Sec = localRemaining <= 10000;
+  const label = isLast10Sec
+    ? `${Math.max(1, Math.ceil(localRemaining / 1000))}`
+    : `${Math.ceil(localRemaining / 60000)}`;
+
+  return (
+    <View
+      className={`absolute -top-1.5 -left-1.5 min-w-[18px] h-[18px] px-0.5 rounded-full items-center justify-center border z-20 ${
+        isLast10Sec
+          ? "bg-stamp-red border-white/60"
+          : "bg-paper-surface dark:bg-espresso-surface border-hairline dark:border-hairline-dark"
+      }`}
+    >
+      <Text
+        numberOfLines={1}
+        className={`text-[8px] font-mono-bold leading-none ${
+          isLast10Sec ? "text-white" : "text-ink dark:text-bone"
+        }`}
+      >
+        {label}
+      </Text>
+    </View>
+  );
+};
 
 export const HomeScreen: React.FC = () => {
   const {
@@ -21,6 +70,7 @@ export const HomeScreen: React.FC = () => {
     todayTotalUsageMs,
     refreshUsageStats,
     unlockTrackedApp,
+    removeTrackedApp,
     isInitialized,
   } = useApp();
   const [selectedAppPackage, setSelectedAppPackage] = useState<string | null>(null);
@@ -57,15 +107,50 @@ export const HomeScreen: React.FC = () => {
       );
     } else {
       Alert.alert(
-        "Timer Running",
-        `${app.appName} is being monitored with an active daily allowance. It will lock automatically once the configured duration completes.`
+        "Allowance Active",
+        `${app.appName} is currently tracked with an active daily limit (${formatMs(app.dailyLimitMs)}). Would you like to stop tracking and remove this limit?`,
+        [
+          { text: "Keep Active", style: "cancel" },
+          {
+            text: "Remove Limit",
+            style: "destructive",
+            onPress: () => handleRemovePress(app),
+          },
+        ]
       );
     }
   };
 
+  const handleRemovePress = (app: TrackedApp) => {
+    if (app.isLocked) {
+      Alert.alert(
+        "Cannot Remove",
+        "Locked applications cannot be removed until midnight in accordance with Blackout rules."
+      );
+      return;
+    }
+    Alert.alert(
+      "Remove App Lock",
+      `Stop tracking and remove daily limit for ${app.appName}?`,
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Remove",
+          style: "destructive",
+          onPress: async () => {
+            const res = await removeTrackedApp(app.packageName);
+            if (!res.success) {
+              Alert.alert("Remove Error", res.error || "Could not remove app.");
+            }
+          },
+        },
+      ]
+    );
+  };
+
   const isDark = effectiveTheme === "dark";
-  const iconColor = isDark ? "#EDE4D3" : "#2B2621";
-  const fabIconColor = isDark ? "#1B1712" : "#F4EFE4";
+  const iconColor = isDark ? "#E6E8EC" : "#1A2030";
+  const fabIconColor = isDark ? "#12161F" : "#E6E8EC";
 
   useEffect(() => {
     refreshUsageStats();
@@ -127,11 +212,11 @@ export const HomeScreen: React.FC = () => {
 
   const getDynamicVintageShade = (index: number, total: number, isDarkTheme: boolean): string => {
     if (total <= 1) {
-      return isDarkTheme ? "#EDE4D3" : "#2B2621";
+      return isDarkTheme ? "#E6E8EC" : "#1A2030";
     }
     const palette = isDarkTheme
-      ? ["#EDE4D3", "#D9CEB9", "#A89A85", "#8C7F70", "#6E7A54", "#6E6459", "#52493F"]
-      : ["#2B2621", "#4A4036", "#6E6459", "#8C7F70", "#6E7A54", "#A89A85", "#C2B6A3"];
+      ? ["#E6E8EC", "#C9CDD6", "#8C93A6", "#5C6478", "#4F7566", "#3A4359", "#2A3145"]
+      : ["#1A2030", "#2A3145", "#3A4359", "#5C6478", "#4F7566", "#8C93A6", "#C9CDD6"];
     return palette[index % palette.length];
   };
 
@@ -212,7 +297,7 @@ export const HomeScreen: React.FC = () => {
                 cx="80"
                 cy="80"
                 r="65"
-                stroke={isDark ? "#3B3327" : "#D9CEB9"}
+                stroke={isDark ? "#2A3145" : "#C9CDD6"}
                 strokeWidth="12"
                 fill="none"
               />
@@ -241,7 +326,7 @@ export const HomeScreen: React.FC = () => {
                   cx="80"
                   cy="80"
                   r="65"
-                  stroke={isDark ? "#EDE4D3" : "#2B2621"}
+                  stroke={isDark ? "#E6E8EC" : "#1A2030"}
                   strokeWidth="12"
                   fill="none"
                   strokeDasharray="408.4"
@@ -331,25 +416,33 @@ export const HomeScreen: React.FC = () => {
                 >
                   <View className="flex-row items-center justify-between">
                     <View className="flex-row items-center gap-2.5 flex-1 pr-2">
-                      {app.iconUri ? (
-                        <Image
-                          source={{ uri: app.iconUri }}
-                          className="w-9 h-9 rounded border border-hairline dark:border-hairline-dark"
-                          resizeMode="cover"
-                        />
-                      ) : app.iconBase64 ? (
-                        <Image
-                          source={{ uri: `data:image/png;base64,${app.iconBase64}` }}
-                          className="w-9 h-9 rounded border border-hairline dark:border-hairline-dark"
-                          resizeMode="cover"
-                        />
-                      ) : (
-                        <View className="w-9 h-9 rounded bg-paper dark:bg-espresso border border-hairline dark:border-hairline-dark items-center justify-center">
-                          <Text className="font-display text-sm font-bold text-ink dark:text-bone">
-                            {app.appName.charAt(0).toUpperCase()}
-                          </Text>
-                        </View>
-                      )}
+                      <View className="relative">
+                        {app.iconUri ? (
+                          <Image
+                            source={{ uri: app.iconUri }}
+                            className="w-9 h-9 rounded border border-hairline dark:border-hairline-dark"
+                            resizeMode="cover"
+                          />
+                        ) : app.iconBase64 ? (
+                          <Image
+                            source={{ uri: `data:image/png;base64,${app.iconBase64}` }}
+                            className="w-9 h-9 rounded border border-hairline dark:border-hairline-dark"
+                            resizeMode="cover"
+                          />
+                        ) : (
+                          <View className="w-9 h-9 rounded bg-paper dark:bg-espresso border border-hairline dark:border-hairline-dark items-center justify-center">
+                            <Text className="font-display text-sm font-bold text-ink dark:text-bone">
+                              {app.appName.charAt(0).toUpperCase()}
+                            </Text>
+                          </View>
+                        )}
+                        {!app.isLocked && app.dailyLimitMs > 0 && (
+                          <CountdownBadge
+                            remainingMs={Math.max(0, app.dailyLimitMs - app.usedTodayMs)}
+                            isLocked={app.isLocked}
+                          />
+                        )}
+                      </View>
                       <Text
                         numberOfLines={1}
                         className="font-body-semibold text-sm text-ink dark:text-bone flex-1 leading-5"
@@ -358,7 +451,19 @@ export const HomeScreen: React.FC = () => {
                       </Text>
                     </View>
 
-                    <StatusPill isLocked={app.isLocked} />
+                    <View className="flex-row items-center gap-2">
+                      {!app.isLocked && (
+                        <TouchableOpacity
+                          activeOpacity={0.7}
+                          onPress={() => handleRemovePress(app)}
+                          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                          className="p-1.5 rounded border border-hairline dark:border-hairline-dark active:bg-ink/5 dark:active:bg-bone/5 items-center justify-center"
+                        >
+                          <Trash2 size={13} color={iconColor} strokeWidth={1.25} />
+                        </TouchableOpacity>
+                      )}
+                      <StatusPill isLocked={app.isLocked} />
+                    </View>
                   </View>
 
                   <View className="flex-col gap-1.5 w-full mt-1">
