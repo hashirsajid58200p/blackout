@@ -321,14 +321,14 @@ export const SettingsScreen: React.FC = () => {
                   {app.iconUri ? (
                     <Image
                       source={{ uri: app.iconUri }}
-                      className="w-7 h-7 rounded-none border border-hairline dark:border-hairline-dark"
-                      resizeMode="cover"
+                      className="w-7 h-7 rounded-none"
+                      resizeMode="contain"
                     />
                   ) : app.iconBase64 ? (
                     <Image
                       source={{ uri: `data:image/png;base64,${app.iconBase64}` }}
-                      className="w-7 h-7 rounded-none border border-hairline dark:border-hairline-dark"
-                      resizeMode="cover"
+                      className="w-7 h-7 rounded-none"
+                      resizeMode="contain"
                     />
                   ) : (
                     <View className="w-7 h-7 bg-paper dark:bg-espresso border border-hairline dark:border-hairline-dark rounded-none items-center justify-center">
@@ -353,7 +353,7 @@ export const SettingsScreen: React.FC = () => {
             ))
           )}
 
-          <Text className="font-body italic text-xs text-ink-muted dark:text-bone-muted px-1 mt-1">
+          <Text className="font-body text-xs text-ink-muted dark:text-bone-muted px-1 mt-1 leading-4">
             Note: In accordance with Blackout rules, active daily limits cannot be paused, edited, or deleted until midnight.
           </Text>
         </View>

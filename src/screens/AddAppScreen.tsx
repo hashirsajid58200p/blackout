@@ -189,14 +189,14 @@ export const AddAppScreen: React.FC = () => {
                           {app.iconUri ? (
                             <Image
                               source={{ uri: app.iconUri }}
-                              className="w-9 h-9 rounded-none border border-hairline dark:border-hairline-dark"
-                              resizeMode="cover"
+                              className="w-9 h-9 rounded-none"
+                              resizeMode="contain"
                             />
                           ) : app.iconBase64 ? (
                             <Image
                               source={{ uri: `data:image/png;base64,${app.iconBase64}` }}
-                              className="w-9 h-9 rounded-none border border-hairline dark:border-hairline-dark"
-                              resizeMode="cover"
+                              className="w-9 h-9 rounded-none"
+                              resizeMode="contain"
                             />
                           ) : (
                             <View className="w-9 h-9 rounded-none bg-paper dark:bg-espresso border border-hairline dark:border-hairline-dark items-center justify-center">
@@ -279,7 +279,12 @@ export const AddAppScreen: React.FC = () => {
                           </View>
                         </View>
 
-                        <Text className="font-mono-bold text-xl text-ink-muted dark:text-bone-muted self-end mb-1">:</Text>
+                        <View className="flex-col items-center justify-center">
+                          <Text className="text-[10px] font-body-bold opacity-0 mb-2"> </Text>
+                          <View className="h-8 items-center justify-center">
+                            <Text className="font-mono-bold text-2xl text-ink dark:text-bone self-center leading-none">:</Text>
+                          </View>
+                        </View>
 
                         {/* Minutes Picker Column with +/- 1 Stepper */}
                         <View className="flex-col items-center flex-1">

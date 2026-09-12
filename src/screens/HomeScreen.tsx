@@ -270,11 +270,12 @@ export const HomeScreen: React.FC = () => {
 
   const getDynamicVintageShade = (index: number, total: number, isDarkTheme: boolean): string => {
     if (total <= 1) {
-      return isDarkTheme ? "#E6E8EC" : "#1A2030";
+      return isDarkTheme ? "#DFE2EF" : "#1A2030";
     }
+    // Stitch Ledger Instrument calibrated tones: Primary bone/ink, burnished brass accents, and archival carbon grays
     const palette = isDarkTheme
-      ? ["#E6E8EC", "#C9CDD6", "#8C93A6", "#5C6478", "#4F7566", "#3A4359", "#2A3145"]
-      : ["#1A2030", "#2A3145", "#3A4359", "#5C6478", "#4F7566", "#8C93A6", "#C9CDD6"];
+      ? ["#F0BE78", "#DFE2EF", "#DDAD69", "#C0C6DB", "#909097", "#A67C3D", "#614003"]
+      : ["#1A2030", "#A67C3D", "#5C6478", "#8A642B", "#2A3145", "#C9CDD6", "#3A4359"];
     return palette[index % palette.length];
   };
 
@@ -487,14 +488,14 @@ export const HomeScreen: React.FC = () => {
                         {app.iconUri ? (
                           <Image
                             source={{ uri: app.iconUri }}
-                            className="w-9 h-9 rounded-none border border-hairline dark:border-hairline-dark"
-                            resizeMode="cover"
+                            className="w-9 h-9 rounded-none"
+                            resizeMode="contain"
                           />
                         ) : app.iconBase64 ? (
                           <Image
                             source={{ uri: `data:image/png;base64,${app.iconBase64}` }}
-                            className="w-9 h-9 rounded-none border border-hairline dark:border-hairline-dark"
-                            resizeMode="cover"
+                            className="w-9 h-9 rounded-none"
+                            resizeMode="contain"
                           />
                         ) : (
                           <View className="w-9 h-9 rounded-none bg-paper dark:bg-espresso border border-hairline dark:border-hairline-dark items-center justify-center">
@@ -581,8 +582,8 @@ export const HomeScreen: React.FC = () => {
       <TouchableOpacity
         activeOpacity={0.8}
         onPress={() => setCurrentScreen("add_app")}
-        style={{ zIndex: 60, elevation: 4 }}
-        className="absolute bottom-[88px] right-6 w-14 h-14 bg-ink dark:bg-bone rounded-none items-center justify-center border border-ink dark:border-bone shadow-none active:scale-95"
+        style={{ zIndex: 60 }}
+        className="absolute bottom-[84px] right-5 w-14 h-14 bg-ink dark:bg-bone rounded-none items-center justify-center border border-ink dark:border-bone shadow-none active:scale-95"
       >
         <Plus size={24} color={fabIconColor} strokeWidth={1.5} />
       </TouchableOpacity>

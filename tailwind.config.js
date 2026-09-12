@@ -7,21 +7,34 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        // Navy Vintage Named Tokens
+        // Google Stitch Ledger Instrument Design System Tokens
+        // Light Ledger Paper Mode
         paper: "#E6E8EC",
         "paper-surface": "#EFF1F4",
         ink: "#1A2030",
         "ink-muted": "#5C6478",
         hairline: "#C9CDD6",
-        espresso: "#12161F",
-        "espresso-surface": "#1B2030",
-        bone: "#E6E8EC",
-        "bone-muted": "#8C93A6",
-        "hairline-dark": "#2A3145",
+
+        // Dark Archival Obsidian Mode (from DESIGN.md)
+        espresso: "#0F131C",
+        "espresso-surface": "#181C25",
+        "espresso-card": "#1C2029",
+        "espresso-high": "#262A34",
+        "espresso-highest": "#31353F",
+        bone: "#DFE2EF",
+        "bone-muted": "#909097",
+        "bone-variant": "#C6C6CD",
+        "hairline-dark": "#45464C",
+
+        // Functional Ledger Stamps & Accents
         "stamp-red": "#B23A2E",
+        "stamp-red-light": "#FFB4AB",
+        brass: "#F0BE78",
+        "brass-muted": "#DDAD69",
+        "brass-deep": "#A67C3D",
+        "brass-container": "#614003",
+        "stamp-brass": "#F0BE78",
         "stamp-olive": "#4F7566",
-        brass: "#A67C3D",
-        "stamp-brass": "#A67C3D",
 
         // Semantic Tokens (Default Light, paired with dark: classes)
         background: "#E6E8EC",
@@ -41,20 +54,21 @@ module.exports = {
         "on-error": "#FFFFFF",
       },
       fontFamily: {
-        display: ["LibreCaslonText_700Bold", "serif"],
-        "display-bold": ["LibreCaslonText_700Bold", "serif"],
-        "display-regular": ["LibreCaslonText_400Regular", "serif"],
-        "display-medium": ["LibreCaslonText_700Bold", "serif"],
-        body: ["PublicSans_400Regular", "sans-serif"],
-        "body-regular": ["PublicSans_400Regular", "sans-serif"],
-        "body-medium": ["PublicSans_500Medium", "sans-serif"],
-        "body-semibold": ["PublicSans_600SemiBold", "sans-serif"],
-        "body-bold": ["PublicSans_700Bold", "sans-serif"],
-        mono: ["IBMPlexMono_400Regular", "monospace"],
-        "mono-regular": ["IBMPlexMono_400Regular", "monospace"],
-        "mono-medium": ["IBMPlexMono_500Medium", "monospace"],
-        "mono-semibold": ["IBMPlexMono_600SemiBold", "monospace"],
-        "mono-bold": ["IBMPlexMono_700Bold", "monospace"],
+        // In React Native Android, fontFamily cannot have comma-separated fallbacks
+        display: ["LibreCaslonText_700Bold"],
+        "display-bold": ["LibreCaslonText_700Bold"],
+        "display-regular": ["LibreCaslonText_400Regular"],
+        "display-medium": ["LibreCaslonText_700Bold"],
+        body: ["PublicSans_400Regular"],
+        "body-regular": ["PublicSans_400Regular"],
+        "body-medium": ["PublicSans_500Medium"],
+        "body-semibold": ["PublicSans_600SemiBold"],
+        "body-bold": ["PublicSans_700Bold"],
+        mono: ["IBMPlexMono_400Regular"],
+        "mono-regular": ["IBMPlexMono_400Regular"],
+        "mono-medium": ["IBMPlexMono_500Medium"],
+        "mono-semibold": ["IBMPlexMono_600SemiBold"],
+        "mono-bold": ["IBMPlexMono_700Bold"],
       },
       borderWidth: {
         DEFAULT: "1px",

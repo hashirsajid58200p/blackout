@@ -173,8 +173,8 @@ export const StatsScreen: React.FC = () => {
         </View>
 
         {/* Selected Day Summary Card */}
-        <Card className="flex-row justify-around items-center py-4 px-2 mb-5 rounded-none border border-hairline dark:border-hairline-dark bg-paper-surface dark:bg-espresso-surface">
-          <View className="flex-1 items-center px-1">
+        <Card className="flex-row justify-around items-center py-4 px-3 mb-5 rounded-none border border-hairline dark:border-hairline-dark bg-paper-surface dark:bg-espresso-surface">
+          <View className="flex-1 items-center justify-center px-1">
             <Text
               numberOfLines={1}
               adjustsFontSizeToFit
@@ -187,9 +187,9 @@ export const StatsScreen: React.FC = () => {
             </Text>
           </View>
 
-          <View className="w-px h-10 bg-hairline dark:bg-hairline-dark" />
+          <View className="w-px self-stretch my-0.5 bg-hairline dark:bg-hairline-dark" />
 
-          <View className="flex-1 items-center px-1">
+          <View className="flex-1 items-center justify-center px-1">
             <Text
               numberOfLines={1}
               adjustsFontSizeToFit
@@ -204,8 +204,8 @@ export const StatsScreen: React.FC = () => {
         </Card>
 
         {/* 7-Day Flat Hairline Bar Chart */}
-        <Card className="p-4 mb-5 rounded-none border border-hairline dark:border-hairline-dark bg-paper-surface dark:bg-espresso-surface flex-col">
-          <View className="flex-row items-center justify-between mb-4 pb-2 px-1 border-b border-hairline dark:border-hairline-dark">
+        <Card className="pt-4 pb-3 px-4 mb-5 rounded-none border border-hairline dark:border-hairline-dark bg-paper-surface dark:bg-espresso-surface flex-col">
+          <View className="flex-row items-center justify-between pb-3 mb-3 px-0.5 border-b border-hairline dark:border-hairline-dark">
             <View className="flex-row items-center gap-2 flex-1 pr-2">
               <BarChart2 size={16} strokeWidth={1.25} color={iconColor} />
               <Text numberOfLines={1} className="font-body-bold text-xs text-ink dark:text-bone uppercase tracking-[0.12em]">
@@ -217,7 +217,7 @@ export const StatsScreen: React.FC = () => {
             </Text>
           </View>
 
-          <View className="flex-row justify-between items-end h-44 pt-2 px-0.5">
+          <View className="flex-row justify-between items-end h-44 pt-1 px-0.5">
             {activeWeeklyStats.map((item, idx) => {
               const heightPercent = Math.min(100, Math.max(8, Math.round((item.totalUsageMs / maxUsage) * 100)));
               const isSelected = idx === selectedIndex;
@@ -248,7 +248,7 @@ export const StatsScreen: React.FC = () => {
                   <Text
                     numberOfLines={1}
                     adjustsFontSizeToFit
-                    className={`font-mono text-[10px] ${isSelected ? "font-mono-bold text-ink dark:text-bone" : "text-ink-muted dark:text-bone-muted"}`}
+                    className={`font-mono text-[10px] h-4 leading-4 ${isSelected ? "font-mono-bold text-ink dark:text-bone" : "text-ink-muted dark:text-bone-muted"}`}
                   >
                     {formatHours(item.totalUsageMs)}
                   </Text>
@@ -270,8 +270,10 @@ export const StatsScreen: React.FC = () => {
                     >
                       {item.day}
                     </Text>
-                    {isSelected && (
+                    {isSelected ? (
                       <View className="w-1.5 h-1.5 rounded-none bg-ink dark:bg-bone mt-0.5" />
+                    ) : (
+                      <View className="w-1.5 h-1.5 mt-0.5" />
                     )}
                   </View>
                 </TouchableOpacity>
@@ -303,14 +305,14 @@ export const StatsScreen: React.FC = () => {
                     {app.iconUri ? (
                       <Image
                         source={{ uri: app.iconUri }}
-                        className="w-8 h-8 rounded-none border border-hairline dark:border-hairline-dark"
-                        resizeMode="cover"
+                        className="w-8 h-8 rounded-none"
+                        resizeMode="contain"
                       />
                     ) : app.iconBase64 ? (
                       <Image
                         source={{ uri: `data:image/png;base64,${app.iconBase64}` }}
-                        className="w-8 h-8 rounded-none border border-hairline dark:border-hairline-dark"
-                        resizeMode="cover"
+                        className="w-8 h-8 rounded-none"
+                        resizeMode="contain"
                       />
                     ) : (
                       <View className="w-8 h-8 rounded-none border border-hairline dark:border-hairline-dark bg-paper dark:bg-espresso items-center justify-center">

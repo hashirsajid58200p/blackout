@@ -386,7 +386,7 @@ class BlackoutAccessibilityService : AccessibilityService() {
         val layout = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER
-            setBackgroundColor(Color.parseColor("#12161F")) // Navy Vintage Dark Background
+            setBackgroundColor(Color.parseColor("#0F131C")) // Stitch Obsidian Dark Background
             setPadding(64, 64, 64, 64)
             isClickable = true
             isFocusable = true
@@ -401,7 +401,7 @@ class BlackoutAccessibilityService : AccessibilityService() {
             val drawable = android.graphics.drawable.GradientDrawable().apply {
                 shape = android.graphics.drawable.GradientDrawable.RECTANGLE
                 cornerRadius = 0f
-                setColor(Color.parseColor("#1B2030")) // espresso-surface / navy lifted
+                setColor(Color.parseColor("#181C25")) // Stitch surface-container-low
                 setStroke((1f * resources.displayMetrics.density).toInt(), Color.parseColor("#B23A2E")) // stamp-red
             }
             background = drawable
@@ -425,7 +425,7 @@ class BlackoutAccessibilityService : AccessibilityService() {
         // Title: BLACKOUT
         val titleText = TextView(this).apply {
             text = "BLACKOUT"
-            setTextColor(Color.parseColor("#E6E8EC")) // bone / slate-white
+            setTextColor(Color.parseColor("#DFE2EF")) // Stitch bone / letterpress
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 28f)
             typeface = android.graphics.Typeface.SERIF
             gravity = Gravity.CENTER
@@ -436,7 +436,7 @@ class BlackoutAccessibilityService : AccessibilityService() {
         // Subtitle: TARGET APP IS DARK
         appNameTextView = TextView(this).apply {
             text = "APP IS DARK"
-            setTextColor(Color.parseColor("#E6E8EC")) // bone / slate-white
+            setTextColor(Color.parseColor("#DFE2EF")) // Stitch bone
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 16f)
             typeface = android.graphics.Typeface.SERIF
             gravity = Gravity.CENTER
@@ -448,7 +448,7 @@ class BlackoutAccessibilityService : AccessibilityService() {
         // Warning / Lock explanation
         warningTextView = TextView(this).apply {
             text = "Daily screen time allowance reached.\nApplication is locked until 12:00 AM midnight.\nDiscipline by design."
-            setTextColor(Color.parseColor("#8C93A6")) // bone-muted
+            setTextColor(Color.parseColor("#909097")) // Stitch annotation-slate
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
             gravity = Gravity.CENTER
             setPadding(0, 8, 0, 40)
@@ -459,12 +459,12 @@ class BlackoutAccessibilityService : AccessibilityService() {
         // Action Button: RETURN TO HOME SCREEN
         val homeButton = Button(this).apply {
             text = "RETURN TO HOME SCREEN"
-            setTextColor(Color.parseColor("#12161F")) // dark navy
+            setTextColor(Color.parseColor("#0F131C")) // Stitch dark base
             val btnDrawable = android.graphics.drawable.GradientDrawable().apply {
                 shape = android.graphics.drawable.GradientDrawable.RECTANGLE
                 cornerRadius = 0f
-                setColor(Color.parseColor("#E6E8EC")) // slate-white
-                setStroke((1f * resources.displayMetrics.density).toInt(), Color.parseColor("#E6E8EC"))
+                setColor(Color.parseColor("#DFE2EF")) // Stitch bone
+                setStroke((1f * resources.displayMetrics.density).toInt(), Color.parseColor("#DFE2EF"))
             }
             background = btnDrawable
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 13f)
@@ -695,8 +695,8 @@ class BlackoutAccessibilityService : AccessibilityService() {
                     val bgDrawable = android.graphics.drawable.GradientDrawable().apply {
                         shape = android.graphics.drawable.GradientDrawable.RECTANGLE
                         cornerRadius = 0f
-                        setColor(Color.parseColor("#EE12161F"))
-                        setStroke((1f * resources.displayMetrics.density).toInt(), Color.parseColor("#2A3145"))
+                        setColor(Color.parseColor("#EE0F131C"))
+                        setStroke((1f * resources.displayMetrics.density).toInt(), Color.parseColor("#45464C"))
                     }
                     background = bgDrawable
                     val padH = (24 * resources.displayMetrics.density).toInt()
@@ -716,7 +716,7 @@ class BlackoutAccessibilityService : AccessibilityService() {
 
                 val numText = TextView(this).apply {
                     text = countdownSeconds.toString()
-                    setTextColor(Color.parseColor("#E6E8EC"))
+                    setTextColor(Color.parseColor("#DFE2EF"))
                     setTextSize(TypedValue.COMPLEX_UNIT_SP, 40f)
                     typeface = android.graphics.Typeface.DEFAULT_BOLD
                     gravity = Gravity.CENTER
@@ -727,7 +727,7 @@ class BlackoutAccessibilityService : AccessibilityService() {
 
                 val subText = TextView(this).apply {
                     text = "$targetAppName LOCKS IN ${countdownSeconds}s"
-                    setTextColor(Color.parseColor("#8C93A6"))
+                    setTextColor(Color.parseColor("#909097"))
                     setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
                     typeface = android.graphics.Typeface.DEFAULT_BOLD
                     gravity = Gravity.CENTER

@@ -1,11 +1,19 @@
 # Active Context
 
-## Current Status: DESIGN.md Redesign — "Vintage Minimalist / Ledger Instrument" (Phases 0–8 Complete)
-- **Mode**: Complete presentation-layer redesign applying `design_reference/DESIGN.md` across the entire application without touching any underlying enforcement, tracking, permission, or native logic.
+## Current Status: Blackout UI Inconsistencies & Redesign Fixes (100% Complete & Verified on Physical Device)
+- **Mode**: Complete presentation-layer redesign fixes and visual reconciliation applying Google Stitch `design_reference/DESIGN.md` across all screens and native overlay without modifying any enforcement, tracking, or background logic.
 - **Verification Status**:
   - `npx tsc --noEmit`: Clean (0 errors).
-  - Expo Offline Bundle (`createBundleDebugJsAndAssets`): Clean (2,354 modules).
-  - Android Gradle Build (`./gradlew assembleDebug`): Clean (`BUILD SUCCESSFUL in 52s`).
+  - Android Gradle Build & Install (`./gradlew installDebug`): Clean (`BUILD SUCCESSFUL in 52s`), deployed and verified on physical Infinix NOTE 30 (Android 14).
+  - Physical Screenshots: Verified on device across Dark and Light modes for Home, Add App, Stats, and Settings.
+
+## Latest Fixes Completed:
+- **Tailwind Config & Font Engine**: Fixed React Native Android font fallback bug by changing array definitions with fallbacks (`["Font", "fallback"]`) to single-string font family names (`["Font"]`). Updated palette tokens to exact Stitch "Ledger Instrument" values (`#0F131C` dark base, `#181C25`/`#1C2029`/`#262A34` surfaces, `#DFE2EF` bone text, `#F0BE78`/`#DDAD69`/`#A67C3D` brass).
+- **StatsScreen Polish**: Removed sharp rectangular borders on squircle app icons to eliminate corner free space gaps (`resizeMode="contain"`). Rebalanced vertical padding in 7-Day Activity card (`pt-4 pb-3 px-4`). Centered the divider line in the Summary Card (`self-stretch my-0.5`). Balanced bar chart height and day indicator alignment (`h-4 leading-4`, `w-1.5 h-1.5`).
+- **HomeScreen Polish**: Updated circular donut chart palette (`getDynamicVintageShade`) to harmonious Stitch brass/ink/bone tones (`#F0BE78`, `#DFE2EF`, `#DDAD69`, `#C0C6DB`, `#909097`, `#A67C3D`, `#614003`). Removed sharp borders around squircle app icons. Removed `elevation: 4` from FAB and verified clean positioning above navigation bar.
+- **SettingsScreen Polish**: Removed italic styling from bottom rules note text (unadorned Public Sans). Removed sharp borders around squircle app icons in Active Today's Locks.
+- **AddAppScreen Polish**: Fixed Step 2 colon separator `:` vertical alignment to mathematically align with the center of the stepper numbers and buttons. Removed sharp borders around squircle app icons.
+- **Native Overlay Reconciliation**: Updated `BlackoutAccessibilityService.kt` background and text colors to match the new Stitch palette (`#0F131C`, `#181C25`, `#DFE2EF`, `#909097`, `#F0BE78`).
 
 ## Phase Breakdown & Accomplishments:
 
