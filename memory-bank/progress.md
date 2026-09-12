@@ -1,6 +1,11 @@
 # Progress Tracker
 
 ## Completed Features
+- [x] **Audit Round 5 — Deep-Dive QA Audit & Comprehensive Bug Catalog (Complete)**:
+  - [x] **Dialog & UI Theme Inconsistency Analysis**: Audited 18 separate calls to native `Alert.alert()` in `HomeScreen.tsx`, `SettingsScreen.tsx`, and `AddAppScreen.tsx`. Documented how they break the Navy Vintage theme with default Android OS gray popups. Isolated inflexibility in `Modal.tsx`.
+  - [x] **Screen Time Discrepancy Root Cause Discovery**: Tested on live hardware (`dumpsys usagestats` vs Blackout UI). Proved that Android multi-activity transitions (`ACTIVITY_RESUMED` followed by delayed `ACTIVITY_PAUSED` ~50ms later) cause `getTodayUsageEventsMap()` to set `currentPkg = null`, losing entire user sessions in WhatsApp (9m 36s OS vs 3m Blackout) and Instagram (1h 18m OS vs 1h 10m Blackout).
+  - [x] **Pre-Installed App Discard Discovery**: Identified `FLAG_SYSTEM` filter in `getWeeklyUsageStats()` and `getDayUsageStats()` silently discarding launchable ROM apps (like Calculator).
+  - [x] **Comprehensive Issues Report Authored**: Published 15 thoroughly documented issues with reproduction steps, live hardware evidence, root causes, and architectural fix strategies in `ISSUES_REPORT.md`.
 - [x] **Audit Round 4 — 5 Founder-Reported Issues (100% Fixed & Verified on Hardware)**:
   - [x] **Phase 1 — Remove from Lock List**: Built `StorageService.removeTrackedApp(packageName)` and `AppContext.removeTrackedApp(packageName)` with strict `isLocked` immutability check. Synchronized immediate removal to native JSON and locked package set. Added `Trash2` removal affordance on unlocked rows in `HomeScreen.tsx`. Verified on hardware: Calculator was removed from both JS state and native SharedPreferences `BlackoutPrefs.xml`, while locked app (`SIMOSA`) remained immutable with no removal affordance.
   - [x] **Phase 2 — Overnight Enforcement Bypass (Migration Gap)**: Added retroactive `lockExpirationTimestamp` computation in `storage.ts` (`applyMidnightResetIfNeeded`) for pre-existing locked apps missing the field, computing next midnight following `lockDate` and persisting to JS and native. Added native fallback in `BlackoutAccessibilityService.kt` and `SecurityHelper.kt` to compute expiration from `lockDate` if timestamp is missing.

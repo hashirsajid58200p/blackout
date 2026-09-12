@@ -1,423 +1,421 @@
-# Issues Report — September 11, 2026 (Run 2 — UI Responsiveness & Edge-Sticking Audit)
+# BLACKOUT — Comprehensive App Audit & Issues Report (Round 5)
 
-## Summary
-- Critical: 0 | High: 3 | Medium: 8 | Low: 8
-- Device tested: Infinix X6833B (Infinix NOTE 30), Android 14 (API level 34), Resolution 1080x2460
-- Build status: clean (TypeScript: clean 0 errors; Gradle: clean assembleDebug in 28s; ADB install: clean)
+**Date**: September 12, 2026  
+**Target Device**: Physical Hardware Infinix X6833B (Infinix NOTE 30), Android 14 (API level 34), Resolution 1080x2460  
+**Repository Branch**: `main` (clean working tree)  
+**Audit Scope**: End-to-end code analysis and live hardware inspection covering:
+1. Dialog & UI theming consistency (replacing un-themed native OS alerts with Navy Vintage modals).
+2. Screen time calculation mechanics (`getTodayUsageEventsMap`, `UsageStatsManager`, multi-activity pause leaks, pre-installed system app filtering).
+3. Lifecycle, navigation, state synchronization, and UI responsive layouts.
 
-## Issues
+---
 
-### ISSUE-01 — Past Days Historical Screen Time Inflation (`INTERVAL_BEST` Bucket Leak)
-- Category: Bug
-- Severity: High
-- File(s): `android/app/src/main/java/com/blackout/app/BlackoutModule.kt` (lines 427–458, 504–516)
-- Description: When viewing past days on the Stats screen (such as selecting Monday or earlier days in the 7-day strip), the displayed screen time figures are severely inflated. On Monday Sep 7, total screen time displays as 53.9h for a single 24-hour day, with individual apps like Instagram registering 27h 30m. This inflation cascades into the 7-day daily average calculation, reporting an impossible 16.8h/day.
-- Steps to Reproduce:
-  1. Launch Blackout on a real Android device with past usage history.
-  2. Tap the "Stats" tab in the bottom navigation bar.
-  3. In the 7-day calendar bar ("M T W T F S S"), tap Monday (or any earlier day index `i < 6`).
-  4. Inspect the "Total Screen Time" metric and the individual app breakdown below.
-- Evidence: Live screen capture `screen_stats_monday.png` demonstrates:
-  - Monday Sep 7: `53.9h` Total Screen Time
-  - Daily Average: `16.8h`
-  - Instagram: `27h 30m`
-- Suspected Root Cause: In `BlackoutModule.kt`, today's usage (`dayOffset == 0`) uses `getTodayUsageEventsMap()` which aggregates exact foreground/background timestamps from `UsageEvents`. However, for past days (`i < 6`), both `getWeeklyUsageHistory` and `getUsageStatsForDateRange` execute:
+## Executive Summary
+
+| Severity | Count | Primary Impact Areas |
+| :--- | :---: | :--- |
+| **CRITICAL** | 2 | Intra-app activity transition usage wipeout; 18 un-themed native OS dialogs violating Navy Vintage design |
+| **HIGH** | 3 | ROM system apps filtered out of stats; Rigid single-purpose `Modal.tsx`; Stale background session tracking in native service |
+| **MEDIUM** | 6 | Midnight session boundary drop; Lockscreen unlock missing event; Double confirmation UX on removal; False "LOCKED TODAY" label in picker; Unhoisted function call; Unstyled root container |
+| **LOW** | 4 | Inconsistent legacy olive color tokens; Clamping omission on today's usage; Unconditional cleanup in storage; Empty state CTA |
+| **TOTAL** | **15** | **Fully analyzed with root causes and concrete resolution designs** |
+
+---
+
+## Catalog of Discovered Issues
+
+### Table of Contents
+1. [ISSUE-01 (CRITICAL) — Intra-App Activity Transitions Trigger Usage Wipeout in `getTodayUsageEventsMap`](#issue-01-critical--intra-app-activity-transitions-trigger-usage-wipeout-in-gettodayusageeventsmap)
+2. [ISSUE-02 (CRITICAL) — 18 Occurrences of Native `Alert.alert` Bypass Navy Vintage Design System](#issue-02-critical--18-occurrences-of-native-alertalert-bypass-navy-vintage-design-system)
+3. [ISSUE-03 (HIGH) — Pre-Installed ROM System Apps Discarded from Daily and Weekly Usage Stats](#issue-03-high--pre-installed-rom-system-apps-discarded-from-daily-and-weekly-usage-stats)
+4. [ISSUE-04 (HIGH) — Rigid `Modal.tsx` Component Cannot Be Reused for General Dialogs](#issue-04-high--rigid-modaltsx-component-cannot-be-reused-for-general-dialogs)
+5. [ISSUE-05 (HIGH) — Native Accessibility Service 10s Countdown Overlay Ignores Cumulative Usage](#issue-05-high--native-accessibility-service-10s-countdown-overlay-ignores-cumulative-usage)
+6. [ISSUE-06 (MEDIUM) — Midnight Boundary Session Bleed Drops Pre-Midnight Usage Slices](#issue-06-medium--midnight-boundary-session-bleed-drops-pre-midnight-usage-slices)
+7. [ISSUE-07 (MEDIUM) — Screen-Off / Keyguard Recovery Drops Subsequent Foreground Session](#issue-07-medium--screen-off--keyguard-recovery-drops-subsequent-foreground-session)
+8. [ISSUE-08 (MEDIUM) — Double Confirmation Dialog Anti-Pattern on HomeScreen App Removal](#issue-08-medium--double-confirmation-dialog-anti-pattern-on-homescreen-app-removal)
+9. [ISSUE-09 (MEDIUM) — Inaccurate "LOCKED TODAY" Badge on Unlocked Tracked Apps in `AddAppScreen`](#issue-09-medium--inaccurate-locked-today-badge-on-unlocked-tracked-apps-in-addappscreen)
+10. [ISSUE-10 (MEDIUM) — Temporal Dead Zone Closure Risk for `formatMs` in `HomeScreen.tsx`](#issue-10-medium--temporal-dead-zone-closure-risk-for-formatms-in-homescreentsx)
+11. [ISSUE-11 (MEDIUM) — Root Container in `App.tsx` References Deprecated `bg-background`](#issue-11-medium--root-container-in-apptsx-references-deprecated-bg-background)
+12. [ISSUE-12 (LOW) — Hardcoded Legacy Olive Hex (`#6E7A54`) in `StatusPill.tsx`](#issue-12-low--hardcoded-legacy-olive-hex-6e7a54-in-statuspilltsx)
+13. [ISSUE-13 (LOW) — Missing 24-Hour Clamp on Today's Cumulative Usage Sum in `BlackoutModule.kt`](#issue-13-low--missing-24-hour-clamp-on-todays-cumulative-usage-sum-in-blackoutmodulekt)
+14. [ISSUE-14 (LOW) — `cleanUninstalledTrackedApps` Bypasses `autoCleanUninstalled` Setting](#issue-14-low--cleanuninstalledtrackedapps-bypasses-autocleanuninstalled-setting)
+15. [ISSUE-15 (LOW) — Missing Zero-Tracked-Apps Call-to-Action Card on Home Screen](#issue-15-low--missing-zero-tracked-apps-call-to-action-card-on-home-screen)
+
+---
+
+### ISSUE-01 (CRITICAL) — Intra-App Activity Transitions Trigger Usage Wipeout in `getTodayUsageEventsMap`
+
+- **Category**: Calculation Flaw / Core Tracking Bug
+- **Severity**: Critical
+- **Files Affected**:
+  - `android/app/src/main/java/com/blackout/app/BlackoutModule.kt` (lines 251–280)
+  - `android/app/src/main/java/com/blackout/app/SecurityHelper.kt` (lines 337–368)
+- **Description**:  
+  In Android, multi-activity applications (e.g., WhatsApp opening a chat conversation, Instagram viewing a reel or profile, Chrome switching to a new tab or settings, Gmail opening an email) perform an overlapping activity transition: the incoming activity fires `ACTIVITY_RESUMED` *before* the outgoing activity fires `ACTIVITY_PAUSED`.  
+  In `BlackoutModule.kt` and `SecurityHelper.kt`, the event loop state machine treats any `ACTIVITY_PAUSED` event matching the package name as a signal that the user has left the app. It records the brief transition duration (~30–50ms) and immediately sets `currentPkg = null` and `currentStart = 0L`.  
+  Because `currentPkg` is now `null`, the active session inside the newly resumed activity is completely untracked. All subsequent time spent by the user inside that activity is completely discarded until the user switches to another app.
+- **Reproduction Steps**:
+  1. Open WhatsApp or Instagram on the physical device.
+  2. Navigate into a chat or view multiple profiles/reels for 5–10 minutes.
+  3. Return to Blackout and observe the reported screen time.
+  4. Compare the screen time against Android system `dumpsys usagestats` or Digital Wellbeing.
+- **Physical Device Evidence**:
+  - Direct hardware inspection on Infinix X6833B revealed:
+    - Android OS internal usage bucket (`dumpsys usagestats`): WhatsApp accumulated **9m 36s** (`com.whatsapp totalTimeUsed="09:36"`).
+    - Blackout Home screen reported: WhatsApp accumulated **3m** (over **68% missing screen time**).
+    - Android OS internal usage bucket: Instagram accumulated **1h 17m 57s** (`com.instagram.android totalTimeUsed="1:17:57"`).
+    - Blackout Home screen reported: Instagram accumulated **1h 10m** (**8 minutes of active reel/chat time lost**).
+  - Relevant Event Log Sequence from `dumpsys usagestats`:
+    ```text
+    time="2026-09-12 00:05:48" type=ACTIVITY_RESUMED package=com.whatsapp class=com.whatsapp.Conversation
+    time="2026-09-12 00:05:48" type=ACTIVITY_PAUSED package=com.whatsapp class=com.whatsapp.home.ui.HomeActivity
+    ```
+    `HomeActivity` was paused immediately *after* `Conversation` was resumed. In `BlackoutModule.kt:270`:
+    ```kotlin
+    UsageEvents.Event.ACTIVITY_PAUSED -> {
+        if (currentPkg != null && currentPkg == pkg) {
+            val duration = time - currentStart
+            if (duration > 0) usageMap[pkg] = (usageMap[pkg] ?: 0L) + duration
+            currentPkg = null  // <-- DESTROYS ACTIVE SESSION FOR Conversation!
+            currentStart = 0L
+        }
+    }
+    ```
+- **Root Cause**:  
+  The state machine assumed an application is represented by a single activity. It failed to track active activities by component/instance, or recognize that when `currentPkg == pkg`, an `ACTIVITY_PAUSED` for an older activity must not terminate tracking if another activity in the same package is currently resumed.
+- **Proposed Fix**:  
+  Maintain an active resumed activity reference or counter per package (using `event.className` or `event.instanceId` on API 29+). When `ACTIVITY_PAUSED` arrives for an activity that was already superseded by a newer resumed activity within the same package, do not set `currentPkg = null`. Only terminate the session when the active activity of that package pauses without a replacement, or when an activity from a different package resumes.
+
+---
+
+### ISSUE-02 (CRITICAL) — 18 Occurrences of Native `Alert.alert` Bypass Navy Vintage Design System
+
+- **Category**: UI / Theme Mismatch (Founder-Reported)
+- **Severity**: Critical
+- **Files Affected**:
+  - `src/screens/HomeScreen.tsx` (lines 83, 89, 100, 102, 109, 126, 132, 143)
+  - `src/screens/SettingsScreen.tsx` (lines 46, 52, 63, 65, 72, 83, 85)
+  - `src/screens/AddAppScreen.tsx` (lines 49, 54, 77)
+- **Description**:  
+  The user explicitly noted: *"when i remove an app the confirmation card that comes has not following the theme same as many other things one site as well"*.  
+  There are 18 separate calls to React Native's native `Alert.alert()` across `HomeScreen`, `SettingsScreen`, and `AddAppScreen`. On Android, `Alert.alert()` invokes the Android OS native `AlertDialog.Builder`. This displays standard Android system popups with gray material backgrounds, system Roboto typography, and default OS button stylings.  
+  This completely shatters the bespoke "Navy Vintage" visual identity (`#12161F` near-black espresso, `#EFF1F4` / `#1B2030` surfaces, `#2A3145` hairline borders, Fraunces serif headers, IBM Plex Mono metrics, and calibrated `#B23A2E` / `#4F7566` accents).
+- **Reproduction Steps**:
+  1. Tap the trash can icon next to an unlocked app on the Home screen.
+  2. Notice the confirmation dialog: standard Android gray OS card with generic text and default teal/blue text buttons.
+  3. Tap on a locked app: standard OS alert pops up.
+  4. In `AddAppScreen`, tap "LOCK IT IN" with 0 minutes: standard OS alert pops up.
+  5. In `SettingsScreen`, tap any active lock: standard OS alert pops up.
+- **Physical Device Evidence**:
+  - Verified on physical hardware via screenshots `blackout_delete_dialog.png` and `media_1789193324768.png`.
+  - Contrast against `media_1789193508869.png` which shows the styled custom Modal:
+    - Custom modal: Dark navy surface, crisp borders, Fraunces serif title, styled buttons.
+    - Native `Alert.alert`: Generic Android system UI, zero brand consistency.
+- **Root Cause**:  
+  Rapid prototyping relied on React Native's built-in `Alert.alert()` convenience method for error handling, confirmations, and notices, rather than a centralized, themed Modal dialog system.
+- **Proposed Fix**:  
+  Create a global or hook-based custom Themed Dialog component (`AppDialog` or enhanced `Modal.tsx`) supporting:
+  1. `confirm` variant (Title, Message, Confirm Button, Cancel Button).
+  2. `danger` variant (Destructive actions like removing an app limit).
+  3. `info` / `alert` variant (Single "ACKNOWLEDGE" or "DISMISS" button).
+  Replace all 18 `Alert.alert` calls across `HomeScreen`, `SettingsScreen`, and `AddAppScreen` with this themed component.
+
+---
+
+### ISSUE-03 (HIGH) — Pre-Installed ROM System Apps Discarded from Daily and Weekly Usage Stats
+
+- **Category**: Calculation Flaw / Inconsistency
+- **Severity**: High
+- **Files Affected**:
+  - `android/app/src/main/java/com/blackout/app/BlackoutModule.kt` (lines 430–432, 462–464, 547–549)
+- **Description**:  
+  In `BlackoutModule.kt`, `getWeeklyUsageStats()` and `getDayUsageStats()` filter applications with:
   ```kotlin
-  val stats = usageStatsManager.queryUsageStats(UsageStatsManager.INTERVAL_BEST, startTime, endTime)
+  val isSystem = (appInfo.flags and ApplicationInfo.FLAG_SYSTEM) != 0 &&
+                 (appInfo.flags and ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) == 0
+  if (isSystem) continue
   ```
-  On Android, `INTERVAL_BEST` instructs the OS to return whatever pre-aggregated intervals are available (often `INTERVAL_WEEKLY` or `INTERVAL_MONTHLY`). In those aggregated records, `totalTimeInForeground` spans the entire multi-day aggregation window rather than the requested daily slice, crediting an entire week of usage to a single day.
+  This unconditionally discards any launchable pre-installed application that has not received an update from Google Play (e.g. `com.transsion.calculator`, `com.transsion.camera`, `com.gallery20`, FM Radio, Sound Recorder).  
+  While `getInstalledApps()` was updated to allow tracking these apps, `getDayUsageStats(0)` still discards them. Consequently:
+  - If a user tracks Calculator, Calculator never appears in `todayDeviceUsage`.
+  - `HomeScreen` falls back to `ta.usedTodayMs || 0`.
+  - `todayTotalUsageMs` excludes Calculator, causing the donut chart segments and percentages to not sum up to the total screen time.
+  - In `StatsScreen`, historical and daily breakdown views omit these apps entirely.
+- **Reproduction Steps**:
+  1. Add Calculator (`com.transsion.calculator`) to tracked apps with a 60m limit.
+  2. Open and use Calculator for 2 minutes.
+  3. Inspect Home screen: Total usage does not increment; Calculator's usage is missing from `todayDeviceUsage`.
+- **Root Cause**:  
+  The `FLAG_SYSTEM` filter was reintroduced to prevent background system services from polluting stats, but it used a blunt check on `FLAG_SYSTEM` rather than checking `pm.getLaunchIntentForPackage(pkg) != null` and filtering specific known daemons (`systemui`, `com.google.android.gms`, etc.).
+- **Proposed Fix**:  
+  Remove the blanket `isSystem` discard check. Allow any package that possesses a valid launcher intent (`pm.getLaunchIntentForPackage(pkg) != null`) to be included in usage stats, while retaining explicit exclusions for launchers, system UI, navigation bars, and the Blackout package itself.
 
 ---
 
-### ISSUE-02 — Android System Back Button/Gesture Minimizes and Exits App
-- Category: Bug
-- Severity: High
-- File(s): `src/context/AppContext.tsx` (lines 13–36), `App.tsx` (lines 32–52), `android/app/src/main/java/com/blackout/app/MainActivity.kt`
-- Description: Pressing the Android hardware or virtual back button or performing an edge back swipe gesture on any subscreen (`AddAppScreen`, `SettingsScreen`, `StatsScreen`, or `PermissionsScreen`) immediately minimizes Blackout and sends the user back to the Android launcher home screen, rather than returning to the previous screen or Home.
-- Steps to Reproduce:
-  1. Open Blackout on the device.
-  2. Tap the "+" button on the Home screen to enter `AddAppScreen` (or tap "PERMISSIONS REQUIRED" to enter `PermissionsScreen`).
-  3. Press the Android system back button or execute `adb shell input keyevent 4`.
-  4. Notice the app is immediately backgrounded and the launcher desktop appears.
-- Evidence: Captured during QA via `adb shell input keyevent 4` while on `PermissionsScreen`; window dump confirmed focus immediately shifted to launcher:
-  `mCurrentFocus=Window{... com.transsion.hilauncher/com.transsion.hilauncher.WorkspaceLauncher}` (`screen_after_back.png`).
-- Suspected Root Cause: Blackout uses custom React state navigation (`currentScreen` in `AppContext.tsx`) without React Navigation or a registered React Native `BackHandler` listener (`BackHandler.addEventListener('hardwareBackPress', ...)`). Consequently, the native Android activity handles the back press via default `MainActivity.onBackPressed()`, which minimizes the task to background.
+### ISSUE-04 (HIGH) — Rigid `Modal.tsx` Component Cannot Be Reused for General Dialogs
 
----
-
-### ISSUE-03 — Missing `RECEIVE_BOOT_COMPLETED` Permission Disables Midnight Alarm Re-arm on Reboot
-- Category: Config / Bug
-- Severity: High
-- File(s): `android/app/src/main/AndroidManifest.xml` (lines 39–43), `plugins/withBlackoutNativeModule.js` (lines 13–19), `android/app/src/main/java/com/blackout/app/MidnightResetReceiver.kt` (lines 14–20)
-- Description: `MidnightResetReceiver` is declared in the manifest with an intent filter for `android.intent.action.BOOT_COMPLETED` to reschedule the 12:00 AM daily reset alarm whenever the phone restarts. However, the manifest fails to declare `android.permission.RECEIVE_BOOT_COMPLETED`. Without this permission, Android drops the boot broadcast, preventing the midnight alarm from ever being rescheduled upon device restart.
-- Steps to Reproduce:
-  1. Inspect `android/app/src/main/AndroidManifest.xml` lines 1–12 and 39–43.
-  2. Notice `MidnightResetReceiver` handles `BOOT_COMPLETED`:
-     ```xml
-     <receiver android:name="com.blackout.app.MidnightResetReceiver" android:exported="false">
-       <intent-filter>
-         <action android:name="android.intent.action.BOOT_COMPLETED"/>
-       </intent-filter>
-     </receiver>
-     ```
-  3. Check `<uses-permission>` tags in the manifest and `plugins/withBlackoutNativeModule.js`.
-- Evidence: Static search confirms `android.permission.RECEIVE_BOOT_COMPLETED` is absent from both `AndroidManifest.xml` and `plugins/withBlackoutNativeModule.js` `permissionsToAdd`.
-- Suspected Root Cause: Android security guidelines mandate that any application listening for `BOOT_COMPLETED` must explicitly hold `android.permission.RECEIVE_BOOT_COMPLETED`. Since exact `AlarmManager` alarms are discarded by the Android kernel on shutdown/reboot, all daily limit resets and scheduled unblocks will permanently fail after a device reboot until the user manually relaunches Blackout.
-
----
-
-### ISSUE-04 — Add App "Custom Lock" Feature Generates Non-Functional Placebo Entries
-- Category: Incomplete Feature
-- Severity: Medium
-- File(s): `src/screens/AddAppScreen.tsx` (lines 59–69, 300–389), `src/context/AppContext.tsx` (line 268), `src/services/storage.ts` (lines 112, 142)
-- Description: In `AddAppScreen`, entering any query into the search bar that doesn't match an installed app presents an interactive button: `+ ADD CUSTOM LOCK: '<NAME>'`. Clicking it creates a tracked card with a synthetic package name `custom.<name>`. However, this item cannot track usage (displays 0m permanently), cannot match any foreground window in `BlackoutAccessibilityService.kt`, and cannot be blocked or limited.
-- Steps to Reproduce:
-  1. Navigate to Add App screen (+).
-  2. Type any arbitrary text in the search input (e.g. "Test").
-  3. Tap "+ ADD CUSTOM LOCK: 'TEST'".
-  4. Notice the app confirms and navigates back to Home with a new "TEST" card.
-  5. Attempt to lock it or set a daily limit.
-  6. Notice it never tracks usage, never accumulates time, and cannot be intercepted by the native accessibility service.
-- Evidence: Captured in screenshots `screen_custom_lock_tapped.png` and `screen_home_returned.png`. In `AppContext.tsx:268`:
-  ```typescript
-  if (app.packageName.startsWith("custom.")) {
-    return app; // Custom locks don't have usage stats
-  }
-  ```
-- Suspected Root Cause: The custom lock UI was designed as a prototype (likely for future website or keyword blocking), but native blocking in `BlackoutAccessibilityService.kt` strictly inspects `event.packageName.toString()`. Synthetic packages like `custom.test` do not correspond to any Android application package or browser URL parser, rendering the feature an inoperable stub.
-
----
-
-### ISSUE-05 — False "PERMISSIONS REQUIRED" and "0m Total Usage" Flash on Cold Launch / App Resume
-- Category: UI
-- Severity: Medium
-- File(s): `src/context/AppContext.tsx` (lines 69–80), `src/screens/HomeScreen.tsx` (lines 178–194)
-- Description: Every time Blackout is cold-launched or resumed from the background, the Home screen immediately renders a bright red error banner reading "PERMISSIONS REQUIRED" and displays "0m Total Screen Time", even when all 4 permissions are already granted and substantial usage exists. After ~500ms–1000ms, the banner disappears and the numbers abruptly jump to their real values.
-- Steps to Reproduce:
-  1. Grant all 4 required permissions on the device.
-  2. Force stop or background Blackout.
-  3. Re-open Blackout and observe the initial frame.
-- Evidence: Real device capture at cold launch (`screen_reopen.png`) shows:
-  - Header badge: `PERMISSIONS REQUIRED` (red background)
-  - Card metric: `0m Total Screen Time`
-  A subsequent capture 1.5 seconds later (`screen_reopen_after2s.png`) shows:
-  - Header badge: Gone
-  - Card metric: `5h 17m Total Screen Time`
-- Suspected Root Cause: In `AppContext.tsx`, initial state for `permissions` is initialized to all `false`:
-  ```typescript
-  const [permissions, setPermissions] = useState<NativePermissionsStatus>({
-    usageStats: false,
-    overlay: false,
-    accessibility: false,
-    deviceAdmin: false,
-  });
-  ```
-  `HomeScreen.tsx` evaluates `hasMissingPermissions` synchronously on the first render before the asynchronous bridge call `NativeBridge.checkPermissions()` resolves, causing an unstyled layout shift and alarming the user with false error banners.
-
----
-
-### ISSUE-06 — Orphaned and Unreachable `BlackoutScreen.tsx` Component
-- Category: Incomplete Feature
-- Severity: Low
-- File(s): `src/screens/BlackoutScreen.tsx`, `src/context/AppContext.tsx` (lines 13, 75), `App.tsx` (line 50)
-- Description: `BlackoutScreen.tsx` is maintained as a registered screen in `ScreenType` and rendered in `App.tsx` when `currentScreen === 'blackout'`. However, nowhere in the entire codebase is `setCurrentScreen('blackout')` ever invoked, nor is `activeBlockApp` ever populated by any event.
-- Steps to Reproduce:
-  1. Search the entire codebase for `setCurrentScreen('blackout')` or setters of `activeBlockApp`.
-  2. Note that zero callers exist in any component or service.
-- Evidence: `grep -rn "setCurrentScreen" src/` confirms transitions exist solely between `home`, `stats`, `settings`, `addApp`, `onboarding`, and `permissions`.
-- Suspected Root Cause: An architectural evolution occurred: app blocking was initially prototyped as an in-app React Native view, but was later replaced by a native system-level WindowManager overlay in `BlackoutAccessibilityService.kt` to ensure bulletproof interception across the Android OS. The React Native `BlackoutScreen.tsx` was left behind as orphaned dead code.
-
----
-
-### ISSUE-07 — Inconsistent Permission Count String Between Settings and Home
-- Category: UI
-- Severity: Low
-- File(s): `src/screens/SettingsScreen.tsx` (lines 303–305), `src/screens/HomeScreen.tsx` (line 178), `src/screens/PermissionsScreen.tsx` (lines 28–80)
-- Description: The permissions banner on `HomeScreen` states `ALL 4 PERMISSIONS GRANTED` and `PermissionsScreen` correctly lists 4 distinct permissions (`Usage Access`, `Accessibility Service`, `Display Over Other Apps`, `Device Admin`). However, `SettingsScreen.tsx` hardcodes the label: `ALL 3 PERMISSIONS GRANTED`.
-- Steps to Reproduce:
-  1. Grant all 4 permissions on the test device.
-  2. Confirm `HomeScreen` displays "ALL 4 PERMISSIONS GRANTED".
-  3. Tap the Settings icon to open `SettingsScreen` and scroll to "SYSTEM INTEGRATION & STATUS".
-  4. Read the status text under "SYSTEM PERMISSIONS".
-- Evidence: Real device capture `screen_settings_scrolled.png` shows:
-  ```
-  SYSTEM PERMISSIONS
-  ALL 3 PERMISSIONS GRANTED
-  ```
-- Suspected Root Cause: In `SettingsScreen.tsx`:
-  ```typescript
-  {permissions.usageStats && permissions.overlay && permissions.accessibility
-    ? "ALL 3 PERMISSIONS GRANTED"
-    : "ACTION REQUIRED — TAP TO REVIEW"}
-  ```
-  The string was hardcoded when Blackout only required 3 permissions, prior to the addition of `deviceAdmin` as a 4th security layer, and was never updated to reflect `permissions.deviceAdmin`.
-
----
-
-### ISSUE-08 — Countdown Overlay Native View Uses Deprecated Zinc Colors Instead of Vintage Minimalist Palette
-- Category: UI
-- Severity: Low
-- File(s): `android/app/src/main/java/com/blackout/app/BlackoutAccessibilityService.kt` (lines 670, 678, 700)
-- Description: The native countdown warning overlay view (`showCountdownOverlay`) created via Android WindowManager uses hardcoded legacy zinc colors (`#EE09090B`, `#EF4444`, `#D4D4D8`) instead of the Monolith/Vintage Minimalist design tokens (`#1B1712` espresso, `#B23A2E` stamp-red, `#EDE4D3` bone).
-- Steps to Reproduce:
-  1. Inspect `showCountdownOverlay` in `BlackoutAccessibilityService.kt`.
-  2. Check lines 670, 678, 699–700:
-     ```kotlin
-     layout.setBackgroundColor(Color.parseColor("#EE09090B"))
-     tagText.setTextColor(Color.parseColor("#EF4444"))
-     subText.setTextColor(Color.parseColor("#D4D4D8"))
-     ```
-  3. Compare against `showNativeLockOverlay` which was updated to use `#1B1712` and `#B23A2E`.
-- Evidence: Verbatim lines in `BlackoutAccessibilityService.kt:670, 678, 700`.
-- Suspected Root Cause: During the Vintage Minimalist design refactor (Phase 7), `showNativeLockOverlay` was re-themed with the warm bone and espresso palette, but the secondary warning overlay `showCountdownOverlay` was overlooked.
-
----
-
-### ISSUE-09 — Dead Code, Stale Handlers, and Unused Lucide Icons
-- Category: Bug / Code Quality
-- Severity: Low
-- File(s): `src/screens/AddAppScreen.tsx` (lines 8, 47–57), `src/screens/SettingsScreen.tsx` (line 8), `src/components/NavigationHeader.tsx` (lines 6–7), `src/components/BottomNavBar.tsx` (lines 6–7)
-- Description: Multiple components import unused Lucide icons, declare dead helper functions, or maintain unused state:
-  - `src/screens/AddAppScreen.tsx`: `getIcon()` (lines 47–57) is defined but never invoked; `Camera`, `Video`, `MessageSquare`, `Globe`, `Gamepad2` are imported but unused.
-  - `src/screens/SettingsScreen.tsx`: `Unlock` is imported from `lucide-react-native` but never rendered.
-  - `src/components/NavigationHeader.tsx`: `Calendar`, `Settings as SettingsIcon` are imported but unused.
-  - `src/components/BottomNavBar.tsx`: `ShieldAlert` is imported but unused.
-- Steps to Reproduce:
-  1. Run static import analysis on the files listed.
-  2. Check references to `getIcon` in `AddAppScreen.tsx`.
-- Evidence: Line 47 of `AddAppScreen.tsx`: `const getIcon = (appName: string) => { ... }` has 0 usages within the file.
-- Suspected Root Cause: Iterative UI updates replaced placeholder iconography with native app icon bitmaps and simplified navigation elements without cleaning up obsolete imports and helpers.
-
----
-
-### ISSUE-10 — Inexact Alarm Fallback Missing on `SecurityException` During Midnight Reset Scheduling
-- Category: Performance / Bug
-- Severity: Medium
-- File(s): `android/app/src/main/java/com/blackout/app/SecurityHelper.kt` (lines 135–151)
-- Description: On Android 12+ (API 31+), `AlarmManager.setExactAndAllowWhileIdle` requires exact alarm scheduling authorization. Although Blackout checks `alarmManager.canScheduleExactAlarms()`, on certain Android 13+ OEM distributions (MIUI, ColorOS, Transsion/Infinix), exact alarms can be revoked dynamically by the OS under aggressive battery management, or `setExactAndAllowWhileIdle` can throw a `SecurityException`. In `SecurityHelper.kt`, the exception is caught and logged, but no fallback inexact alarm (`setAndAllowWhileIdle` or `WorkManager`) is scheduled, leaving the app without any midnight reset mechanism until relaunch.
-- Steps to Reproduce:
-  1. Inspect `SecurityHelper.kt` lines 135–151.
-  2. Observe that if an exception is thrown inside the `try` block, the `catch (e: Exception)` block only logs `Failed to schedule midnight reset alarm`.
-- Evidence: Verbatim excerpt in `SecurityHelper.kt:148–150`:
-  ```kotlin
-  } catch (e: Exception) {
-      Log.e(TAG, "Failed to schedule midnight reset alarm", e)
-  }
-  ```
-- Suspected Root Cause: Omission of a resilient fallback in the error handler to schedule a non-exact wakeup alarm or enqueue an expedited `OneTimeWorkRequest` when exact alarm scheduling fails.
-
----
-
-### ISSUE-11 — Dynamic Permission Revocation Not Reflected Without Full Background-to-Foreground Transition
-- Category: Bug
-- Severity: Medium
-- File(s): `src/context/AppContext.tsx` (lines 120–136)
-- Description: If an accessibility service or usage stats permission is revoked while Blackout is open in split-screen, picture-in-picture, or floating window mode, or disabled via Android Quick Settings without the app changing `AppState` to background, the React state continues to indicate that permissions are granted until the user explicitly minimizes and restores the application.
-- Steps to Reproduce:
-  1. Launch Blackout in multi-window / split-screen mode alongside Android System Settings.
-  2. Disable Blackout Accessibility Service from System Settings.
-  3. Look at Blackout's Home screen; the status continues to show secured until the app loses and regains window focus.
-- Evidence: In `AppContext.tsx`, `refreshPermissions()` is attached exclusively to `AppState.addEventListener('change', ...)` and initial mount.
-- Suspected Root Cause: Absence of periodic polling or an explicit native event callback dispatched by `BlackoutAccessibilityService.onServiceConnected()` / `onUnbind()` to React Native when the service connection state changes.
-
----
-
-### ISSUE-12 — Unresponsive Extremity Sticking (`justify-between`) on 7-Day Activity Header in StatsScreen
-- Category: UI
-- Severity: Medium
-- File(s): `src/screens/StatsScreen.tsx` (lines 200–210)
-- Description: In `StatsScreen`, the "7-Day Activity" bar chart card header is constructed using `<View className="flex-row items-center justify-between mb-4 pb-2 border-b border-hairline dark:border-hairline-dark">`. The left element (BarChart2 icon + "7-DAY ACTIVITY") and the right element ("117.5H TOTAL") are pinned hard to opposite extremities of the container without internal horizontal insets relative to the border-bottom separator line. On smaller devices (320px–360px width) or when system accessibility font scaling is enlarged, the elements crowd the card's boundaries and risk colliding with each other because neither container has responsive flex-shrink constraints or proportional padding.
-- Steps to Reproduce:
-  1. Open Blackout and navigate to the "Stats" tab.
-  2. Inspect the 7-Day Activity card.
-  3. Notice that "7-DAY ACTIVITY" touches the far left edge of the border-bottom line and "117.5H TOTAL" is pressed against the far right edge without breathing room.
-  4. On narrow screen sizes or high DPI font scaling, the text wraps or touches borders awkwardly.
-- Evidence: Visual capture in `screen_stats.png` and `screen_stats_monday.png` shows "7-DAY ACTIVITY" and "117.5H TOTAL" abutting the card edges. Code in `StatsScreen.tsx:200–210`:
+- **Category**: UI Architecture / Component Design
+- **Severity**: High
+- **Files Affected**:
+  - `src/components/ui/Modal.tsx` (lines 34–50)
+- **Description**:  
+  The current `<Modal>` component in `src/components/ui/Modal.tsx` contains hardcoded markup tailored solely to the "Lock Application" flow in `AddAppScreen.tsx`:
   ```tsx
-  <View className="flex-row items-center justify-between mb-4 pb-2 border-b border-hairline dark:border-hairline-dark">
-    <View className="flex-row items-center gap-2">
-      <BarChart2 size={16} strokeWidth={1.25} color={iconColor} />
-      <Text className="font-body-semibold text-xs text-ink dark:text-bone uppercase tracking-wider">
-        7-Day Activity
-      </Text>
-    </View>
-    <Text className="font-mono text-[10px] text-ink-muted dark:text-bone-muted uppercase">
-      {formatHours(totalWeeklyMs)} TOTAL
+  <View className="flex-row items-center gap-3">
+    <AlertTriangle size={24} color="#B23A2E" strokeWidth={1.25} />
+    <Text ...>{title}</Text>
+  </View>
+  <View className="bg-stamp-red/10 p-3 border border-stamp-red/30 rounded-sm">
+    <Text className="text-xs font-mono-medium uppercase text-stamp-red text-center tracking-wider">
+      This lock cannot be edited, paused, or undone today.
     </Text>
   </View>
   ```
-- Suspected Root Cause: Using raw `justify-between` without proportional horizontal padding (`px-1` or `px-2`), flex-shrink constraints, or max-width thresholds against the card's perimeter border.
+  Because the red triangle icon, the warning callout box, and the default confirm label ("Confirm Lock") are hardcoded directly into the template, this component cannot be reused for removing an app, unlocking an app, or displaying standard informational errors.
+- **Root Cause**:  
+  Single-use component design created specifically for the timer setup step without parameterizing icons, callout banners, button variants, or dialog types.
+- **Proposed Fix**:  
+  Refactor `Modal.tsx` to support modular configuration:
+  - `type?: "warning" | "danger" | "info" | "success"`
+  - `icon?: React.ReactNode`
+  - `calloutText?: string` (optional, rendered only when provided)
+  - `confirmVariant?: "primary" | "danger" | "secondary"`
+  - `singleButton?: boolean` (for alerts with only an "OK" / "DISMISS" button).
 
 ---
 
-### ISSUE-13 — Unresponsive Extremity Sticking on "Today's Usage Overview" Card Header in HomeScreen
-- Category: UI
-- Severity: Medium
-- File(s): `src/screens/HomeScreen.tsx` (lines 198–205)
-- Description: In `HomeScreen`, the primary donut chart card uses `<View className="w-full flex-row justify-between items-center mb-4">`. Just like in StatsScreen, "TODAY'S USAGE OVERVIEW" is pushed to the extreme left edge of the card, while the total usage metric ("7h 39m") is pushed to the extreme right edge. There is zero horizontal padding or responsive flex spacing, producing an uncomfortably rigid, edge-sticking visual layout across different screen sizes.
-- Steps to Reproduce:
-  1. Launch Blackout on device.
-  2. Inspect the topmost card "Today's Usage Overview" on the Home dashboard.
-  3. Notice "TODAY'S USAGE OVERVIEW" and "7h 39m" are jammed against the left and right card padding boundaries with no responsive margin.
-- Evidence: Live capture `launch_screen.png`. Code in `HomeScreen.tsx:198–205`:
-  ```tsx
-  <View className="w-full flex-row justify-between items-center mb-4">
-    <Text className="font-body-semibold text-[11px] text-ink-muted dark:text-bone-muted uppercase tracking-widest">
-      Today's Usage Overview
-    </Text>
-    <Text className="font-mono-bold text-xs text-ink dark:text-bone">
-      {formatMs(totalUsedTodayMs)}
-    </Text>
-  </View>
+### ISSUE-05 (HIGH) — Native Accessibility Service 10s Countdown Overlay Ignores Cumulative Usage
+
+- **Category**: Native Logic / Feature Bug
+- **Severity**: High
+- **Files Affected**:
+  - `android/app/src/main/java/com/blackout/app/BlackoutAccessibilityService.kt` (lines 627–659)
+- **Description**:  
+  In `BlackoutAccessibilityService.kt`, `checkCountdownIfAboutToBlock(packageName)` calculates:
+  ```kotlin
+  val baseUsage = itemObj.optDouble("usedTodayMs", 0.0)
+  val currentSessionTime = if (packageName == currentForegroundPackage && currentSessionStartTime > 0) {
+      (System.currentTimeMillis() - currentSessionStartTime).toDouble()
+  } else {
+      0.0
+  }
+  val totalUsage = baseUsage + currentSessionTime
   ```
-- Suspected Root Cause: Same pattern as Issue 12: `w-full flex-row justify-between` without internal margin insets, flex-shrink handling, or responsive container padding.
+  1. `itemObj.optDouble("usedTodayMs", 0.0)` is only refreshed when the React Native frontend is actively running and syncs with native storage. When the user is using other apps, Blackout is backgrounded and the React Native thread is suspended, leaving `usedTodayMs` stale in SharedPreferences.
+  2. `currentSessionTime` only measures the *current* continuous window state. If the user used an app for 3 minutes, exited to the launcher, and reopened the app, the previous 3 minutes are ignored by `checkCountdownIfAboutToBlock`!
+  3. Consequently, the 10-second countdown warning overlay never appears if an app's limit was reached across multiple sessions.
+- **Root Cause**:  
+  `checkCountdownIfAboutToBlock` failed to query live cumulative usage via `SecurityHelper.getTodayPackageUsage(context, packageName)` (the way `isAppBlocked` does), relying instead on stale JSON fields and single-session timers.
+- **Proposed Fix**:  
+  In `checkCountdownIfAboutToBlock`, query `SecurityHelper.getTodayPackageUsage(this, packageName)` directly to determine the true cumulative usage since midnight, subtracting `initialUsageMs`, and show the countdown when `liveElapsed >= dailyLimitMs - 10000`.
 
 ---
 
-### ISSUE-14 — Floating Action Button (FAB) Overlays and Occludes Scrollable Content in HomeScreen
-- Category: UI
-- Severity: Medium
-- File(s): `src/screens/HomeScreen.tsx` (lines 408–415)
-- Description: The Add App floating action button (`+`) is anchored with absolute coordinates: `className="absolute bottom-20 right-6 w-14 h-14 ... z-40"`. Because the usage breakdown list inside the ScrollView extends into this coordinate space, the circular FAB physically floats over the right side of the bottom list item. On the physical device (1080x2460), the 8th row ("Calculator 4m (") is partially occluded and its right-hand content is unreadable and touch-blocked.
-- Steps to Reproduce:
-  1. Open Blackout with 8 or more apps active in today's usage breakdown.
-  2. Observe the bottom of the card on the Home screen.
-  3. Notice the floating button circles directly over the text of the last item in the breakdown list.
-- Evidence: Real hardware capture `launch_screen.png` clearly shows the white/bone FAB circle directly covering "4m (" of the Calculator app row.
-- Suspected Root Cause: The FAB is rendered as a floating overlay over an unpadded ScrollView without a dedicated floating action gutter or bottom spacer inside the card.
+### ISSUE-06 (MEDIUM) — Midnight Boundary Session Bleed Drops Pre-Midnight Usage Slices
 
----
-
-### ISSUE-15 — App Usage Breakdown Legend Rows Lack Responsive Truncation and Flex Constraints in HomeScreen
-- Category: UI
-- Severity: Low
-- File(s): `src/screens/HomeScreen.tsx` (lines 280–298)
-- Description: In the Home screen's usage breakdown legend, each row renders an app name on the left and a detailed metric string on the right: `{formatMs(seg.usedTodayMs)} ({percentOfTotal}%){seg.openCount ? " • " + seg.openCount + " opens" : ""}`. Because the right-hand text container has no `flex-shrink` restriction or responsive truncation on compact displays, long strings (e.g. `3h 16m (43%) • 224 opens`) crowd long app names, causing horizontal cramping and pushing text hard against the right edge of the card.
-- Steps to Reproduce:
-  1. Have an app with high opens (e.g., WhatsApp with 294 opens or Instagram with 224 opens).
-  2. View the Home screen on a 360px device or with "Large Text" enabled in Android Accessibility Settings.
-  3. Observe the row text pushing hard against the card border with no margin.
-- Evidence: Visual capture `launch_screen.png` shows rows with long strings (`3h 16m (43%) • 224 opens`) running edge-to-edge.
-- Suspected Root Cause: Right-hand metric text lacks `shrink` or breakpoint-aware formatting (e.g., dropping open counts on small screens or using responsive flex layout).
-
----
-
-### ISSUE-16 — 7-Day Bar Chart Horizontal Cramping & Missing Dynamic Label Scaling in StatsScreen
-- Category: UI
-- Severity: Medium
-- File(s): `src/screens/StatsScreen.tsx` (lines 212–260)
-- Description: The 7-day bar chart packs seven columns into a single `flex-row justify-between items-end h-44 pt-2 px-1`. The numeric usage indicators above each bar (`formatHours(item.totalUsageMs)`) render values like `53.9h` and `117.5h`. On screens narrower than 375px (or when font scaling is increased in Android display settings), these 7 numeric labels touch, overlap, or run off the container edges due to the absence of min-width constraints, flexible spacing, or responsive abbreviation.
-- Steps to Reproduce:
-  1. Open Stats screen.
-  2. Observe the 7 numeric labels above the vertical bars (`11.4h  12.7h  53.9h  15.1h  8.1h  8.6h  7.7h`).
-  3. Notice how tightly packed they are horizontally with `px-1` padding.
-  4. On narrow devices, numbers with 3+ characters touch each other without separation.
-- Evidence: Live capture `screen_stats_monday.png` shows the 7 duration labels horizontally squeezed together across the 7 bars.
-- Suspected Root Cause: Seven columns with fixed font sizes in a single unscrollable flex-row with insufficient padding and no dynamic font sizing.
-
----
-
-### ISSUE-17 — Selected Day Summary Two-Column Divider Crowding on Historical Logs in StatsScreen
-- Category: UI
-- Severity: Low
-- File(s): `src/screens/StatsScreen.tsx` (lines 176–196)
-- Description: The summary card renders a two-column layout (`flex-row justify-around items-center`) with a centered hairline divider (`w-px h-10`). On past days, the left column header text is generated dynamically via `{getSelectedDayLabel()} TOTAL`, producing strings such as "MON, SEP 7 TOTAL". On compact devices, this wide header text expands horizontally and presses against the center divider and outer card boundaries without responsive text wrapping or font size clamping.
-- Steps to Reproduce:
-  1. In Stats screen, navigate to a past day like Monday Sep 7 or Wednesday Sep 9.
-  2. Notice the left label reads "MON, SEP 7 TOTAL".
-  3. On small screen viewports (360px), the text crowds the vertical hairline divider and outer padding.
-- Evidence: `screen_stats_monday.png` displays "MON, SEP 7 TOTAL" spanning close to the center divider line.
-- Suspected Root Cause: Dynamic multi-word uppercase date strings in a fixed two-column layout without `flex-1`, `text-center`, and `numberOfLines={1}` / `adjustsFontSizeToFit` controls.
-
----
-
-### ISSUE-18 — Hardcoded Fixed-Pixel Margin Offsets (`ml-[28px]`, `ml-[46px]`) Causing Responsive Misalignment in Permissions and Add App Screens
-- Category: UI
-- Severity: Low
-- File(s): `src/screens/PermissionsScreen.tsx` (line 143), `src/screens/AddAppScreen.tsx` (line 205)
-- Description: Multiple sub-texts use hardcoded negative/positive margin pixel values to manually simulate indentation (e.g. `ml-[28px]` in PermissionsScreen descriptions, `ml-[46px]` in AddAppScreen usage sub-texts) instead of proper nested flexbox layout. When device font size or display scaling is toggled in Android OS, the text breaks alignment with the icon/title above it, either drifting inward or colliding with adjacent borders.
-- Steps to Reproduce:
-  1. Inspect `PermissionsScreen.tsx` line 143: `<Text className="... ml-[28px] ...">`.
-  2. Inspect `AddAppScreen.tsx` line 205: `<Text className="... ml-[46px] ...">`.
-  3. Change system font size to "Largest" in Android Settings and return to Blackout.
-  4. Notice the description text is misaligned with the header text above it.
-- Evidence: Static code inspection in `PermissionsScreen.tsx:143` and `AddAppScreen.tsx:205`.
-- Suspected Root Cause: Using arbitrary pixel margins (`ml-[28px]`, `ml-[46px]`) rather than grouping icon and title in a flex container with consistent layout padding.
-
----
-
-### ISSUE-19 — Active Locks & Maintenance Row Cards Rigid Extremity Clamping in SettingsScreen
-- Category: UI
-- Severity: Low
-- File(s): `src/screens/SettingsScreen.tsx` (lines 190–215, 233–274)
-- Description: Both the "Auto-Clean Uninstalled Apps" switch row and the "Active Today's Locks" list items utilize unconstrained `flex-row justify-between`. The status pill and duration (`RUNNING • 60M`) and the Android Switch toggle sit hard against the right edge of the card container, with insufficient proportional spacing between the left content and right control on narrow viewports.
-- Steps to Reproduce:
-  1. Open Settings screen.
-  2. Scroll down to "MAINTENANCE" and "ACTIVE TODAY'S LOCKS".
-  3. Inspect the right edge alignment of the switch and status text pills.
-- Evidence: Captured in `screen_settings.png` and `screen_settings_scrolled.png`.
-- Suspected Root Cause: Unbounded `justify-between` without internal card padding hierarchy or flex-shrink protection.
-
----
-
-## Audit Round 4 — Founder-Reported Issues & Hardware Verification (September 12, 2026)
-
-### Summary
-- 5 founder-reported issues addressed and verified on physical hardware (Infinix NOTE 30, Android 14 API 34).
-- All 5 issues fixed in production code with zero mock fallbacks.
-- Hardware verified via adb shell inputs, screencaps, logcat event inspection, and direct SharedPreferences inspection.
-
-### ISSUE-R4-01 — Cannot Remove or Un-track an App from Lock List
-- **Category**: Missing Feature / UX
-- **Severity**: High
-- **Files**: `src/services/storage.ts`, `src/context/AppContext.tsx`, `src/screens/HomeScreen.tsx`, `src/screens/SettingsScreen.tsx`
-- **Description**: Once added via the "+" flow, an app stayed tracked forever with no delete/untrack path.
-- **Rule Enforced**: If an app is tracked but unlocked (`isLocked === false`), it can be removed immediately; if locked (`isLocked === true`), it remains strictly immutable until midnight.
-- **Resolution**:
-  - Implemented `StorageService.removeTrackedApp(packageName)` with strict rejection if `isLocked === true`.
-  - Added `AppContext.removeTrackedApp(packageName)` synchronizing immediate removal to native SharedPreferences (`syncLockedAppsToNative` and `syncLockedPackages`).
-  - Added trash icon affordance (`Trash2`) on unlocked rows in `HomeScreen.tsx`. Locked rows show locked state without trash affordance.
-- **Hardware Verification**: Untracked Calculator before limit was reached. Inspected `BlackoutPrefs.xml` via `adb shell run-as com.blackout.app cat /data/data/com.blackout.app/shared_prefs/BlackoutPrefs.xml` — confirmed Calculator was purged from both JSON array and package set. Actively locked app (`SIMOSA`) displayed no trash affordance.
-
-### ISSUE-R4-02 — Overnight Enforcement Bypass (Migration Gap)
-- **Category**: Bug / Migration Gap
-- **Severity**: High
-- **Files**: `src/services/storage.ts`, `android/app/src/main/java/com/blackout/app/BlackoutAccessibilityService.kt`, `android/app/src/main/java/com/blackout/app/SecurityHelper.kt`
-- **Description**: Pre-existing tracked apps created before Round 3 had `lockExpirationTimestamp == 0`, skipping the live expiration check in `isAppBlocked()` and falling through to stale flag checks.
-- **Resolution**:
-  - Added retroactive migration in `applyMidnightResetIfNeeded`: for any app with `isLocked === true` but missing/zero `lockExpirationTimestamp`, computes local midnight following `lockDate` and persists to JS and native.
-  - Added native fallback in `isAppBlocked()` and `hasActiveLocks()` parsing `lockDate` directly to compute expiration if timestamp is missing.
-- **Hardware Verification**: Validated data parsing and native fallback in Kotlin and TypeScript.
-
-### ISSUE-R4-03 — Open Count Exactly 2x Overcounting
-- **Category**: Bug
-- **Severity**: High
-- **Files**: `android/app/src/main/java/com/blackout/app/BlackoutModule.kt` (lines 237–295)
-- **Description**: Launching any app incremented its open count by 2 instead of 1 (opening twice showed +4).
-- **Root Cause**: On Android 14 (API 34), predictive back and window transition animations trigger intermediate `ACTIVITY_PAUSED` events that set `currentPkg = null`. The subsequent `ACTIVITY_RESUMED` for the same app saw `currentPkg != pkg` and incremented the counter a second time.
-- **Resolution**: Implemented 2000ms debouncing window in `BlackoutModule.kt` tracking `lastClosedPkg`, `lastClosedTime`, and `lastOpenTimeMap[pkg]`.
-- **Hardware Verification**:
-  - Deliberately launched YouTube once via monkey: count incremented by exactly +1 (1 -> 2).
-  - Deliberately launched Chrome once via monkey: count incremented by exactly +1 (3 -> 4).
-  - Deliberately launched X once via monkey: count incremented by exactly +1 (1 -> 2).
-  - Unopened apps remained unchanged. 2x signature completely eliminated.
-
-### ISSUE-R4-04 — Missing Countdown Badge on Tracked App Icons
-- **Category**: New Feature / UX
+- **Category**: Calculation Flaw / Edge Case
 - **Severity**: Medium
-- **Files**: `src/screens/HomeScreen.tsx`
-- **Description**: No visual indication of remaining time directly on app icons in the list.
-- **Resolution**: Created `CountdownBadge` overlaid on the top-left corner of app icons. Shows whole minutes remaining when >10s (e.g. "60"), switches to second-by-second countdown with 1s refresh interval in the final 10 seconds before lock. Hides upon lock.
-- **Hardware Verification**: Observed circular badge on Calculator card displaying remaining limit ("60").
+- **Files Affected**:
+  - `android/app/src/main/java/com/blackout/app/BlackoutModule.kt` (lines 225–244)
+  - `android/app/src/main/java/com/blackout/app/SecurityHelper.kt` (lines 316–336)
+- **Description**:  
+  `queryEvents(startTime, endTime)` queries from `00:00:00` today to `System.currentTimeMillis()`.  
+  If a user starts using an app before midnight (e.g. 11:50 PM) and continues past midnight (e.g. until 12:20 AM):
+  - The `ACTIVITY_RESUMED` event occurred before `startTime` (yesterday).
+  - The first event returned in today's query window is `ACTIVITY_PAUSED` at 12:20 AM.
+  - Because `currentPkg` initializes to `null`, the `ACTIVITY_PAUSED` event is ignored.
+  - The entire 20 minutes of usage belonging to today (12:00 AM to 12:20 AM) is completely lost!
+- **Root Cause**:  
+  The event query window starts strictly at midnight without looking back to identify which app was active across the midnight threshold.
+- **Proposed Fix**:  
+  Query events starting from `startTime - (12 * 3600 * 1000L)` to detect the active foreground activity immediately preceding midnight. If an app was resumed prior to midnight and paused after midnight, anchor `currentPkg = pkg` and `currentStart = startTime` (00:00:00).
 
-### ISSUE-R4-05 — Replace Palette with Cohesive "Navy Vintage" Theme
-- **Category**: UI / Design System
+---
+
+### ISSUE-07 (MEDIUM) — Screen-Off / Keyguard Recovery Drops Subsequent Foreground Session
+
+- **Category**: Calculation Flaw / OS Lifecycle Bug
 - **Severity**: Medium
-- **Files**: `tailwind.config.js`, `design_reference/DESIGN.md`, `src/screens/*.tsx`, `src/components/*.tsx`, `BlackoutAccessibilityService.kt`
-- **Description**: Founder requested replacing warm cream/rust vintage palette with a sleek Navy Vintage color scheme across both Light and Dark modes.
-- **Resolution**:
-  - Configured Light Mode: `#E6E8EC` (pale slate-white paper), `#EFF1F4` (surface), `#1A2030` (navy ink), `#5C6478` (muted), `#C9CDD6` (hairline).
-  - Configured Dark Mode: `#12161F` (navy ink background), `#1B2030` (surface), `#E6E8EC` (bone text), `#8C93A6` (muted), `#2A3145` (hairline).
-  - Shared Accents: `#B23A2E` (stamp red), `#4F7566` (aged-bronze verdigris).
-  - Replaced all hardcoded old hex codes across all screens and native overlay.
-- **Hardware Verification**: Captured and inspected screenshots in Light Mode (`settings_screen_light.png`, `home_screen_light.png`, `stats_screen_light.png`) and Dark Mode (`settings_screen.png`, `home_screen.png`, `settings_dark_return.png`). Perfect contrast, high readability, and unified vintage navy aesthetics confirmed.
+- **Files Affected**:
+  - `android/app/src/main/java/com/blackout/app/BlackoutModule.kt` (lines 281–295)
+  - `android/app/src/main/java/com/blackout/app/SecurityHelper.kt` (lines 355–367)
+- **Description**:  
+  When the device screen turns off or the lock screen appears, events `16` (`SCREEN_NON_INTERACTIVE`), `17` (`KEYGUARD_SHOWN`), or `26` (`DEVICE_SHUTDOWN`) fire.  
+  The current code sets `currentPkg = null` and `currentStart = 0L`.  
+  When the user turns the screen back on (`SCREEN_INTERACTIVE` = 15) and unlocks (`KEYGUARD_HIDDEN` = 18), Android frequently does NOT fire a new `ACTIVITY_RESUMED` event if the foreground activity was never paused or stopped by the system.  
+  Because `currentPkg` remains `null`, all usage between unlocking and switching apps is lost.
+- **Root Cause**:  
+  The state machine handles screen-off by nullifying the package pointer, but fails to handle screen-on / unlock events to restore the active foreground package.
+- **Proposed Fix**:  
+  Track `suspendedPkg = currentPkg` upon `SCREEN_NON_INTERACTIVE` / `KEYGUARD_SHOWN`. Upon receiving `SCREEN_INTERACTIVE` (15) or `KEYGUARD_HIDDEN` (18), if no intermediate activity paused or changed, restore `currentPkg = suspendedPkg` and `currentStart = time`.
+
+---
+
+### ISSUE-08 (MEDIUM) — Double Confirmation Dialog Anti-Pattern on HomeScreen App Removal
+
+- **Category**: UX / Flow Redundancy
+- **Severity**: Medium
+- **Files Affected**:
+  - `src/screens/HomeScreen.tsx` (lines 108–149)
+- **Description**:  
+  When an app is tracked and unlocked, the card displays:
+  `ALLOWANCE ACTIVE • X REMAINING`.
+  Tapping this button calls `handleUnlockPress`, which shows a confirmation dialog:
+  `"Allowance Active: Would you like to stop tracking and remove this limit? [Keep Active] [Remove Limit]"`.  
+  If the user taps `[Remove Limit]`, `handleRemovePress` is invoked, which opens a SECOND confirmation dialog:
+  `"Remove App Lock: Stop tracking and remove daily limit for X? [Cancel] [Remove]"`.  
+  The user is forced to confirm the exact same action twice.
+- **Root Cause**:  
+  `handleUnlockPress` delegated to `handleRemovePress` without recognizing that `handleRemovePress` had its own built-in confirmation alert.
+- **Proposed Fix**:  
+  Unify the removal flow. The trash icon and the allowance button should invoke a single, cohesive Themed Modal asking: *"Stop tracking and remove daily limit for {appName}?"* with *"Cancel"* and *"Remove Limit"* actions.
+
+---
+
+### ISSUE-09 (MEDIUM) — Inaccurate "LOCKED TODAY" Badge on Unlocked Tracked Apps in `AddAppScreen`
+
+- **Category**: UI / State Label Inaccuracy
+- **Severity**: Medium
+- **Files Affected**:
+  - `src/screens/AddAppScreen.tsx` (lines 183–186)
+- **Description**:  
+  In `AddAppScreen.tsx`:
+  ```tsx
+  {isAlreadyTracked ? (
+    <Text className="text-[10px] font-mono-bold uppercase text-stamp-red tracking-wider">
+      LOCKED TODAY
+    </Text>
+  ) : ...}
+  ```
+  Any app currently in `trackedApps` is labeled `LOCKED TODAY` in bright red stamp text, even if `app.isLocked === false` (i.e. the app has an active allowance of 2 hours and has only used 5 minutes).  
+  This is factually incorrect and misleads the user into believing the app is already blocked.
+- **Root Cause**:  
+  Conflation between "tracked / limit set for today" and "limit exceeded / actively locked".
+- **Proposed Fix**:  
+  Inspect `app.isLocked`. If `app.isLocked` is true, display `LOCKED TODAY` (`text-stamp-red`). If `app.isLocked` is false, display `ACTIVE LIMIT` (`text-stamp-olive`) or `TRACKED TODAY`.
+
+---
+
+### ISSUE-10 (MEDIUM) — Temporal Dead Zone Closure Risk for `formatMs` in `HomeScreen.tsx`
+
+- **Category**: Code Quality / Runtime Safety
+- **Severity**: Medium
+- **Files Affected**:
+  - `src/screens/HomeScreen.tsx` (line 111 vs line 170)
+- **Description**:  
+  In `HomeScreen.tsx`, line 111 calls `formatMs(app.dailyLimitMs)` inside `handleUnlockPress`.  
+  However, `const formatMs = (ms: number) => { ... }` is defined at line 170 as an unhoisted arrow function.  
+  While current execution happens inside a click handler, any refactor, unit test, or component initialization that touches `handleUnlockPress` earlier will crash with `ReferenceError: Cannot access 'formatMs' before initialization`.
+- **Root Cause**:  
+  Helper utility defined as a local arrow function mid-component rather than a hoisted function declaration or external utility in `src/utils/formatters.ts`.
+- **Proposed Fix**:  
+  Extract `formatMs` and `formatHours` to a shared utility file `src/utils/time.ts` or declare them as hoisted functions outside the React component.
+
+---
+
+### ISSUE-11 (MEDIUM) — Root Container in `App.tsx` References Deprecated `bg-background`
+
+- **Category**: UI / Theming
+- **Severity**: Medium
+- **Files Affected**:
+  - `App.tsx` (line 73)
+- **Description**:  
+  In `App.tsx:73`:
+  ```tsx
+  <View className="flex-1 bg-background dark:bg-espresso">
+  ```
+  In `tailwind.config.js`, the official Navy Vintage light background token is `paper` (`#E6E8EC`). While `background` is aliased in `extend.colors`, all other screen containers explicitly use `bg-paper dark:bg-espresso`. During navigation transitions or notch insets, this minor inconsistency can cause token mismatch.
+- **Root Cause**:  
+  Incomplete token migration in root `App.tsx` during the Navy Vintage palette overhaul.
+- **Proposed Fix**:  
+  Change `bg-background dark:bg-espresso` to `bg-paper dark:bg-espresso`.
+
+---
+
+### ISSUE-12 (LOW) — Hardcoded Legacy Olive Hex (`#6E7A54`) in `StatusPill.tsx`
+
+- **Category**: Theme Inconsistency
+- **Severity**: Low
+- **Files Affected**:
+  - `src/components/ui/StatusPill.tsx` (line 27)
+- **Description**:  
+  In `StatusPill.tsx:27`:
+  ```tsx
+  <Check size={11} color="#6E7A54" strokeWidth={1.25} />
+  ```
+  `#6E7A54` is the old army-olive accent from Audit Round 3. In Audit Round 4, the palette was unified to `#4F7566` (aged-bronze verdigris). Line 27 was missed and still renders the old color.
+- **Root Cause**:  
+  Hardcoded color string overlooked during the global palette sweep.
+- **Proposed Fix**:  
+  Update `color="#6E7A54"` to `color="#4F7566"`.
+
+---
+
+### ISSUE-13 (LOW) — Missing 24-Hour Clamp on Today's Cumulative Usage Sum in `BlackoutModule.kt`
+
+- **Category**: Calculation Flaw / Edge Case
+- **Severity**: Low
+- **Files Affected**:
+  - `android/app/src/main/java/com/blackout/app/BlackoutModule.kt` (lines 433–437)
+- **Description**:  
+  For past days (`i < 6`), `getWeeklyUsageStats()` strictly clamps `dayTotalMs = Math.min(dayTotalMs, 24L * 3600 * 1000)`.  
+  However, for today (`i == 6`), `dayTotalMs` is summed without an upper bound clamp (`endTime - dayStart` or 24h). In the unlikely event of concurrent foreground event anomalies, today's total could exceed physical day bounds.
+- **Root Cause**:  
+  Asymmetry in defensive clamping between past days and the current day branch.
+- **Proposed Fix**:  
+  Apply `dayTotalMs = Math.min(dayTotalMs, System.currentTimeMillis() - dayStart)` on the `i == 6` branch.
+
+---
+
+### ISSUE-14 (LOW) — `cleanUninstalledTrackedApps` Bypasses `autoCleanUninstalled` Setting
+
+- **Category**: Logic Inconsistency
+- **Severity**: Low
+- **Files Affected**:
+  - `src/services/storage.ts` (lines 138–150)
+- **Description**:  
+  `StorageService.cleanUninstalledTrackedApps` purges tracked apps if they are missing from installed packages without checking whether `settings.autoCleanUninstalled` is enabled. If invoked directly, it would bypass user preferences.
+- **Root Cause**:  
+  The guard was placed in `AppContext.tsx` rather than inside the service method itself.
+- **Proposed Fix**:  
+  Read `settings` inside `cleanUninstalledTrackedApps` and return early if `autoCleanUninstalled === false`.
+
+---
+
+### ISSUE-15 (LOW) — Missing Zero-Tracked-Apps Call-to-Action Card on Home Screen
+
+- **Category**: UI / UX
+- **Severity**: Low
+- **Files Affected**:
+  - `src/screens/HomeScreen.tsx` (lines 420–425)
+- **Description**:  
+  When `trackedApps.length === 0`, the Home screen renders an empty gap below the usage overview with no visual feedback other than the bottom floating `+` button. Users on a fresh installation have no guidance on how to begin tracking apps.
+- **Root Cause**:  
+  Absence of an empty state card for the tracked apps section.
+- **Proposed Fix**:  
+  Render a dashed-border hairline Card when `trackedApps.length === 0` reading: *"NO APPLICATIONS TRACKED • TAP + TO CONFIGURE IMMUTABLE LIMIT"*.
+
+---
+
+## Architectural Strategy for Next Resolution Chat
+
+When the user launches the next chat with an implementation plan, the following architectural approach is recommended:
+
+1. **Phase 1: Centralized Themed Modal / Dialog System**:
+   - Refactor `src/components/ui/Modal.tsx` into a reusable, versatile dialog component supporting confirmation, destructive action, warning, and informational states.
+   - Replace all 18 occurrences of native `Alert.alert()` in `HomeScreen.tsx`, `SettingsScreen.tsx`, and `AddAppScreen.tsx`.
+   - Eliminate the double-confirmation UX when removing tracked apps.
+
+2. **Phase 2: Event-Accurate Screen Time Tracking Engine**:
+   - Rewrite `getTodayUsageEventsMap()` in `BlackoutModule.kt` and `SecurityHelper.getTodayPackageUsage()` to track activity components properly so intra-app activity transitions do not nullify the active session.
+   - Remove the blanket `isSystem` discard filter to restore accurate tracking for ROM system applications (Calculator, Camera, Gallery).
+   - Implement midnight lookback and keyguard unlock state recovery.
+
+3. **Phase 3: Synchronized Live Limit Enforcement in Accessibility Service**:
+   - Upgrade `checkCountdownIfAboutToBlock()` in `BlackoutAccessibilityService.kt` to query live cumulative usage across all sessions today, ensuring the 10-second warning banner triggers accurately.
+
+4. **Phase 4: Visual & Theme Polish**:
+   - Update `StatusPill.tsx` to `#4F7566`.
+   - Update `App.tsx` root container to `bg-paper dark:bg-espresso`.
+   - Fix "LOCKED TODAY" status in `AddAppScreen.tsx` for unlocked apps.
+   - Extract `formatMs` / `formatHours` into a hoisted utility.
