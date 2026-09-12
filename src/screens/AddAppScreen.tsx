@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, ScrollView, TextInput, TouchableOpacity, Alert, ActivityIndicator, Image } from "react-native";
+import { View, Text, ScrollView, TextInput, TouchableOpacity, ActivityIndicator, Image } from "react-native";
 import { useApp } from "../context/AppContext";
 import { NavigationHeader } from "../components/NavigationHeader";
 import { Button } from "../components/ui/Button";
@@ -7,6 +7,20 @@ import { Modal } from "../components/ui/Modal";
 import { NativeBridge } from "../services/nativeBridge";
 import { Search, Check, Plus } from "lucide-react-native";
 import { InstalledAppInfo } from "../types";
+
+interface DialogConfig {
+  visible: boolean;
+  title: string;
+  description: string;
+  variant?: "default" | "danger" | "warning" | "info" | "success";
+  calloutText?: string;
+  calloutVariant?: "danger" | "warning" | "info";
+  confirmLabel?: string;
+  cancelLabel?: string;
+  singleButton?: boolean;
+  onConfirm?: () => void;
+  onCancel: () => void;
+}
 
 export const AddAppScreen: React.FC = () => {
   const { trackedApps, addTrackedApp, setCurrentScreen, effectiveTheme } = useApp();
@@ -20,6 +34,16 @@ export const AddAppScreen: React.FC = () => {
   const [hours, setHours] = useState(1);
   const [minutes, setMinutes] = useState(0);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [dialogConfig, setDialogConfig] = useState<DialogConfig>({
+    visible: false,
+    title: "",
+    description: "",
+    onCancel: () => {},
+  });
+
+  const closeDialog = () => {
+    setDialogConfig((prev) => ({ ...prev, visible: false }));
+  };
 
   useEffect(() => {
     let isMounted = true;
@@ -46,12 +70,28 @@ export const AddAppScreen: React.FC = () => {
 
   const handleSetTimer = () => {
     if (!selectedApp) {
-      Alert.alert("Select an App", "Please pick an app to lock.");
+      setDialogConfig({
+        visible: true,
+        title: "SELECT AN APP",
+        description: "Please select an installed application to set a daily limit.",
+        variant: "warning",
+        singleButton: true,
+        confirmLabel: "ACKNOWLEDGE",
+        onCancel: closeDialog,
+      });
       return;
     }
     const totalMs = (hours * 3600 + minutes * 60) * 1000;
     if (totalMs < 60000) {
-      Alert.alert("Invalid Limit", "Daily limit must be at least 1 minute.");
+      setDialogConfig({
+        visible: true,
+        title: "INVALID LIMIT",
+        description: "Daily limit must be at least 1 minute.",
+        variant: "warning",
+        singleButton: true,
+        confirmLabel: "ACKNOWLEDGE",
+        onCancel: closeDialog,
+      });
       return;
     }
     setShowConfirmModal(true);
@@ -74,7 +114,15 @@ export const AddAppScreen: React.FC = () => {
     if (res.success) {
       setCurrentScreen("home");
     } else {
-      Alert.alert("Error", res.error || "Could not set lock.");
+      setDialogConfig({
+        visible: true,
+        title: "ERROR",
+        description: res.error || "Could not set lock.",
+        variant: "danger",
+        singleButton: true,
+        confirmLabel: "DISMISS",
+        onCancel: closeDialog,
+      });
     }
   };
 
@@ -115,9 +163,10 @@ export const AddAppScreen: React.FC = () => {
         ) : (
           <View className="flex-col gap-2 mb-8">
             {filteredApps.map((app) => {
-              const isAlreadyTracked = trackedApps.some(
+              const trackedApp = trackedApps.find(
                 (ta) => ta.packageName === app.packageName
               );
+              const isAlreadyTracked = !!trackedApp;
               const isSelected = selectedApp?.packageName === app.packageName;
 
               return (
@@ -180,9 +229,13 @@ export const AddAppScreen: React.FC = () => {
                         </View>
                       </View>
 
-                      {isAlreadyTracked ? (
-                        <Text className="text-[10px] font-mono-bold uppercase text-stamp-red tracking-wider">
-                          LOCKED TODAY
+                      {isAlreadyTracked && trackedApp ? (
+                        <Text
+                          className={`text-[10px] font-mono-bold uppercase tracking-wider ${
+                            trackedApp.isLocked ? "text-stamp-red" : "text-stamp-olive"
+                          }`}
+                        >
+                          {trackedApp.isLocked ? "LOCKED TODAY" : "TRACKED TODAY"}
                         </Text>
                       ) : isSelected ? (
                         <View className="w-5 h-5 rounded-full bg-ink dark:bg-bone items-center justify-center">
@@ -288,11 +341,30 @@ export const AddAppScreen: React.FC = () => {
         visible={showConfirmModal}
         title="CONFIRM LOCK"
         description={`Set a daily limit of ${hours}h ${minutes}m for ${selectedApp?.appName}?`}
+        variant="warning"
+        calloutText="This lock cannot be edited, paused, or undone today."
+        calloutVariant="danger"
         confirmLabel="LOCK APPLICATION"
         cancelLabel="CANCEL"
         onConfirm={confirmLock}
         onCancel={() => setShowConfirmModal(false)}
       />
+
+      {dialogConfig.visible && (
+        <Modal
+          visible={dialogConfig.visible}
+          title={dialogConfig.title}
+          description={dialogConfig.description}
+          variant={dialogConfig.variant}
+          calloutText={dialogConfig.calloutText}
+          calloutVariant={dialogConfig.calloutVariant}
+          confirmLabel={dialogConfig.confirmLabel}
+          cancelLabel={dialogConfig.cancelLabel}
+          singleButton={dialogConfig.singleButton}
+          onConfirm={dialogConfig.onConfirm}
+          onCancel={dialogConfig.onCancel}
+        />
+      )}
     </View>
   );
 };

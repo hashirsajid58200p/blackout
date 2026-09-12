@@ -1,13 +1,28 @@
-import React from "react";
-import { View, Text, ScrollView, TouchableOpacity, Image, Switch, Alert } from "react-native";
+import React, { useState, useEffect } from "react";
+import { View, Text, ScrollView, TouchableOpacity, Image, Switch } from "react-native";
 import { useApp } from "../context/AppContext";
 import { NavigationHeader } from "../components/NavigationHeader";
 import { BottomNavBar } from "../components/BottomNavBar";
 import { Card } from "../components/ui/Card";
+import { Modal } from "../components/ui/Modal";
 import { NativeBridge } from "../services/nativeBridge";
 import { Moon, Sun, Monitor, ShieldCheck, Info, Lock, Trash2, ChevronRight } from "lucide-react-native";
 import { TrackedApp } from "../types";
 import { StorageService } from "../services/storage";
+
+interface DialogConfig {
+  visible: boolean;
+  title: string;
+  description: string;
+  variant?: "default" | "danger" | "warning" | "info" | "success";
+  calloutText?: string;
+  calloutVariant?: "danger" | "warning" | "info";
+  confirmLabel?: string;
+  cancelLabel?: string;
+  singleButton?: boolean;
+  onConfirm?: () => void;
+  onCancel: () => void;
+}
 
 export const SettingsScreen: React.FC = () => {
   const {
@@ -26,9 +41,19 @@ export const SettingsScreen: React.FC = () => {
   const iconColor = isDark ? "#E6E8EC" : "#1A2030";
   const isAutoCleanEnabled = settings.autoCleanUninstalled !== false;
 
-  const [isAdminActive, setIsAdminActive] = React.useState(false);
+  const [isAdminActive, setIsAdminActive] = useState(false);
+  const [dialogConfig, setDialogConfig] = useState<DialogConfig>({
+    visible: false,
+    title: "",
+    description: "",
+    onCancel: () => {},
+  });
 
-  React.useEffect(() => {
+  const closeDialog = () => {
+    setDialogConfig((prev) => ({ ...prev, visible: false }));
+  };
+
+  useEffect(() => {
     NativeBridge.isDeviceAdminActive().then(setIsAdminActive);
   }, []);
 
@@ -43,51 +68,81 @@ export const SettingsScreen: React.FC = () => {
     const expiration = app.lockExpirationTimestamp || StorageService.getNextMidnightTimestamp();
     if (app.isLocked) {
       if (now < expiration) {
-        Alert.alert(
-          "Lock Active",
-          "This application is currently locked and cannot be unlocked until midnight in accordance with Blackout rules."
-        );
+        setDialogConfig({
+          visible: true,
+          title: "LOCK ACTIVE",
+          description:
+            "This application is currently locked and cannot be unlocked until midnight in accordance with Blackout rules.",
+          variant: "danger",
+          calloutText: "This lock cannot be edited, paused, or undone today.",
+          calloutVariant: "danger",
+          singleButton: true,
+          confirmLabel: "ACKNOWLEDGE",
+          onCancel: closeDialog,
+        });
         return;
       }
-      Alert.alert(
-        "Unlock Application",
-        `The lock period has completed. Restore normal access to ${app.appName}?`,
-        [
-          { text: "Cancel", style: "cancel" },
-          {
-            text: "Unlock",
-            style: "destructive",
-            onPress: async () => {
-              const res = await unlockTrackedApp(app.packageName);
-              if (res.success) {
-                Alert.alert("Unlocked", `${app.appName} has been unlocked. Normal daily behavior restored.`);
-              } else {
-                Alert.alert("Unlock Error", res.error || "Could not unlock app.");
-              }
-            },
-          },
-        ]
-      );
+      setDialogConfig({
+        visible: true,
+        title: "UNLOCK APPLICATION",
+        description: `The lock period has completed. Restore normal access to ${app.appName}?`,
+        variant: "info",
+        confirmLabel: "UNLOCK",
+        cancelLabel: "CANCEL",
+        onConfirm: async () => {
+          const res = await unlockTrackedApp(app.packageName);
+          if (res.success) {
+            setDialogConfig({
+              visible: true,
+              title: "UNLOCKED",
+              description: `${app.appName} has been unlocked. Normal daily behavior restored.`,
+              variant: "success",
+              singleButton: true,
+              confirmLabel: "DISMISS",
+              onCancel: closeDialog,
+            });
+          } else {
+            setDialogConfig({
+              visible: true,
+              title: "UNLOCK ERROR",
+              description: res.error || "Could not unlock app.",
+              variant: "danger",
+              singleButton: true,
+              confirmLabel: "DISMISS",
+              onCancel: closeDialog,
+            });
+          }
+        },
+        onCancel: closeDialog,
+      });
     } else {
-      Alert.alert(
-        "Allowance Active",
-        `${app.appName} has an active allowance and is not yet locked. Would you like to stop tracking and remove this limit?`,
-        [
-          { text: "Keep Active", style: "cancel" },
-          {
-            text: "Remove Limit",
-            style: "destructive",
-            onPress: async () => {
-              const res = await removeTrackedApp(app.packageName);
-              if (res.success) {
-                Alert.alert("Removed", `Daily limit for ${app.appName} has been removed.`);
-              } else {
-                Alert.alert("Cannot Remove", res.error || "Could not remove app.");
-              }
-            },
-          },
-        ]
-      );
+      setDialogConfig({
+        visible: true,
+        title: "REMOVE APP LIMIT",
+        description: `Stop tracking and remove daily limit for ${app.appName}? Normal access will no longer be restricted.`,
+        variant: "danger",
+        confirmLabel: "REMOVE LIMIT",
+        cancelLabel: "KEEP TRACKING",
+        calloutText: "Allowance and tracking history will be reset.",
+        calloutVariant: "warning",
+        onConfirm: async () => {
+          const res = await removeTrackedApp(app.packageName);
+          if (res.success) {
+            closeDialog();
+          } else {
+            setDialogConfig({
+              visible: true,
+              title: "CANNOT REMOVE",
+              description: res.error || "Could not remove app.",
+              variant: "danger",
+              singleButton: true,
+              confirmLabel: "DISMISS",
+              onCancel: closeDialog,
+            });
+          }
+        },
+        onCancel: closeDialog,
+      });
     }
   };
 
@@ -186,7 +241,7 @@ export const SettingsScreen: React.FC = () => {
                 <Text
                   className={`font-body-semibold text-xs uppercase tracking-wider ${
                     isAdminActive
-                      ? "text-white"
+                      ? "text-bone"
                       : "text-ink dark:text-bone"
                   }`}
                 >
@@ -353,6 +408,22 @@ export const SettingsScreen: React.FC = () => {
       </ScrollView>
 
       <BottomNavBar />
+
+      {dialogConfig.visible && (
+        <Modal
+          visible={dialogConfig.visible}
+          title={dialogConfig.title}
+          description={dialogConfig.description}
+          variant={dialogConfig.variant}
+          calloutText={dialogConfig.calloutText}
+          calloutVariant={dialogConfig.calloutVariant}
+          confirmLabel={dialogConfig.confirmLabel}
+          cancelLabel={dialogConfig.cancelLabel}
+          singleButton={dialogConfig.singleButton}
+          onConfirm={dialogConfig.onConfirm}
+          onCancel={dialogConfig.onCancel}
+        />
+      )}
     </View>
   );
 };

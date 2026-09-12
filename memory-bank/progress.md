@@ -1,6 +1,24 @@
 # Progress Tracker
 
 ## Completed Features
+- [x] **Audit Round 5 — Comprehensive Issue Resolution & Hardware Verification (100% Fixed & Verified on Hardware)**:
+  - [x] **Themed Dialog System**: Replaced all 18 un-themed native `Alert.alert()` dialogs across `HomeScreen.tsx`, `SettingsScreen.tsx`, and `AddAppScreen.tsx` with a bespoke Navy Vintage `Modal.tsx`. Supports `default`, `danger`, `warning`, `info`, and `success` variants, contextual callout banners, and single/dual action modes.
+  - [x] **Native Screen Time Engine Overhaul**:
+    - Multi-activity transition tracking via `activeActivities` set per package in `BlackoutModule.kt` and `SecurityHelper.kt`. Fixed intra-app pause leak where WhatsApp was 68% underreported (now matches OS `dumpsys` at 10m).
+    - Added 12-hour lookback before midnight with timestamp clamping.
+    - Removed `isSystem` blanket discard filter in `getDayUsageStats()` and `getWeeklyUsageStats()` allowing launchable ROM apps (Clock, Calculator) to track accurately.
+    - Added upper bound clamping on today's weekly usage sum.
+  - [x] **Countdown Warning Cumulative Tracking**: Updated `BlackoutAccessibilityService.kt` to query `SecurityHelper.getTodayPackageUsage()` for live cumulative usage rather than measuring only the current active session.
+  - [x] **App Picker Status Label Fix**: Fixed `AddAppScreen.tsx` so apps with active allowance show `TRACKED TODAY` (`text-stamp-olive`) instead of `LOCKED TODAY` (`text-stamp-red`).
+  - [x] **UI & Theme Consistency**:
+    - Replaced legacy hex `#6E7A54` with `#4F7566` in `StatusPill.tsx`.
+    - Replaced non-existent `bg-background` token with `bg-paper` in `App.tsx`.
+    - Replaced `text-white` with `text-bone` in `SettingsScreen.tsx` admin badge.
+    - Hoisted `formatMs` and `formatHours` in `HomeScreen.tsx`.
+    - Streamlined app removal flow into a single-tap confirmation dialog.
+    - Made empty state card interactive to navigate to `add_app`.
+    - Guarded `cleanUninstalledTrackedApps()` with `settings.autoCleanUninstalled !== false`.
+  - [x] **Hardware Verification (`10275333B5001336`)**: Verified on live Infinix NOTE 30. Captured screenshots of themed removal dialog, locked app notice, screen time parity with Android system, and tracked app state.
 - [x] **Audit Round 5 — Deep-Dive QA Audit & Comprehensive Bug Catalog (Complete)**:
   - [x] **Dialog & UI Theme Inconsistency Analysis**: Audited 18 separate calls to native `Alert.alert()` in `HomeScreen.tsx`, `SettingsScreen.tsx`, and `AddAppScreen.tsx`. Documented how they break the Navy Vintage theme with default Android OS gray popups. Isolated inflexibility in `Modal.tsx`.
   - [x] **Screen Time Discrepancy Root Cause Discovery**: Tested on live hardware (`dumpsys usagestats` vs Blackout UI). Proved that Android multi-activity transitions (`ACTIVITY_RESUMED` followed by delayed `ACTIVITY_PAUSED` ~50ms later) cause `getTodayUsageEventsMap()` to set `currentPkg = null`, losing entire user sessions in WhatsApp (9m 36s OS vs 3m Blackout) and Instagram (1h 18m OS vs 1h 10m Blackout).

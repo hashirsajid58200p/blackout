@@ -70,7 +70,7 @@ const MainContent: React.FC = () => {
   const isDark = effectiveTheme === "dark";
 
   return (
-    <View className="flex-1 bg-background dark:bg-espresso">
+    <View className="flex-1 bg-paper dark:bg-espresso">
       <StatusBar
         translucent
         backgroundColor="transparent"

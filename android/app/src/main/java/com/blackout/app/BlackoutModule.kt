@@ -228,15 +228,26 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
             set(Calendar.SECOND, 0)
             set(Calendar.MILLISECOND, 0)
         }
-        val startTime = calendar.timeInMillis
+        val todayMidnight = calendar.timeInMillis
+        val queryStart = todayMidnight - (12 * 3600 * 1000L) // 12-hour lookback before midnight to catch sessions running across 00:00
         val endTime = System.currentTimeMillis()
 
+        fun addDuration(pkg: String, start: Long, end: Long) {
+            val effectiveStart = Math.max(start, todayMidnight)
+            val effectiveEnd = Math.max(end, todayMidnight)
+            val duration = effectiveEnd - effectiveStart
+            if (duration > 0) {
+                usageMap[pkg] = (usageMap[pkg] ?: 0L) + duration
+            }
+        }
+
         try {
-            val events = usageStatsManager.queryEvents(startTime, endTime)
+            val events = usageStatsManager.queryEvents(queryStart, endTime)
             val event = UsageEvents.Event()
 
             var currentPkg: String? = null
             var currentStart = 0L
+            val activeActivities = mutableSetOf<String>()
             var lastClosedPkg: String? = null
             var lastClosedTime = 0L
             val lastOpenTimeMap = mutableMapOf<String, Long>()
@@ -246,60 +257,75 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
                 val pkg = event.packageName ?: continue
                 val time = event.timeStamp
                 val type = event.eventType
+                val activityClass = event.className ?: "MainActivity"
 
                 when (type) {
                     UsageEvents.Event.ACTIVITY_RESUMED -> {
                         if (currentPkg != null) {
-                            val duration = time - currentStart
-                            if (duration > 0) {
-                                usageMap[currentPkg!!] = (usageMap[currentPkg!!] ?: 0L) + duration
+                            if (currentPkg == pkg) {
+                                // Intra-app activity transition (e.g. Chat list -> Conversation)
+                                addDuration(currentPkg!!, currentStart, time)
+                                currentStart = time
+                                activeActivities.add(activityClass)
+                            } else {
+                                // Switched to a new package
+                                addDuration(currentPkg!!, currentStart, time)
+                                currentPkg = pkg
+                                currentStart = time
+                                activeActivities.clear()
+                                activeActivities.add(activityClass)
+
+                                val isSamePkgReopen = (lastClosedPkg == pkg && (time - lastClosedTime) < 2000L)
+                                val isRapidDuplicate = (time - (lastOpenTimeMap[pkg] ?: 0L)) < 2000L
+                                if (!isSamePkgReopen && !isRapidDuplicate && time >= todayMidnight) {
+                                    openCountMap[pkg] = (openCountMap[pkg] ?: 0) + 1
+                                    lastOpenTimeMap[pkg] = time
+                                }
                             }
-                        }
-                        val isSamePkgReopen = (lastClosedPkg == pkg && (time - lastClosedTime) < 2000L)
-                        val isRapidDuplicate = (time - (lastOpenTimeMap[pkg] ?: 0L)) < 2000L
-                        if (!isSamePkgReopen && !isRapidDuplicate) {
-                            if (currentPkg != pkg) {
+                        } else {
+                            currentPkg = pkg
+                            currentStart = time
+                            activeActivities.clear()
+                            activeActivities.add(activityClass)
+
+                            val isSamePkgReopen = (lastClosedPkg == pkg && (time - lastClosedTime) < 2000L)
+                            val isRapidDuplicate = (time - (lastOpenTimeMap[pkg] ?: 0L)) < 2000L
+                            if (!isSamePkgReopen && !isRapidDuplicate && time >= todayMidnight) {
                                 openCountMap[pkg] = (openCountMap[pkg] ?: 0) + 1
                                 lastOpenTimeMap[pkg] = time
                             }
                         }
-                        currentPkg = pkg
-                        currentStart = time
                     }
                     UsageEvents.Event.ACTIVITY_PAUSED -> {
                         if (currentPkg != null && currentPkg == pkg) {
-                            val duration = time - currentStart
-                            if (duration > 0) {
-                                usageMap[pkg] = (usageMap[pkg] ?: 0L) + duration
+                            addDuration(pkg, currentStart, time)
+                            currentStart = time
+                            activeActivities.remove(activityClass)
+                            if (activeActivities.isEmpty()) {
+                                lastClosedPkg = pkg
+                                lastClosedTime = time
+                                currentPkg = null
+                                currentStart = 0L
                             }
-                            lastClosedPkg = pkg
-                            lastClosedTime = time
-                            currentPkg = null
-                            currentStart = 0L
                         }
                     }
                     16 /* SCREEN_NON_INTERACTIVE */,
                     17 /* KEYGUARD_SHOWN */,
                     26 /* DEVICE_SHUTDOWN */ -> {
                         if (currentPkg != null) {
-                            val duration = time - currentStart
-                            if (duration > 0) {
-                                usageMap[currentPkg!!] = (usageMap[currentPkg!!] ?: 0L) + duration
-                            }
+                            addDuration(currentPkg!!, currentStart, time)
                             lastClosedPkg = currentPkg
                             lastClosedTime = time
                             currentPkg = null
                             currentStart = 0L
+                            activeActivities.clear()
                         }
                     }
                 }
             }
 
             if (currentPkg != null && currentStart > 0L) {
-                val duration = endTime - currentStart
-                if (duration > 0) {
-                    usageMap[currentPkg!!] = (usageMap[currentPkg!!] ?: 0L) + duration
-                }
+                addDuration(currentPkg!!, currentStart, endTime)
             }
         } catch (e: Exception) {
             Log.e(TAG, "Error querying UsageEvents in getTodayUsageEventsMap", e)
@@ -426,15 +452,12 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
                         }
                         if (timeMs <= 0) continue
                         try {
-                            val appInfo = pm.getApplicationInfo(pkg, 0)
-                            val isSystem = (appInfo.flags and ApplicationInfo.FLAG_SYSTEM) != 0 &&
-                                           (appInfo.flags and ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) == 0
-                            if (isSystem) continue
                             if (pm.getLaunchIntentForPackage(pkg) != null) {
                                 dayTotalMs += timeMs
                             }
                         } catch (e: Exception) {}
                     }
+                    dayTotalMs = Math.min(dayTotalMs, 24L * 3600 * 1000)
                 } else {
                     // Past days: INTERVAL_DAILY with strict timestamp overlap check to prevent multi-day bucket leakage
                     val stats = usageStatsManager.queryUsageStats(UsageStatsManager.INTERVAL_DAILY, dayStart, dayEnd)
@@ -458,10 +481,6 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
 
                         for ((pkg, timeMs) in packageUsageMap) {
                             try {
-                                val appInfo = pm.getApplicationInfo(pkg, 0)
-                                val isSystem = (appInfo.flags and ApplicationInfo.FLAG_SYSTEM) != 0 &&
-                                               (appInfo.flags and ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) == 0
-                                if (isSystem) continue
                                 if (pm.getLaunchIntentForPackage(pkg) != null) {
                                     dayTotalMs += timeMs
                                 }
@@ -543,10 +562,6 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
                 }
                 if (timeMs <= 0) continue
                 try {
-                    val appInfo = pm.getApplicationInfo(pkg, 0)
-                    val isSystem = (appInfo.flags and ApplicationInfo.FLAG_SYSTEM) != 0 &&
-                                   (appInfo.flags and ApplicationInfo.FLAG_UPDATED_SYSTEM_APP) == 0
-                    if (isSystem) continue
                     if (pm.getLaunchIntentForPackage(pkg) == null) continue
                     filteredList.add(Triple(pkg, timeMs, openCountMap[pkg] ?: 0))
                 } catch (e: Exception) {}

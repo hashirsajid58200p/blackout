@@ -318,58 +318,82 @@ object SecurityHelper {
                 set(Calendar.SECOND, 0)
                 set(Calendar.MILLISECOND, 0)
             }
-            val startTime = calendar.timeInMillis
+            val todayMidnight = calendar.timeInMillis
+            val queryStart = todayMidnight - (12 * 3600 * 1000L) // 12-hour lookback before midnight
             val endTime = System.currentTimeMillis()
-            val events = usageStatsManager.queryEvents(startTime, endTime) ?: return 0L
+            val events = usageStatsManager.queryEvents(queryStart, endTime) ?: return 0L
             val event = UsageEvents.Event()
 
             var totalUsage = 0L
             var currentPkg: String? = null
             var currentStart = 0L
+            val activeActivities = mutableSetOf<String>()
+
+            fun addDuration(pkg: String, start: Long, end: Long) {
+                if (pkg == packageName) {
+                    val effectiveStart = Math.max(start, todayMidnight)
+                    val effectiveEnd = Math.max(end, todayMidnight)
+                    val duration = effectiveEnd - effectiveStart
+                    if (duration > 0) {
+                        totalUsage += duration
+                    }
+                }
+            }
 
             while (events.hasNextEvent()) {
                 events.getNextEvent(event)
                 val pkg = event.packageName ?: continue
                 val time = event.timeStamp
                 val type = event.eventType
+                val activityClass = event.className ?: "MainActivity"
 
                 when (type) {
                     UsageEvents.Event.ACTIVITY_RESUMED -> {
-                        if (currentPkg != null && currentPkg == packageName) {
-                            val duration = time - currentStart
-                            if (duration > 0) totalUsage += duration
+                        if (currentPkg != null) {
+                            if (currentPkg == pkg) {
+                                addDuration(currentPkg!!, currentStart, time)
+                                currentStart = time
+                                activeActivities.add(activityClass)
+                            } else {
+                                addDuration(currentPkg!!, currentStart, time)
+                                currentPkg = pkg
+                                currentStart = time
+                                activeActivities.clear()
+                                activeActivities.add(activityClass)
+                            }
+                        } else {
+                            currentPkg = pkg
+                            currentStart = time
+                            activeActivities.clear()
+                            activeActivities.add(activityClass)
                         }
-                        currentPkg = pkg
-                        currentStart = time
                     }
                     UsageEvents.Event.ACTIVITY_PAUSED -> {
                         if (currentPkg != null && currentPkg == pkg) {
-                            if (pkg == packageName) {
-                                val duration = time - currentStart
-                                if (duration > 0) totalUsage += duration
+                            addDuration(pkg, currentStart, time)
+                            currentStart = time
+                            activeActivities.remove(activityClass)
+                            if (activeActivities.isEmpty()) {
+                                currentPkg = null
+                                currentStart = 0L
                             }
-                            currentPkg = null
-                            currentStart = 0L
                         }
                     }
                     16 /* SCREEN_NON_INTERACTIVE */,
                     17 /* KEYGUARD_SHOWN */,
                     26 /* DEVICE_SHUTDOWN */ -> {
                         if (currentPkg != null) {
-                            if (currentPkg == packageName) {
-                                val duration = time - currentStart
-                                if (duration > 0) totalUsage += duration
-                            }
+                            addDuration(currentPkg!!, currentStart, time)
                             currentPkg = null
                             currentStart = 0L
+                            activeActivities.clear()
                         }
                     }
                 }
             }
 
-            if (currentPkg != null && currentPkg == packageName && currentStart > 0L) {
-                val duration = endTime - currentStart
-                if (duration > 0) totalUsage += duration
+            if (currentPkg != null && currentStart > 0L) {
+                addDuration(currentPkg!!, currentStart, endTime)
             }
 
             return totalUsage

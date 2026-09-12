@@ -635,13 +635,14 @@ class BlackoutAccessibilityService : AccessibilityService() {
                     val dailyLimitMs = itemObj.optDouble("dailyLimitMs", 0.0)
                     if (dailyLimitMs <= 0) return
 
+                    val liveUsageMs = SecurityHelper.getTodayPackageUsage(this, packageName).toDouble()
                     val baseUsage = itemObj.optDouble("usedTodayMs", 0.0)
                     val currentSessionTime = if (packageName == currentForegroundPackage && currentSessionStartTime > 0) {
                         (System.currentTimeMillis() - currentSessionStartTime).toDouble()
                     } else {
                         0.0
                     }
-                    val totalUsage = baseUsage + currentSessionTime
+                    val totalUsage = Math.max(liveUsageMs, baseUsage + currentSessionTime)
 
                     if (totalUsage >= (dailyLimitMs - 10000.0) && totalUsage < dailyLimitMs) {
                         val remainingMs = (dailyLimitMs - totalUsage).toLong()

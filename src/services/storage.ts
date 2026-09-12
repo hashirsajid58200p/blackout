@@ -136,6 +136,10 @@ export const StorageService = {
    * If a locked app is no longer installed, removes it from AsyncStorage.
    */
   async cleanUninstalledTrackedApps(installedPackageNames: string[]): Promise<TrackedApp[]> {
+    const settings = await StorageService.getSettings();
+    if (settings.autoCleanUninstalled === false) {
+      return StorageService.getTrackedApps();
+    }
     const apps = await StorageService.getTrackedApps();
     const installedSet = new Set(installedPackageNames);
 

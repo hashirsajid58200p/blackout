@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, ScrollView, TouchableOpacity, Image, Alert } from "react-native";
+import { View, Text, ScrollView, TouchableOpacity, Image } from "react-native";
 import Svg, { Circle } from "react-native-svg";
 import { useApp } from "../context/AppContext";
 import { NavigationHeader } from "../components/NavigationHeader";
@@ -7,9 +7,34 @@ import { BottomNavBar } from "../components/BottomNavBar";
 import { Card } from "../components/ui/Card";
 import { ProgressBar } from "../components/ui/ProgressBar";
 import { StatusPill } from "../components/ui/StatusPill";
+import { Modal } from "../components/ui/Modal";
 import { Plus, ShieldAlert, Lock, Trash2 } from "lucide-react-native";
 import { TrackedApp } from "../types";
 import { StorageService } from "../services/storage";
+
+const formatMs = (ms: number): string => {
+  const minutes = Math.floor(ms / (1000 * 60));
+  const hours = Math.floor(minutes / 60);
+  const minsRem = minutes % 60;
+  if (hours > 0) {
+    return `${hours}h ${minsRem}m`;
+  }
+  return `${minsRem}m`;
+};
+
+interface DialogConfig {
+  visible: boolean;
+  title: string;
+  description: string;
+  variant?: "default" | "danger" | "warning" | "info" | "success";
+  calloutText?: string;
+  calloutVariant?: "danger" | "warning" | "info";
+  confirmLabel?: string;
+  cancelLabel?: string;
+  singleButton?: boolean;
+  onConfirm?: () => void;
+  onCancel: () => void;
+}
 
 const CountdownBadge: React.FC<{
   remainingMs: number;
@@ -74,78 +99,121 @@ export const HomeScreen: React.FC = () => {
     isInitialized,
   } = useApp();
   const [selectedAppPackage, setSelectedAppPackage] = useState<string | null>(null);
+  const [dialogConfig, setDialogConfig] = useState<DialogConfig>({
+    visible: false,
+    title: "",
+    description: "",
+    onCancel: () => {},
+  });
+
+  const closeDialog = () => {
+    setDialogConfig((prev) => ({ ...prev, visible: false }));
+  };
+
+  const promptRemoveApp = (app: TrackedApp) => {
+    if (app.isLocked) {
+      setDialogConfig({
+        visible: true,
+        title: "CANNOT REMOVE",
+        description:
+          "Locked applications cannot be removed until midnight in accordance with Blackout rules.",
+        variant: "danger",
+        singleButton: true,
+        confirmLabel: "ACKNOWLEDGE",
+        calloutText: "Active lock enforced until midnight.",
+        calloutVariant: "danger",
+        onCancel: closeDialog,
+      });
+      return;
+    }
+
+    setDialogConfig({
+      visible: true,
+      title: "REMOVE APP LIMIT",
+      description: `Stop tracking and remove daily limit for ${app.appName}? Normal usage will no longer be restricted.`,
+      variant: "danger",
+      confirmLabel: "REMOVE LIMIT",
+      cancelLabel: "KEEP TRACKING",
+      calloutText: "Daily allowance and tracking history will be reset.",
+      calloutVariant: "warning",
+      onConfirm: async () => {
+        const res = await removeTrackedApp(app.packageName);
+        if (!res.success) {
+          setDialogConfig({
+            visible: true,
+            title: "REMOVE ERROR",
+            description: res.error || "Could not remove app.",
+            variant: "danger",
+            singleButton: true,
+            confirmLabel: "DISMISS",
+            onCancel: closeDialog,
+          });
+        } else {
+          closeDialog();
+        }
+      },
+      onCancel: closeDialog,
+    });
+  };
 
   const handleUnlockPress = (app: TrackedApp) => {
     const now = Date.now();
     const expiration = app.lockExpirationTimestamp || StorageService.getNextMidnightTimestamp();
     if (app.isLocked) {
       if (now < expiration) {
-        Alert.alert(
-          "Lock Active",
-          "This application is locked and cannot be unlocked until midnight in accordance with Blackout rules."
-        );
+        setDialogConfig({
+          visible: true,
+          title: "LOCK ACTIVE",
+          description: `${app.appName} is locked and cannot be unlocked until midnight in accordance with Blackout rules.`,
+          variant: "danger",
+          calloutText: "This lock cannot be edited, paused, or undone today.",
+          calloutVariant: "danger",
+          singleButton: true,
+          confirmLabel: "ACKNOWLEDGE",
+          onCancel: closeDialog,
+        });
         return;
       }
-      Alert.alert(
-        "Unlock Application",
-        `The lock period has completed. Restore normal access to ${app.appName}?`,
-        [
-          { text: "Cancel", style: "cancel" },
-          {
-            text: "Unlock",
-            style: "destructive",
-            onPress: async () => {
-              const res = await unlockTrackedApp(app.packageName);
-              if (res.success) {
-                Alert.alert("Unlocked", `${app.appName} has been unlocked. Normal access restored.`);
-              } else {
-                Alert.alert("Unlock Error", res.error || "Could not unlock app.");
-              }
-            },
-          },
-        ]
-      );
+      setDialogConfig({
+        visible: true,
+        title: "UNLOCK APPLICATION",
+        description: `The daily lock period has completed. Restore normal access to ${app.appName}?`,
+        variant: "info",
+        confirmLabel: "UNLOCK",
+        cancelLabel: "CANCEL",
+        onConfirm: async () => {
+          const res = await unlockTrackedApp(app.packageName);
+          if (res.success) {
+            setDialogConfig({
+              visible: true,
+              title: "UNLOCKED",
+              description: `${app.appName} has been unlocked. Normal access restored.`,
+              variant: "success",
+              singleButton: true,
+              confirmLabel: "DISMISS",
+              onCancel: closeDialog,
+            });
+          } else {
+            setDialogConfig({
+              visible: true,
+              title: "UNLOCK ERROR",
+              description: res.error || "Could not unlock app.",
+              variant: "danger",
+              singleButton: true,
+              confirmLabel: "DISMISS",
+              onCancel: closeDialog,
+            });
+          }
+        },
+        onCancel: closeDialog,
+      });
     } else {
-      Alert.alert(
-        "Allowance Active",
-        `${app.appName} is currently tracked with an active daily limit (${formatMs(app.dailyLimitMs)}). Would you like to stop tracking and remove this limit?`,
-        [
-          { text: "Keep Active", style: "cancel" },
-          {
-            text: "Remove Limit",
-            style: "destructive",
-            onPress: () => handleRemovePress(app),
-          },
-        ]
-      );
+      promptRemoveApp(app);
     }
   };
 
   const handleRemovePress = (app: TrackedApp) => {
-    if (app.isLocked) {
-      Alert.alert(
-        "Cannot Remove",
-        "Locked applications cannot be removed until midnight in accordance with Blackout rules."
-      );
-      return;
-    }
-    Alert.alert(
-      "Remove App Lock",
-      `Stop tracking and remove daily limit for ${app.appName}?`,
-      [
-        { text: "Cancel", style: "cancel" },
-        {
-          text: "Remove",
-          style: "destructive",
-          onPress: async () => {
-            const res = await removeTrackedApp(app.packageName);
-            if (!res.success) {
-              Alert.alert("Remove Error", res.error || "Could not remove app.");
-            }
-          },
-        },
-      ]
-    );
+    promptRemoveApp(app);
   };
 
   const isDark = effectiveTheme === "dark";
@@ -165,16 +233,6 @@ export const HomeScreen: React.FC = () => {
       day: "numeric",
     };
     return new Date().toLocaleDateString("en-US", options).toUpperCase();
-  };
-
-  const formatMs = (ms: number) => {
-    const minutes = Math.floor(ms / (1000 * 60));
-    const hours = Math.floor(minutes / 60);
-    const minsRem = minutes % 60;
-    if (hours > 0) {
-      return `${hours}h ${minsRem}m`;
-    }
-    return `${minsRem}m`;
   };
 
   // Build unified chart apps list merging device usage with tracked limits
@@ -388,14 +446,23 @@ export const HomeScreen: React.FC = () => {
 
         {/* Tracked Apps List */}
         {trackedApps.length === 0 ? (
-          <Card className="py-12 items-center justify-center text-center">
-            <Text className="font-display text-lg text-ink dark:text-bone mb-1">
-              No App Locks Active
-            </Text>
-            <Text className="font-body text-xs text-ink-muted dark:text-bone-muted text-center max-w-[240px]">
-              Tap the (+) button below to pick an installed app and set a daily limit.
-            </Text>
-          </Card>
+          <TouchableOpacity
+            activeOpacity={0.7}
+            onPress={() => setCurrentScreen("add_app")}
+            className="w-full"
+          >
+            <Card className="py-10 items-center justify-center text-center border border-hairline dark:border-hairline-dark bg-paper-surface dark:bg-espresso-surface">
+              <View className="w-10 h-10 rounded-full border border-hairline dark:border-hairline-dark items-center justify-center mb-3 bg-paper dark:bg-espresso">
+                <Plus size={18} color={iconColor} strokeWidth={1.5} />
+              </View>
+              <Text className="font-display text-lg text-ink dark:text-bone mb-1">
+                No App Locks Active
+              </Text>
+              <Text className="font-body text-xs text-ink-muted dark:text-bone-muted text-center max-w-[240px]">
+                Tap here or the (+) button below to pick an installed app and set a daily limit.
+              </Text>
+            </Card>
+          </TouchableOpacity>
         ) : (
           <View className="flex-col gap-3">
             <Text className="font-body-semibold text-xs text-ink-muted dark:text-bone-muted uppercase tracking-widest">
@@ -521,6 +588,22 @@ export const HomeScreen: React.FC = () => {
       </TouchableOpacity>
 
       <BottomNavBar />
+
+      {dialogConfig.visible && (
+        <Modal
+          visible={dialogConfig.visible}
+          title={dialogConfig.title}
+          description={dialogConfig.description}
+          variant={dialogConfig.variant}
+          calloutText={dialogConfig.calloutText}
+          calloutVariant={dialogConfig.calloutVariant}
+          confirmLabel={dialogConfig.confirmLabel}
+          cancelLabel={dialogConfig.cancelLabel}
+          singleButton={dialogConfig.singleButton}
+          onConfirm={dialogConfig.onConfirm}
+          onCancel={dialogConfig.onCancel}
+        />
+      )}
     </View>
   );
 };
