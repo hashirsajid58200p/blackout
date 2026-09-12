@@ -14,6 +14,8 @@ class MidnightResetReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent?) {
         Log.d(TAG, "Midnight reset alarm received. Action: ${intent?.action}")
         SecurityHelper.resetMidnightLocks(context)
+        // Send daily reset notification
+        BlackoutNotificationManager.sendMidnightResetNotification(context, 0)
         // Re-arm the alarm for the next midnight
         SecurityHelper.scheduleMidnightReset(context)
     }

@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
 import { useColorScheme as useRNColorScheme, Appearance, AppState, NativeEventEmitter, Platform } from "react-native";
 import { useColorScheme as useNativeWindColorScheme } from "nativewind";
-import { TrackedApp, Settings, WeeklyStats } from "../types";
+import { TrackedApp, Settings, WeeklyStats, DowntimeConfig } from "../types";
 import { StorageService } from "../services/storage";
 import { NativeBridge, NativePermissionsStatus } from "../services/nativeBridge";
 
@@ -31,6 +31,16 @@ interface AppContextType {
   refreshPermissions: () => Promise<boolean>;
   updateThemeMode: (mode: "system" | "light" | "dark") => Promise<void>;
   updateAutoCleanSetting: (enabled: boolean) => Promise<void>;
+  updateNotificationSetting: (
+    key: "warningNotifications" | "lockoutNotifications" | "midnightResetNotifications" | "statusBarNotification",
+    enabled: boolean
+  ) => Promise<void>;
+  updateHapticSetting: (enabled: boolean) => Promise<void>;
+  updateDowntimeSetting: (downtime: DowntimeConfig) => Promise<void>;
+  updateAppAllowance: (
+    packageName: string,
+    newDailyLimitMs: number
+  ) => Promise<{ success: boolean; error?: string }>;
   addTrackedApp: (
     packageName: string,
     appName: string,
@@ -70,6 +80,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     overlay: false,
     accessibility: false,
     deviceAdmin: false,
+    notifications: false,
+    batteryOptimization: false,
   });
   const [isInitialized, setIsInitialized] = useState<boolean>(false);
 
@@ -128,12 +140,16 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
 
   // ── Synchronized permissions check ──────────────────────────────────────────
   const refreshPermissions = useCallback(async (): Promise<boolean> => {
-    const usageStats = await NativeBridge.checkUsageStatsPermission();
-    const overlay = await NativeBridge.checkOverlayPermission();
-    const accessibility = await NativeBridge.checkAccessibilityPermission();
-    const deviceAdmin = await NativeBridge.isDeviceAdminActive();
+    const [usageStats, overlay, accessibility, deviceAdmin, notifications, batteryOptimization] = await Promise.all([
+      NativeBridge.checkUsageStatsPermission(),
+      NativeBridge.checkOverlayPermission(),
+      NativeBridge.checkAccessibilityPermission(),
+      NativeBridge.isDeviceAdminActive(),
+      NativeBridge.hasNotificationPermission(),
+      NativeBridge.isBatteryOptimizationIgnored(),
+    ]);
 
-    const newPerms = { usageStats, overlay, accessibility, deviceAdmin };
+    const newPerms = { usageStats, overlay, accessibility, deviceAdmin, notifications, batteryOptimization };
     setPermissions(newPerms);
 
     return usageStats && overlay && accessibility && deviceAdmin;
@@ -328,6 +344,35 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     await refreshData();
   };
 
+  const updateNotificationSetting = async (
+    key: "warningNotifications" | "lockoutNotifications" | "midnightResetNotifications" | "statusBarNotification",
+    enabled: boolean
+  ) => {
+    const newSettings = { ...settings, [key]: enabled };
+    setSettings(newSettings);
+    await StorageService.saveSettings(newSettings);
+  };
+
+  const updateHapticSetting = async (enabled: boolean) => {
+    const newSettings = { ...settings, hapticFeedback: enabled };
+    setSettings(newSettings);
+    await StorageService.saveSettings(newSettings);
+  };
+
+  const updateDowntimeSetting = async (downtime: DowntimeConfig) => {
+    const newSettings = { ...settings, downtime };
+    setSettings(newSettings);
+    await StorageService.saveSettings(newSettings);
+  };
+
+  const updateAppAllowance = async (packageName: string, newDailyLimitMs: number) => {
+    const result = await StorageService.updateTrackedAppAllowance(packageName, newDailyLimitMs);
+    if (result.success) {
+      await refreshData();
+    }
+    return result;
+  };
+
   const addTrackedApp = async (
     packageName: string,
     appName: string,
@@ -379,6 +424,10 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
         refreshPermissions,
         updateThemeMode,
         updateAutoCleanSetting,
+        updateNotificationSetting,
+        updateHapticSetting,
+        updateDowntimeSetting,
+        updateAppAllowance,
         addTrackedApp,
         unlockTrackedApp,
         removeTrackedApp,

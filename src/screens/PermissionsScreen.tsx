@@ -4,7 +4,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useApp } from "../context/AppContext";
 import { NativeBridge } from "../services/nativeBridge";
 import { Button } from "../components/ui/Button";
-import { Shield, CheckCircle2, CircleAlert, AppWindow, Eye, Lock } from "lucide-react-native";
+import { Shield, CheckCircle2, CircleAlert, AppWindow, Eye, Lock, Bell, Zap } from "lucide-react-native";
+import { HapticsService } from "../services/haptics";
 
 export const PermissionsScreen: React.FC = () => {
   const { permissions, refreshPermissions, setCurrentScreen, effectiveTheme } = useApp();
@@ -40,6 +41,8 @@ export const PermissionsScreen: React.FC = () => {
   const isOverlayGranted = permissions.overlay;
   const isAccessibilityGranted = permissions.accessibility;
   const isDeviceAdminGranted = permissions.deviceAdmin;
+  const isNotificationsGranted = permissions.notifications;
+  const isBatteryOptimizationGranted = permissions.batteryOptimization;
 
   const allGranted = isUsageStatsGranted && isOverlayGranted && isAccessibilityGranted && isDeviceAdminGranted;
 
@@ -57,6 +60,14 @@ export const PermissionsScreen: React.FC = () => {
 
   const handleGrantDeviceAdmin = () => {
     NativeBridge.requestDeviceAdmin();
+  };
+
+  const handleGrantNotifications = () => {
+    NativeBridge.requestNotificationPermission();
+  };
+
+  const handleGrantBatteryOptimization = () => {
+    NativeBridge.requestIgnoreBatteryOptimization();
   };
 
   const permissionItems = [
@@ -91,6 +102,22 @@ export const PermissionsScreen: React.FC = () => {
       icon: Lock,
       isGranted: isDeviceAdminGranted,
       onGrant: handleGrantDeviceAdmin,
+    },
+    {
+      id: "notifications",
+      title: "ALERT NOTIFICATIONS",
+      description: "5-minute warnings and lockout status",
+      icon: Bell,
+      isGranted: isNotificationsGranted,
+      onGrant: handleGrantNotifications,
+    },
+    {
+      id: "batteryOptimization",
+      title: "BACKGROUND RELIABILITY",
+      description: "Prevents OS from killing midnight reset & service",
+      icon: Zap,
+      isGranted: isBatteryOptimizationGranted,
+      onGrant: handleGrantBatteryOptimization,
     },
   ];
 
@@ -176,12 +203,16 @@ export const PermissionsScreen: React.FC = () => {
             label={allGranted ? "ENTER BLACKOUT" : "GRANT PERMISSIONS"}
             onPress={() => {
               if (allGranted) {
+                HapticsService.stamp();
                 setCurrentScreen("home");
               } else {
+                HapticsService.tick();
                 if (!isUsageStatsGranted) handleGrantUsageStats();
                 else if (!isOverlayGranted) handleGrantOverlay();
                 else if (!isAccessibilityGranted) handleGrantAccessibility();
                 else if (!isDeviceAdminGranted) handleGrantDeviceAdmin();
+                else if (!isNotificationsGranted) handleGrantNotifications();
+                else if (!isBatteryOptimizationGranted) handleGrantBatteryOptimization();
               }
             }}
           />

@@ -8,9 +8,11 @@ import { Card } from "../components/ui/Card";
 import { ProgressBar } from "../components/ui/ProgressBar";
 import { StatusPill } from "../components/ui/StatusPill";
 import { Modal } from "../components/ui/Modal";
-import { Plus, ShieldAlert, Lock, Trash2 } from "lucide-react-native";
+import { Plus, ShieldAlert, Lock, Trash2, Sliders } from "lucide-react-native";
 import { TrackedApp } from "../types";
 import { StorageService } from "../services/storage";
+import { HapticsService } from "../services/haptics";
+import { calculateFocusStreak } from "../utils/streak";
 
 const formatMs = (ms: number): string => {
   const minutes = Math.floor(ms / (1000 * 60));
@@ -93,12 +95,20 @@ export const HomeScreen: React.FC = () => {
     effectiveTheme,
     todayDeviceUsage,
     todayTotalUsageMs,
+    weeklyUsageStats,
     refreshUsageStats,
     unlockTrackedApp,
     removeTrackedApp,
+    updateAppAllowance,
     isInitialized,
   } = useApp();
   const [selectedAppPackage, setSelectedAppPackage] = useState<string | null>(null);
+  const [editingApp, setEditingApp] = useState<TrackedApp | null>(null);
+  const [editHours, setEditHours] = useState(1);
+  const [editMinutes, setEditMinutes] = useState(0);
+
+  const focusStreak = calculateFocusStreak(weeklyUsageStats, trackedApps);
+
   const [dialogConfig, setDialogConfig] = useState<DialogConfig>({
     visible: false,
     title: "",
@@ -108,6 +118,58 @@ export const HomeScreen: React.FC = () => {
 
   const closeDialog = () => {
     setDialogConfig((prev) => ({ ...prev, visible: false }));
+  };
+
+  const openEditAllowance = (app: TrackedApp) => {
+    HapticsService.tick();
+    if (app.isLocked) {
+      setDialogConfig({
+        visible: true,
+        title: "LOCK ACTIVE",
+        description: "Locked applications cannot be modified until midnight in accordance with Blackout rules.",
+        variant: "danger",
+        singleButton: true,
+        confirmLabel: "ACKNOWLEDGE",
+        onCancel: closeDialog,
+      });
+      return;
+    }
+    const totalMinutes = Math.floor(app.dailyLimitMs / (1000 * 60));
+    setEditHours(Math.floor(totalMinutes / 60));
+    setEditMinutes(totalMinutes % 60);
+    setEditingApp(app);
+  };
+
+  const handleSaveAllowance = async () => {
+    if (!editingApp) return;
+    const newLimitMs = (editHours * 3600 + editMinutes * 60) * 1000;
+    if (newLimitMs < 60000) {
+      setDialogConfig({
+        visible: true,
+        title: "INVALID LIMIT",
+        description: "Daily allowance must be at least 1 minute.",
+        variant: "warning",
+        singleButton: true,
+        confirmLabel: "ACKNOWLEDGE",
+        onCancel: closeDialog,
+      });
+      return;
+    }
+    HapticsService.stamp();
+    const res = await updateAppAllowance(editingApp.packageName, newLimitMs);
+    if (res.success) {
+      setEditingApp(null);
+    } else {
+      setDialogConfig({
+        visible: true,
+        title: "UPDATE ERROR",
+        description: res.error || "Could not update allowance.",
+        variant: "danger",
+        singleButton: true,
+        confirmLabel: "DISMISS",
+        onCancel: closeDialog,
+      });
+    }
   };
 
   const promptRemoveApp = (app: TrackedApp) => {
@@ -310,13 +372,35 @@ export const HomeScreen: React.FC = () => {
 
       <ScrollView contentContainerStyle={{ paddingBottom: 160 }} className="px-margin-page pt-4 flex-1">
         {/* Date Header */}
-        <View className="flex-col gap-1 mb-6">
+        <View className="flex-col gap-1 mb-4">
           <Text className="font-display text-3xl text-ink dark:text-bone tracking-tight">
             Focus
           </Text>
           <Text className="font-mono text-xs text-ink-muted dark:text-bone-muted uppercase tracking-[0.12em]">
             {getTodayFormatted()}
           </Text>
+        </View>
+
+        {/* Monolith Focus Streak Indicator */}
+        <View className="mb-6 border border-hairline dark:border-hairline-dark bg-paper-surface dark:bg-espresso-surface p-3.5 flex-row items-center justify-between rounded-none">
+          <View className="flex-row items-center gap-3">
+            <View className="w-8 h-8 bg-brass/10 border border-brass/50 items-center justify-center rounded-none">
+              <Text className="text-brass dark:text-brass text-sm font-mono-bold">★</Text>
+            </View>
+            <View>
+              <Text className="font-mono-bold text-xs text-ink dark:text-bone uppercase tracking-[0.12em]">
+                {focusStreak} DAY{focusStreak === 1 ? "" : "S"} UNBROKEN
+              </Text>
+              <Text className="font-mono text-[10px] text-ink-muted dark:text-bone-muted uppercase tracking-[0.08em] mt-0.5">
+                DISCIPLINE LEDGER // FOCUS STREAK
+              </Text>
+            </View>
+          </View>
+          <View className="border border-brass/50 bg-brass/10 px-2 py-0.5 rounded-none">
+            <Text className="text-[10px] font-mono-bold text-brass uppercase tracking-[0.1em]">
+              {focusStreak > 0 ? "DISCIPLINED" : "INITIATING"}
+            </Text>
+          </View>
         </View>
 
         {/* Permission Notice if missing (guarded by isInitialized to avoid cold-launch false error flash) */}
@@ -521,14 +605,24 @@ export const HomeScreen: React.FC = () => {
 
                     <View className="flex-row items-center gap-2">
                       {!app.isLocked && (
-                        <TouchableOpacity
-                          activeOpacity={0.7}
-                          onPress={() => handleRemovePress(app)}
-                          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                          className="p-1.5 rounded-none border border-hairline dark:border-hairline-dark active:bg-ink/5 dark:active:bg-bone/5 items-center justify-center"
-                        >
-                          <Trash2 size={13} color={iconColor} strokeWidth={1.25} />
-                        </TouchableOpacity>
+                        <>
+                          <TouchableOpacity
+                            activeOpacity={0.7}
+                            onPress={() => openEditAllowance(app)}
+                            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                            className="p-1.5 rounded-none border border-hairline dark:border-hairline-dark active:bg-ink/5 dark:active:bg-bone/5 items-center justify-center"
+                          >
+                            <Sliders size={13} color={iconColor} strokeWidth={1.25} />
+                          </TouchableOpacity>
+                          <TouchableOpacity
+                            activeOpacity={0.7}
+                            onPress={() => handleRemovePress(app)}
+                            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                            className="p-1.5 rounded-none border border-hairline dark:border-hairline-dark active:bg-ink/5 dark:active:bg-bone/5 items-center justify-center"
+                          >
+                            <Trash2 size={13} color={iconColor} strokeWidth={1.25} />
+                          </TouchableOpacity>
+                        </>
                       )}
                       <StatusPill isLocked={app.isLocked} />
                     </View>
@@ -562,11 +656,14 @@ export const HomeScreen: React.FC = () => {
                     ) : (
                       <TouchableOpacity
                         activeOpacity={0.7}
-                        onPress={() => handleUnlockPress(app)}
-                        className="mt-1.5 py-1.5 px-3 border border-brass/50 bg-brass/10 rounded-none flex-row items-center justify-center gap-1.5"
+                        onPress={() => openEditAllowance(app)}
+                        className="mt-1.5 py-1.5 px-3 border border-brass/50 bg-brass/10 rounded-none flex-row items-center justify-between gap-1.5"
                       >
                         <Text className="font-mono-bold text-[10px] text-brass dark:text-brass uppercase tracking-[0.1em]">
                           ALLOWANCE ACTIVE • {formatMs(Math.max(0, app.dailyLimitMs - app.usedTodayMs))} REMAINING
+                        </Text>
+                        <Text className="font-mono text-[9px] text-brass/80 uppercase">
+                          [ ADJUST ]
                         </Text>
                       </TouchableOpacity>
                     )}
@@ -578,10 +675,180 @@ export const HomeScreen: React.FC = () => {
         )}
       </ScrollView>
 
+      {/* Edit Allowance Modal */}
+      {editingApp && (
+        <View className="absolute inset-0 bg-black/60 items-center justify-center p-5 z-50">
+          <View className="w-full max-w-sm border border-hairline dark:border-hairline-dark bg-paper dark:bg-espresso p-5 flex-col gap-4 rounded-none">
+            <View className="flex-row justify-between items-start">
+              <View className="flex-1 pr-2">
+                <Text className="font-body-bold text-[11px] text-ink-muted dark:text-bone-muted uppercase tracking-[0.12em]">
+                  ADJUST DAILY ALLOWANCE
+                </Text>
+                <Text numberOfLines={1} className="font-display text-xl text-ink dark:text-bone mt-0.5">
+                  {editingApp.appName}
+                </Text>
+              </View>
+              <TouchableOpacity
+                activeOpacity={0.7}
+                onPress={() => {
+                  HapticsService.tick();
+                  setEditingApp(null);
+                }}
+                className="w-7 h-7 border border-hairline dark:border-hairline-dark items-center justify-center"
+              >
+                <Text className="font-mono text-xs text-ink dark:text-bone">✕</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Quick Presets */}
+            <View className="flex-col gap-1.5">
+              <Text className="text-[10px] font-body-bold text-ink-muted dark:text-bone-muted uppercase tracking-[0.12em]">
+                QUICK PRESETS
+              </Text>
+              <View className="flex-row flex-wrap gap-1.5">
+                {[
+                  { label: "15M", h: 0, m: 15 },
+                  { label: "30M", h: 0, m: 30 },
+                  { label: "45M", h: 0, m: 45 },
+                  { label: "1H", h: 1, m: 0 },
+                  { label: "2H", h: 2, m: 0 },
+                  { label: "3H", h: 3, m: 0 },
+                ].map((preset) => {
+                  const isCurrent = editHours === preset.h && editMinutes === preset.m;
+                  return (
+                    <TouchableOpacity
+                      key={preset.label}
+                      activeOpacity={0.7}
+                      onPress={() => {
+                        HapticsService.tick();
+                        setEditHours(preset.h);
+                        setEditMinutes(preset.m);
+                      }}
+                      className={`py-1.5 px-3 border rounded-none items-center justify-center ${
+                        isCurrent
+                          ? "border-ink dark:border-bone bg-ink dark:bg-bone"
+                          : "border-hairline dark:border-hairline-dark bg-transparent active:bg-ink/5 dark:active:bg-bone/5"
+                      }`}
+                    >
+                      <Text
+                        className={`font-mono text-xs uppercase ${
+                          isCurrent
+                            ? "text-paper dark:text-espresso font-mono-bold"
+                            : "text-ink dark:text-bone"
+                        }`}
+                      >
+                        {preset.label}
+                      </Text>
+                    </TouchableOpacity>
+                  );
+                })}
+              </View>
+            </View>
+
+            {/* Steppers */}
+            <View className="flex-row items-center justify-center gap-3 py-2 border border-hairline dark:border-hairline-dark bg-paper-surface dark:bg-espresso-surface">
+              {/* Hours */}
+              <View className="flex-col items-center flex-1">
+                <Text className="text-[10px] font-body-bold text-ink-muted dark:text-bone-muted uppercase mb-1.5 tracking-[0.12em]">
+                  HOURS
+                </Text>
+                <View className="flex-row items-center gap-1.5">
+                  <TouchableOpacity
+                    activeOpacity={0.7}
+                    onPress={() => {
+                      HapticsService.tick();
+                      setEditHours(Math.max(0, editHours - 1));
+                    }}
+                    className="w-8 h-8 border border-hairline dark:border-hairline-dark rounded-none items-center justify-center"
+                  >
+                    <Text className="font-mono-bold text-base text-ink dark:text-bone">-</Text>
+                  </TouchableOpacity>
+                  <Text className="font-mono-bold text-2xl text-ink dark:text-bone min-w-[36px] text-center">
+                    {editHours}
+                  </Text>
+                  <TouchableOpacity
+                    activeOpacity={0.7}
+                    onPress={() => {
+                      HapticsService.tick();
+                      setEditHours(Math.min(12, editHours + 1));
+                    }}
+                    className="w-8 h-8 border border-hairline dark:border-hairline-dark rounded-none items-center justify-center"
+                  >
+                    <Text className="font-mono-bold text-base text-ink dark:text-bone">+</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+
+              <Text className="font-mono-bold text-2xl text-ink dark:text-bone">:</Text>
+
+              {/* Minutes */}
+              <View className="flex-col items-center flex-1">
+                <Text className="text-[10px] font-body-bold text-ink-muted dark:text-bone-muted uppercase mb-1.5 tracking-[0.12em]">
+                  MINUTES
+                </Text>
+                <View className="flex-row items-center gap-1.5">
+                  <TouchableOpacity
+                    activeOpacity={0.7}
+                    onPress={() => {
+                      HapticsService.tick();
+                      setEditMinutes(Math.max(0, editMinutes - 1));
+                    }}
+                    className="w-8 h-8 border border-hairline dark:border-hairline-dark rounded-none items-center justify-center"
+                  >
+                    <Text className="font-mono-bold text-base text-ink dark:text-bone">-</Text>
+                  </TouchableOpacity>
+                  <Text className="font-mono-bold text-2xl text-ink dark:text-bone min-w-[36px] text-center">
+                    {String(editMinutes).padStart(2, "0")}
+                  </Text>
+                  <TouchableOpacity
+                    activeOpacity={0.7}
+                    onPress={() => {
+                      HapticsService.tick();
+                      setEditMinutes(Math.min(59, editMinutes + 1));
+                    }}
+                    className="w-8 h-8 border border-hairline dark:border-hairline-dark rounded-none items-center justify-center"
+                  >
+                    <Text className="font-mono-bold text-base text-ink dark:text-bone">+</Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+
+            {/* Actions */}
+            <View className="flex-row gap-2 pt-1">
+              <TouchableOpacity
+                activeOpacity={0.7}
+                onPress={() => {
+                  HapticsService.tick();
+                  setEditingApp(null);
+                }}
+                className="flex-1 py-3 border border-hairline dark:border-hairline-dark items-center justify-center"
+              >
+                <Text className="font-body-bold text-xs text-ink dark:text-bone uppercase tracking-[0.1em]">
+                  CANCEL
+                </Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={handleSaveAllowance}
+                className="flex-1 py-3 bg-ink dark:bg-bone border border-ink dark:border-bone items-center justify-center"
+              >
+                <Text className="font-body-bold text-xs text-paper dark:text-espresso uppercase tracking-[0.1em]">
+                  SAVE LIMIT
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      )}
+
       {/* Floating Action Button (FAB) */}
       <TouchableOpacity
         activeOpacity={0.8}
-        onPress={() => setCurrentScreen("add_app")}
+        onPress={() => {
+          HapticsService.tick();
+          setCurrentScreen("add_app");
+        }}
         style={{ zIndex: 60 }}
         className="absolute bottom-[84px] right-5 w-14 h-14 bg-ink dark:bg-bone rounded-none items-center justify-center border border-ink dark:border-bone shadow-none active:scale-95"
       >

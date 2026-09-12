@@ -1,5 +1,6 @@
 package com.blackout.app
 
+import android.Manifest
 import android.app.AppOpsManager
 import android.app.admin.DevicePolicyManager
 import android.app.usage.UsageEvents
@@ -14,10 +15,15 @@ import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.net.Uri
 import android.os.Build
+import android.os.PowerManager
 import android.os.Process
 import android.provider.Settings
 import android.util.Base64
 import android.util.Log
+import androidx.core.app.NotificationManagerCompat
+import androidx.core.content.ContextCompat
+import android.os.Vibrator
+import android.os.VibrationEffect
 import com.facebook.react.bridge.*
 import java.io.ByteArrayOutputStream
 import java.util.*
@@ -346,6 +352,49 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
         }
     }
 
+    private fun resolveAppCategory(packageName: String, appInfo: ApplicationInfo): String {
+        val lowerPkg = packageName.lowercase()
+        // High confidence package name heuristics
+        if (lowerPkg.contains("whatsapp") || lowerPkg.contains("instagram") ||
+            lowerPkg.contains("facebook") || lowerPkg.contains("twitter") ||
+            lowerPkg.contains("reddit") || lowerPkg.contains("tiktok") ||
+            lowerPkg.contains("snapchat") || lowerPkg.contains("telegram") ||
+            lowerPkg.contains("discord") || lowerPkg.contains("linkedin") ||
+            lowerPkg.contains("threads") || lowerPkg.contains("wechat")) {
+            return "Social"
+        }
+        if (lowerPkg.contains("chrome") || lowerPkg.contains("browser") ||
+            lowerPkg.contains("firefox") || lowerPkg.contains("opera") ||
+            lowerPkg.contains("edge") || lowerPkg.contains("brave") ||
+            lowerPkg.contains("duckduckgo")) {
+            return "Browsers"
+        }
+        if (lowerPkg.contains("youtube") || lowerPkg.contains("netflix") ||
+            lowerPkg.contains("spotify") || lowerPkg.contains("music") ||
+            lowerPkg.contains("video") || lowerPkg.contains("vlc") ||
+            lowerPkg.contains("primevideo") || lowerPkg.contains("disney") ||
+            lowerPkg.contains("twitch") || lowerPkg.contains("soundcloud")) {
+            return "Media"
+        }
+        if (lowerPkg.contains("game") || lowerPkg.contains("pubg") ||
+            lowerPkg.contains("freefire") || lowerPkg.contains("clash") ||
+            lowerPkg.contains("subway") || lowerPkg.contains("candy") ||
+            lowerPkg.contains("roblox") || lowerPkg.contains("minecraft") ||
+            lowerPkg.contains("asphalt") || lowerPkg.contains("chess")) {
+            return "Games"
+        }
+        // OS ApplicationInfo category mapping (Android 8.0+)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            when (appInfo.category) {
+                ApplicationInfo.CATEGORY_GAME -> return "Games"
+                ApplicationInfo.CATEGORY_AUDIO, ApplicationInfo.CATEGORY_VIDEO, ApplicationInfo.CATEGORY_NEWS -> return "Media"
+                ApplicationInfo.CATEGORY_SOCIAL -> return "Social"
+                ApplicationInfo.CATEGORY_MAPS, ApplicationInfo.CATEGORY_PRODUCTIVITY -> return "Tools"
+            }
+        }
+        return "General"
+    }
+
     @ReactMethod
     fun getInstalledApps(promise: Promise) {
         try {
@@ -395,10 +444,12 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
 
                 val iconUri = getAppIconUri(pm, appInfo)
 
+                val appCategory = resolveAppCategory(packageName, appInfo)
+
                 val map = WritableNativeMap().apply {
                     putString("packageName", packageName)
                     putString("appName", appName)
-                    putString("category", "Installed App")
+                    putString("category", appCategory)
                     putDouble("usedTodayMs", usedTodayMs.toDouble())
                     putString("iconUri", iconUri)
                     putString("iconBase64", "")
@@ -622,6 +673,247 @@ class BlackoutModule(reactContext: ReactApplicationContext) : ReactContextBaseJa
         } catch (e: Exception) {
             Log.e(TAG, "unlockPackage error", e)
             promise.reject("UNLOCK_ERROR", e.message)
+        }
+    }
+
+    @ReactMethod
+    fun hasNotificationPermission(promise: Promise) {
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                val granted = ContextCompat.checkSelfPermission(
+                    reactApplicationContext,
+                    Manifest.permission.POST_NOTIFICATIONS
+                ) == PackageManager.PERMISSION_GRANTED
+                promise.resolve(granted)
+            } else {
+                val areEnabled = NotificationManagerCompat.from(reactApplicationContext).areNotificationsEnabled()
+                promise.resolve(areEnabled)
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "hasNotificationPermission error", e)
+            promise.resolve(false)
+        }
+    }
+
+    @ReactMethod
+    fun requestNotificationPermission(promise: Promise) {
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                val activity = reactApplicationContext.currentActivity
+                if (activity != null) {
+                    activity.requestPermissions(
+                        arrayOf(Manifest.permission.POST_NOTIFICATIONS),
+                        102
+                    )
+                    promise.resolve(true)
+                } else {
+                    val intent = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
+                        putExtra(Settings.EXTRA_APP_PACKAGE, reactApplicationContext.packageName)
+                        flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                    }
+                    reactApplicationContext.startActivity(intent)
+                    promise.resolve(true)
+                }
+            } else {
+                val intent = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
+                    putExtra(Settings.EXTRA_APP_PACKAGE, reactApplicationContext.packageName)
+                    flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                }
+                reactApplicationContext.startActivity(intent)
+                promise.resolve(true)
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "requestNotificationPermission error", e)
+            promise.reject("NOTIF_PERM_ERROR", e.message)
+        }
+    }
+
+    @ReactMethod
+    fun isBatteryOptimizationIgnored(promise: Promise) {
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                val pm = reactApplicationContext.getSystemService(Context.POWER_SERVICE) as? PowerManager
+                val isIgnored = pm?.isIgnoringBatteryOptimizations(reactApplicationContext.packageName) ?: false
+                promise.resolve(isIgnored)
+            } else {
+                promise.resolve(true)
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "isBatteryOptimizationIgnored error", e)
+            promise.resolve(false)
+        }
+    }
+
+    @ReactMethod
+    fun requestIgnoreBatteryOptimization(promise: Promise) {
+        try {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                val pm = reactApplicationContext.getSystemService(Context.POWER_SERVICE) as? PowerManager
+                if (pm != null && !pm.isIgnoringBatteryOptimizations(reactApplicationContext.packageName)) {
+                    val intent = Intent(Settings.ACTION_REQUEST_IGNORE_BATTERY_OPTIMIZATIONS).apply {
+                        data = Uri.parse("package:${reactApplicationContext.packageName}")
+                        flags = Intent.FLAG_ACTIVITY_NEW_TASK
+                    }
+                    reactApplicationContext.startActivity(intent)
+                }
+            }
+            promise.resolve(true)
+        } catch (e: Exception) {
+            Log.e(TAG, "requestIgnoreBatteryOptimization error", e)
+            promise.reject("BATTERY_OPT_ERROR", e.message)
+        }
+    }
+
+    @ReactMethod
+    fun syncNotificationSettings(warningsEnabled: Boolean, locksEnabled: Boolean, resetEnabled: Boolean) {
+        try {
+            val prefs = reactApplicationContext.getSharedPreferences("BlackoutPrefs", Context.MODE_PRIVATE)
+            prefs.edit()
+                .putBoolean("notif_warnings_enabled", warningsEnabled)
+                .putBoolean("notif_locks_enabled", locksEnabled)
+                .putBoolean("notif_reset_enabled", resetEnabled)
+                .apply()
+            Log.d(TAG, "Synced notification settings: warnings=$warningsEnabled, locks=$locksEnabled, reset=$resetEnabled")
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to sync notification settings", e)
+        }
+    }
+
+    @ReactMethod
+    fun getDiagnostics(promise: Promise) {
+        try {
+            val isAccessibilityActive = BlackoutAccessibilityService.instance != null
+            val pm = reactApplicationContext.getSystemService(Context.POWER_SERVICE) as? PowerManager
+            val isBatteryIgnored = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                pm?.isIgnoringBatteryOptimizations(reactApplicationContext.packageName) ?: false
+            } else true
+
+            val isNotifGranted = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                ContextCompat.checkSelfPermission(
+                    reactApplicationContext,
+                    Manifest.permission.POST_NOTIFICATIONS
+                ) == PackageManager.PERMISSION_GRANTED
+            } else {
+                NotificationManagerCompat.from(reactApplicationContext).areNotificationsEnabled()
+            }
+
+            val dpm = reactApplicationContext.getSystemService(Context.DEVICE_POLICY_SERVICE) as DevicePolicyManager
+            val adminComponent = ComponentName(reactApplicationContext, BlackoutDeviceAdminReceiver::class.java)
+            val isAdminActive = dpm.isAdminActive(adminComponent)
+
+            val map = Arguments.createMap().apply {
+                putBoolean("isAccessibilityActive", isAccessibilityActive)
+                putBoolean("isBatteryIgnored", isBatteryIgnored)
+                putBoolean("isNotificationGranted", isNotifGranted)
+                putBoolean("isDeviceAdminActive", isAdminActive)
+                putDouble("nextMidnightTimestamp", SecurityHelper.getNextMidnightTimestamp().toDouble())
+            }
+            promise.resolve(map)
+        } catch (e: Exception) {
+            Log.e(TAG, "getDiagnostics error", e)
+            promise.reject("DIAGNOSTICS_ERROR", e.message)
+        }
+    }
+
+    @ReactMethod
+    fun rearmDiagnostics(promise: Promise) {
+        try {
+            // Re-arm midnight reset AlarmManager
+            SecurityHelper.scheduleMidnightReset(reactApplicationContext)
+            // Re-verify notification channels
+            BlackoutNotificationManager.initChannels(reactApplicationContext)
+            // Return fresh diagnostics
+            getDiagnostics(promise)
+        } catch (e: Exception) {
+            Log.e(TAG, "rearmDiagnostics error", e)
+            promise.reject("REARM_ERROR", e.message)
+        }
+    }
+
+    @ReactMethod
+    fun syncDowntimeSettings(
+        enabled: Boolean,
+        startHour: Int,
+        startMinute: Int,
+        endHour: Int,
+        endMinute: Int,
+        activeDays: String
+    ) {
+        try {
+            val prefs = reactApplicationContext.getSharedPreferences("BlackoutPrefs", Context.MODE_PRIVATE)
+            prefs.edit()
+                .putBoolean("downtime_enabled", enabled)
+                .putInt("downtime_start_hour", startHour)
+                .putInt("downtime_start_min", startMinute)
+                .putInt("downtime_end_hour", endHour)
+                .putInt("downtime_end_min", endMinute)
+                .putString("downtime_active_days", activeDays)
+                .apply()
+            Log.d(TAG, "Synced downtime settings: enabled=$enabled, $startHour:$startMinute - $endHour:$endMinute, days=$activeDays")
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to sync downtime settings", e)
+        }
+    }
+
+    @ReactMethod
+    fun syncHapticSetting(enabled: Boolean) {
+        try {
+            val prefs = reactApplicationContext.getSharedPreferences("BlackoutPrefs", Context.MODE_PRIVATE)
+            prefs.edit().putBoolean("haptic_feedback_enabled", enabled).apply()
+            Log.d(TAG, "Synced haptic setting: $enabled")
+        } catch (e: Exception) {
+            Log.e(TAG, "Failed to sync haptic setting", e)
+        }
+    }
+
+    @ReactMethod
+    fun triggerHaptic(type: String) {
+        try {
+            val prefs = reactApplicationContext.getSharedPreferences("BlackoutPrefs", Context.MODE_PRIVATE)
+            if (!prefs.getBoolean("haptic_feedback_enabled", true)) {
+                return
+            }
+
+            val vibrator = reactApplicationContext.getSystemService(Context.VIBRATOR_SERVICE) as? Vibrator ?: return
+            if (!vibrator.hasVibrator()) return
+
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                when (type) {
+                    "tick" -> {
+                        vibrator.vibrate(VibrationEffect.createPredefined(VibrationEffect.EFFECT_CLICK))
+                    }
+                    "stamp", "heavy" -> {
+                        vibrator.vibrate(VibrationEffect.createPredefined(VibrationEffect.EFFECT_HEAVY_CLICK))
+                    }
+                    "strike" -> {
+                        val timings = longArrayOf(0, 35, 45, 60)
+                        val amplitudes = intArrayOf(0, 200, 0, 255)
+                        vibrator.vibrate(VibrationEffect.createWaveform(timings, amplitudes, -1))
+                    }
+                    else -> {
+                        vibrator.vibrate(VibrationEffect.createPredefined(VibrationEffect.EFFECT_CLICK))
+                    }
+                }
+            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                val duration = when (type) {
+                    "tick" -> 15L
+                    "stamp", "heavy" -> 45L
+                    "strike" -> 110L
+                    else -> 18L
+                }
+                vibrator.vibrate(VibrationEffect.createOneShot(duration, VibrationEffect.DEFAULT_AMPLITUDE))
+            } else {
+                @Suppress("DEPRECATION")
+                val duration = when (type) {
+                    "tick" -> 15L
+                    "stamp", "heavy" -> 45L
+                    "strike" -> 110L
+                    else -> 18L
+                }
+                vibrator.vibrate(duration)
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "triggerHaptic error", e)
         }
     }
 }

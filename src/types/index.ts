@@ -14,9 +14,34 @@ export interface TrackedApp {
   iconUri?: string;
 }
 
+export interface DowntimeConfig {
+  enabled: boolean;
+  startHour: number; // 0-23
+  startMinute: number; // 0-59
+  endHour: number; // 0-23
+  endMinute: number; // 0-59
+  activeDays: "everyday" | "weekdays" | "weekends";
+}
+
 export interface Settings {
   themeMode: "system" | "light" | "dark"; // default: "system"
   autoCleanUninstalled?: boolean; // default: true
+  warningNotifications?: boolean; // default: true (5m remaining alert)
+  lockoutNotifications?: boolean; // default: true (when app locks)
+  midnightResetNotifications?: boolean; // default: true (12:00 AM reset summary)
+  statusBarNotification?: boolean; // default: true (ongoing status bar indicator)
+  hapticFeedback?: boolean; // default: true (tactile mechanical clicks & stamp thuds)
+  downtime?: DowntimeConfig; // Scheduled Downtime ("Night Watch")
+}
+
+export interface SystemDiagnostics {
+  isAccessibilityActive: boolean;
+  isBatteryIgnored: boolean;
+  isNotificationGranted: boolean;
+  isDeviceAdminActive: boolean;
+  nextMidnightTimestamp: number;
+  downtimeActive?: boolean;
+  downtimeWindow?: string;
 }
 
 export interface InstalledAppInfo {

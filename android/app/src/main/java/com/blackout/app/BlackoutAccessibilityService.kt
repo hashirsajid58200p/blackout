@@ -44,6 +44,9 @@ class BlackoutAccessibilityService : AccessibilityService() {
     private var windowManager: WindowManager? = null
     private var overlayView: LinearLayout? = null
     private var overlayParams: WindowManager.LayoutParams? = null
+    private var stampBoxView: LinearLayout? = null
+    private var stampTv: TextView? = null
+    private var titleTv: TextView? = null
     private var appNameTextView: TextView? = null
     private var warningTextView: TextView? = null
     private val mainHandler = Handler(Looper.getMainLooper())
@@ -55,6 +58,42 @@ class BlackoutAccessibilityService : AccessibilityService() {
     private var countdownSeconds = 10
     private var countdownTv: TextView? = null
     private var countdownSubTv: TextView? = null
+
+    private fun isPackageTracked(packageName: String): Boolean {
+        try {
+            val prefs = getSharedPreferences("BlackoutPrefs", Context.MODE_PRIVATE)
+            val jsonString = prefs.getString("locked_apps_json", null) ?: return false
+            val jsonArray = org.json.JSONArray(jsonString)
+            for (i in 0 until jsonArray.length()) {
+                val itemObj = jsonArray.optJSONObject(i) ?: continue
+                if (itemObj.optString("packageName") == packageName) {
+                    return true
+                }
+            }
+        } catch (e: Exception) {}
+        return false
+    }
+
+    private fun triggerOverlayHaptic() {
+        try {
+            val prefs = getSharedPreferences("BlackoutPrefs", Context.MODE_PRIVATE)
+            if (!prefs.getBoolean("haptic_feedback_enabled", true)) return
+            val vibrator = getSystemService(Context.VIBRATOR_SERVICE) as? android.os.Vibrator ?: return
+            if (!vibrator.hasVibrator()) return
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                val timings = longArrayOf(0, 35, 45, 60)
+                val amplitudes = intArrayOf(0, 200, 0, 255)
+                vibrator.vibrate(android.os.VibrationEffect.createWaveform(timings, amplitudes, -1))
+            } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                vibrator.vibrate(android.os.VibrationEffect.createOneShot(100L, android.os.VibrationEffect.DEFAULT_AMPLITUDE))
+            } else {
+                @Suppress("DEPRECATION")
+                vibrator.vibrate(100L)
+            }
+        } catch (e: Exception) {
+            Log.w(TAG, "Overlay haptic error", e)
+        }
+    }
 
     private fun sendToHome(): Boolean {
         var success = performGlobalAction(GLOBAL_ACTION_HOME)
@@ -80,13 +119,16 @@ class BlackoutAccessibilityService : AccessibilityService() {
         return success
     }
 
-    private fun enforceBlock(packageName: String) {
-        Log.i(TAG, "enforceBlock triggered for package: $packageName")
+    private fun enforceBlock(packageName: String, isDowntime: Boolean = false) {
+        Log.i(TAG, "enforceBlock triggered for package: $packageName (isDowntime=$isDowntime)")
         removeCountdownOverlay()
-        lockedPackages.add(packageName)
-        SecurityHelper.markPackageLocked(applicationContext, packageName)
-        showOverlay(packageName)
-        notifyLockedAppIfApplicable(packageName)
+        if (!isDowntime) {
+            lockedPackages.add(packageName)
+            SecurityHelper.markPackageLocked(applicationContext, packageName)
+            notifyLockedAppIfApplicable(packageName)
+        }
+        triggerOverlayHaptic()
+        showOverlay(packageName, isDowntime)
 
         isTransitioningToHome = true
         lastBlockedPackage = packageName
@@ -179,9 +221,12 @@ class BlackoutAccessibilityService : AccessibilityService() {
                                 removeCountdownOverlay()
                                 cancelLockedAppNotification()
                             }
+                        } else if (SecurityHelper.isDowntimeActive(this@BlackoutAccessibilityService) && isPackageTracked(activePkg)) {
+                            Log.w(TAG, "Safety net detected active Night Watch package: $activePkg")
+                            enforceBlock(activePkg, isDowntime = true)
                         } else if (isAppBlocked(activePkg)) {
                             Log.w(TAG, "Safety net detected active blocked package: $activePkg")
-                            enforceBlock(activePkg)
+                            enforceBlock(activePkg, isDowntime = false)
                         } else {
                             checkCountdownIfAboutToBlock(activePkg)
                         }
@@ -268,10 +313,17 @@ class BlackoutAccessibilityService : AccessibilityService() {
             return
         }
 
-        // 4. Check if app is blocked
+        // 4. Check if Night Watch scheduled downtime is active on this package
+        if (SecurityHelper.isDowntimeActive(this) && isPackageTracked(pkg)) {
+            Log.i(TAG, "Night Watch scheduled downtime active for $pkg, triggering enforceBlock")
+            enforceBlock(pkg, isDowntime = true)
+            return
+        }
+
+        // 5. Check if app is blocked by daily limit
         if (isAppBlocked(pkg)) {
             Log.i(TAG, "App is blocked: $pkg, triggering enforceBlock")
-            enforceBlock(pkg)
+            enforceBlock(pkg, isDowntime = false)
         } else {
             // Normal unblocked app: hide overlay if previously visible
             if (overlayView?.visibility == View.VISIBLE) {
@@ -419,6 +471,8 @@ class BlackoutAccessibilityService : AccessibilityService() {
             gravity = Gravity.CENTER
             letterSpacing = 0.2f
         }
+        stampBoxView = iconBox
+        stampTv = stampText
         iconBox.addView(stampText)
         layout.addView(iconBox)
 
@@ -431,6 +485,7 @@ class BlackoutAccessibilityService : AccessibilityService() {
             gravity = Gravity.CENTER
             letterSpacing = 0.15f
         }
+        titleTv = titleText
         layout.addView(titleText)
 
         // Subtitle: TARGET APP IS DARK
@@ -489,7 +544,7 @@ class BlackoutAccessibilityService : AccessibilityService() {
         }
     }
 
-    private fun showOverlay(packageName: String) {
+    private fun showOverlay(packageName: String, isDowntime: Boolean = false) {
         val action = Runnable {
             if (overlayView == null) {
                 initOverlayView()
@@ -503,7 +558,37 @@ class BlackoutAccessibilityService : AccessibilityService() {
             } catch (e: Exception) {
                 targetAppName = packageName.uppercase()
             }
-            appNameTextView?.text = "$targetAppName IS DARK"
+
+            val density = resources.displayMetrics.density
+            if (isDowntime) {
+                val drawable = android.graphics.drawable.GradientDrawable().apply {
+                    shape = android.graphics.drawable.GradientDrawable.RECTANGLE
+                    cornerRadius = 0f
+                    setColor(Color.parseColor("#181C25"))
+                    setStroke((1f * density).toInt(), Color.parseColor("#F0BE78")) // Brass accent
+                }
+                stampBoxView?.background = drawable
+                stampTv?.text = "NIGHT WATCH // ACTIVE"
+                stampTv?.setTextColor(Color.parseColor("#F0BE78"))
+                titleTv?.text = "NIGHT WATCH"
+                appNameTextView?.text = "$targetAppName IS INACTIVE"
+                val windowStr = SecurityHelper.getDowntimeWindowString(this)
+                warningTextView?.text = "Scheduled downtime active ($windowStr).\nDeliberate bedtime discipline is in effect.\nApplications are sealed until quiet hours conclude."
+            } else {
+                val drawable = android.graphics.drawable.GradientDrawable().apply {
+                    shape = android.graphics.drawable.GradientDrawable.RECTANGLE
+                    cornerRadius = 0f
+                    setColor(Color.parseColor("#181C25"))
+                    setStroke((1f * density).toInt(), Color.parseColor("#B23A2E")) // Stamp red
+                }
+                stampBoxView?.background = drawable
+                stampTv?.text = "LOCKED // 24H"
+                stampTv?.setTextColor(Color.parseColor("#B23A2E"))
+                titleTv?.text = "BLACKOUT"
+                appNameTextView?.text = "$targetAppName IS DARK"
+                warningTextView?.text = "Daily screen time allowance reached.\nApplication is locked until 12:00 AM midnight.\nDiscipline by design."
+                BlackoutNotificationManager.sendLockoutNotification(this, packageName, targetAppName)
+            }
 
             if (view.visibility != View.VISIBLE) {
                 overlayParams?.flags = WindowManager.LayoutParams.FLAG_NOT_TOUCH_MODAL or
@@ -514,7 +599,7 @@ class BlackoutAccessibilityService : AccessibilityService() {
                     Log.e(TAG, "Failed to update overlay params to visible", e)
                 }
                 view.visibility = View.VISIBLE
-                Log.d(TAG, "Overlay visibility set to VISIBLE for $packageName")
+                Log.d(TAG, "Overlay visibility set to VISIBLE for $packageName (isDowntime=$isDowntime)")
             }
         }
         if (Looper.myLooper() == Looper.getMainLooper()) {
@@ -644,6 +729,18 @@ class BlackoutAccessibilityService : AccessibilityService() {
                         0.0
                     }
                     val totalUsage = Math.max(liveUsageMs, baseUsage + currentSessionTime)
+
+                    val fiveMinMs = 5 * 60 * 1000.0
+                    if (totalUsage >= (dailyLimitMs - fiveMinMs) && totalUsage < dailyLimitMs) {
+                        var appName = packageName
+                        try {
+                            val appInfo = packageManager.getApplicationInfo(packageName, 0)
+                            appName = packageManager.getApplicationLabel(appInfo).toString()
+                        } catch (e: Exception) {}
+                        val remainingMs = (dailyLimitMs - totalUsage).toLong()
+                        val remainingMins = Math.max(1, Math.ceil(remainingMs / 60000.0).toInt())
+                        BlackoutNotificationManager.sendWarningNotification(this, packageName, appName, remainingMins)
+                    }
 
                     if (totalUsage >= (dailyLimitMs - 10000.0) && totalUsage < dailyLimitMs) {
                         val remainingMs = (dailyLimitMs - totalUsage).toLong()

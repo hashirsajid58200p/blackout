@@ -17,6 +17,9 @@ const withBlackoutNativeModule = (config) => {
       "android.permission.QUERY_ALL_PACKAGES",
       "android.permission.SCHEDULE_EXACT_ALARM",
       "android.permission.RECEIVE_BOOT_COMPLETED",
+      "android.permission.POST_NOTIFICATIONS",
+      "android.permission.REQUEST_IGNORE_BATTERY_OPTIMIZATIONS",
+      "android.permission.VIBRATE",
     ];
 
     for (const perm of permissionsToAdd) {

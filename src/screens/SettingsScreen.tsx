@@ -1,14 +1,30 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, ScrollView, TouchableOpacity, Image } from "react-native";
+import { View, Text, ScrollView, TouchableOpacity, Image, ActivityIndicator } from "react-native";
 import { useApp } from "../context/AppContext";
 import { NavigationHeader } from "../components/NavigationHeader";
 import { BottomNavBar } from "../components/BottomNavBar";
 import { Card } from "../components/ui/Card";
 import { Modal } from "../components/ui/Modal";
 import { NativeBridge } from "../services/nativeBridge";
-import { Moon, Sun, Monitor, ShieldCheck, Info, Lock, Trash2, ChevronRight } from "lucide-react-native";
-import { TrackedApp } from "../types";
+import {
+  Moon,
+  Sun,
+  Monitor,
+  ShieldCheck,
+  Info,
+  Lock,
+  Trash2,
+  ChevronRight,
+  Bell,
+  Battery,
+  Activity,
+  RefreshCw,
+  MoonStar,
+  Vibrate,
+} from "lucide-react-native";
+import { TrackedApp, SystemDiagnostics } from "../types";
 import { StorageService } from "../services/storage";
+import { HapticsService } from "../services/haptics";
 
 interface DialogConfig {
   visible: boolean;
@@ -29,6 +45,9 @@ export const SettingsScreen: React.FC = () => {
     settings,
     updateThemeMode,
     updateAutoCleanSetting,
+    updateNotificationSetting,
+    updateHapticSetting,
+    updateDowntimeSetting,
     trackedApps,
     permissions,
     setCurrentScreen,
@@ -40,8 +59,27 @@ export const SettingsScreen: React.FC = () => {
   const isDark = effectiveTheme === "dark";
   const iconColor = isDark ? "#E6E8EC" : "#1A2030";
   const isAutoCleanEnabled = settings.autoCleanUninstalled !== false;
+  const isWarningNotifEnabled = settings.warningNotifications !== false;
+  const isLockoutNotifEnabled = settings.lockoutNotifications !== false;
+  const isMidnightNotifEnabled = settings.midnightResetNotifications !== false;
+  const isStatusBarNotifEnabled = settings.statusBarNotification !== false;
+  const isHapticEnabled = settings.hapticFeedback !== false;
+  const downtime = settings.downtime || {
+    enabled: false,
+    startHour: 22,
+    startMinute: 30,
+    endHour: 6,
+    endMinute: 30,
+    activeDays: "everyday" as const,
+  };
 
   const [isAdminActive, setIsAdminActive] = useState(false);
+  const [isBatteryIgnored, setIsBatteryIgnored] = useState(false);
+  const [hasNotifPermission, setHasNotifPermission] = useState(false);
+  const [diagnostics, setDiagnostics] = useState<SystemDiagnostics | null>(null);
+  const [isRefreshingDiag, setIsRefreshingDiag] = useState(false);
+  const [rearmedNotice, setRearmedNotice] = useState<string | null>(null);
+
   const [dialogConfig, setDialogConfig] = useState<DialogConfig>({
     visible: false,
     title: "",
@@ -53,9 +91,60 @@ export const SettingsScreen: React.FC = () => {
     setDialogConfig((prev) => ({ ...prev, visible: false }));
   };
 
+  const loadNativeStatus = async () => {
+    try {
+      const [admin, battery, notif, diag] = await Promise.all([
+        NativeBridge.isDeviceAdminActive(),
+        NativeBridge.isBatteryOptimizationIgnored(),
+        NativeBridge.hasNotificationPermission(),
+        NativeBridge.getDiagnostics(),
+      ]);
+      setIsAdminActive(admin);
+      setIsBatteryIgnored(battery);
+      setHasNotifPermission(notif);
+      setDiagnostics(diag);
+    } catch (err) {
+      console.warn("Failed to load native diagnostics", err);
+    }
+  };
+
   useEffect(() => {
-    NativeBridge.isDeviceAdminActive().then(setIsAdminActive);
+    loadNativeStatus();
   }, []);
+
+  const handleRefreshDiagnostics = async () => {
+    HapticsService.tick();
+    setIsRefreshingDiag(true);
+    await loadNativeStatus();
+    setTimeout(() => setIsRefreshingDiag(false), 400);
+  };
+
+  const handleRearmDiagnostics = async () => {
+    HapticsService.stamp();
+    setIsRefreshingDiag(true);
+    try {
+      const res = await NativeBridge.rearmDiagnostics();
+      setDiagnostics(res);
+      setRearmedNotice("ALL ENGINES ARMED & SYNCHRONIZED");
+      setTimeout(() => setRearmedNotice(null), 3500);
+    } catch (err) {
+      console.warn("rearmDiagnostics error", err);
+    } finally {
+      setIsRefreshingDiag(false);
+    }
+  };
+
+  const handleRequestBatteryExemption = async () => {
+    HapticsService.tick();
+    await NativeBridge.requestIgnoreBatteryOptimization();
+    setTimeout(loadNativeStatus, 1200);
+  };
+
+  const handleRequestNotificationPermission = async () => {
+    const granted = await NativeBridge.requestNotificationPermission();
+    setHasNotifPermission(granted);
+    setTimeout(loadNativeStatus, 400);
+  };
 
   const handleRequestDeviceAdmin = async () => {
     await NativeBridge.requestDeviceAdmin();
@@ -184,7 +273,10 @@ export const SettingsScreen: React.FC = () => {
                 <TouchableOpacity
                   key={item.mode}
                   activeOpacity={0.7}
-                  onPress={() => updateThemeMode(item.mode)}
+                  onPress={() => {
+                    HapticsService.tick();
+                    updateThemeMode(item.mode);
+                  }}
                   className={`flex-1 py-3.5 px-2 border rounded-none flex-col items-center gap-2 ${
                     isSelected
                       ? "border-ink bg-ink dark:border-bone dark:bg-bone"
@@ -207,7 +299,542 @@ export const SettingsScreen: React.FC = () => {
           </View>
         </View>
 
-        {/* Section 2: Device Admin Uninstall Protection */}
+        {/* Section: Notification Preferences */}
+        <View className="flex-col gap-2.5 mb-6">
+          <View className="flex-row justify-between items-center px-1">
+            <Text className="font-body-bold text-[11px] text-ink-muted dark:text-bone-muted uppercase tracking-[0.12em]">
+              NOTIFICATION PREFERENCES
+            </Text>
+            <Bell size={14} strokeWidth={1.25} color={iconColor} />
+          </View>
+
+          {/* Android 13+ Permission Warning if Denied */}
+          {!hasNotifPermission && (
+            <TouchableOpacity
+              activeOpacity={0.8}
+              onPress={handleRequestNotificationPermission}
+              className="p-3 border border-stamp-red/40 bg-stamp-red/10 rounded-none flex-row items-center justify-between"
+            >
+              <View className="flex-1 mr-2">
+                <Text className="font-body-bold text-xs text-stamp-red uppercase tracking-[0.08em]">
+                  NOTIFICATION PERMISSION REQUIRED
+                </Text>
+                <Text className="font-body text-[11px] text-stamp-red/80 mt-0.5 leading-4">
+                  Android 13+ requires explicit authorization to deliver warning alerts and reset reports.
+                </Text>
+              </View>
+              <View className="px-2 py-1 bg-stamp-red rounded-none">
+                <Text className="font-mono-bold text-[10px] text-white uppercase">GRANT</Text>
+              </View>
+            </TouchableOpacity>
+          )}
+
+          {/* Toggle 1: 5-Minute Warning */}
+          <View className="border border-hairline dark:border-hairline-dark p-4 bg-paper-surface dark:bg-espresso-surface flex-col rounded-none">
+            <View className="flex-row items-center justify-between">
+              <View className="flex-1 mr-3">
+                <Text className="font-body-bold text-sm uppercase tracking-[0.1em] text-ink dark:text-bone">
+                  5-MINUTE WARNING ALERTS
+                </Text>
+                <Text className="font-body text-xs text-ink-muted dark:text-bone-muted mt-1 leading-relaxed">
+                  Display a heads-up alert 5 minutes before an active allowance expires and locks out.
+                </Text>
+              </View>
+
+              <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={() => {
+                  HapticsService.tick();
+                  updateNotificationSetting("warningNotifications", !isWarningNotifEnabled);
+                }}
+                className="flex-row items-center border border-hairline dark:border-hairline-dark rounded-none overflow-hidden self-center"
+              >
+                <View className={`px-2.5 py-1 ${!isWarningNotifEnabled ? "bg-ink dark:bg-bone" : "bg-transparent"}`}>
+                  <Text className={`font-mono-bold text-[10px] uppercase ${!isWarningNotifEnabled ? "text-paper dark:text-espresso" : "text-ink-muted dark:text-bone-muted"}`}>
+                    OFF
+                  </Text>
+                </View>
+                <View className="w-px h-full bg-hairline dark:bg-hairline-dark" />
+                <View className={`px-2.5 py-1 ${isWarningNotifEnabled ? "bg-ink dark:bg-bone" : "bg-transparent"}`}>
+                  <Text className={`font-mono-bold text-[10px] uppercase ${isWarningNotifEnabled ? "text-paper dark:text-espresso" : "text-ink-muted dark:text-bone-muted"}`}>
+                    ON
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* Toggle 2: Lockout Confirmations */}
+          <View className="border border-hairline dark:border-hairline-dark p-4 bg-paper-surface dark:bg-espresso-surface flex-col rounded-none">
+            <View className="flex-row items-center justify-between">
+              <View className="flex-1 mr-3">
+                <Text className="font-body-bold text-sm uppercase tracking-[0.1em] text-ink dark:text-bone">
+                  LOCKOUT CONFIRMATIONS
+                </Text>
+                <Text className="font-body text-xs text-ink-muted dark:text-bone-muted mt-1 leading-relaxed">
+                  Notify immediately when an application limit expires and access is sealed until midnight.
+                </Text>
+              </View>
+
+              <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={() => {
+                  HapticsService.tick();
+                  updateNotificationSetting("lockoutNotifications", !isLockoutNotifEnabled);
+                }}
+                className="flex-row items-center border border-hairline dark:border-hairline-dark rounded-none overflow-hidden self-center"
+              >
+                <View className={`px-2.5 py-1 ${!isLockoutNotifEnabled ? "bg-ink dark:bg-bone" : "bg-transparent"}`}>
+                  <Text className={`font-mono-bold text-[10px] uppercase ${!isLockoutNotifEnabled ? "text-paper dark:text-espresso" : "text-ink-muted dark:text-bone-muted"}`}>
+                    OFF
+                  </Text>
+                </View>
+                <View className="w-px h-full bg-hairline dark:bg-hairline-dark" />
+                <View className={`px-2.5 py-1 ${isLockoutNotifEnabled ? "bg-ink dark:bg-bone" : "bg-transparent"}`}>
+                  <Text className={`font-mono-bold text-[10px] uppercase ${isLockoutNotifEnabled ? "text-paper dark:text-espresso" : "text-ink-muted dark:text-bone-muted"}`}>
+                    ON
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* Toggle 3: Midnight Reset Brief */}
+          <View className="border border-hairline dark:border-hairline-dark p-4 bg-paper-surface dark:bg-espresso-surface flex-col rounded-none">
+            <View className="flex-row items-center justify-between">
+              <View className="flex-1 mr-3">
+                <Text className="font-body-bold text-sm uppercase tracking-[0.1em] text-ink dark:text-bone">
+                  DAILY MIDNIGHT RESET REPORT
+                </Text>
+                <Text className="font-body text-xs text-ink-muted dark:text-bone-muted mt-1 leading-relaxed">
+                  Deliver a clean status ledger at 12:00 AM as quotas restore for the new day.
+                </Text>
+              </View>
+
+              <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={() => {
+                  HapticsService.tick();
+                  updateNotificationSetting("midnightResetNotifications", !isMidnightNotifEnabled);
+                }}
+                className="flex-row items-center border border-hairline dark:border-hairline-dark rounded-none overflow-hidden self-center"
+              >
+                <View className={`px-2.5 py-1 ${!isMidnightNotifEnabled ? "bg-ink dark:bg-bone" : "bg-transparent"}`}>
+                  <Text className={`font-mono-bold text-[10px] uppercase ${!isMidnightNotifEnabled ? "text-paper dark:text-espresso" : "text-ink-muted dark:text-bone-muted"}`}>
+                    OFF
+                  </Text>
+                </View>
+                <View className="w-px h-full bg-hairline dark:bg-hairline-dark" />
+                <View className={`px-2.5 py-1 ${isMidnightNotifEnabled ? "bg-ink dark:bg-bone" : "bg-transparent"}`}>
+                  <Text className={`font-mono-bold text-[10px] uppercase ${isMidnightNotifEnabled ? "text-paper dark:text-espresso" : "text-ink-muted dark:text-bone-muted"}`}>
+                    ON
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* Toggle 4: Ongoing Status Bar Indicator */}
+          <View className="border border-hairline dark:border-hairline-dark p-4 bg-paper-surface dark:bg-espresso-surface flex-col rounded-none">
+            <View className="flex-row items-center justify-between">
+              <View className="flex-1 mr-3">
+                <Text className="font-body-bold text-sm uppercase tracking-[0.1em] text-ink dark:text-bone">
+                  ONGOING STATUS BAR INDICATOR
+                </Text>
+                <Text className="font-body text-xs text-ink-muted dark:text-bone-muted mt-1 leading-relaxed">
+                  Display a low-priority ongoing status indicator showing active tracked apps and today's total screen time.
+                </Text>
+              </View>
+
+              <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={() => {
+                  HapticsService.tick();
+                  updateNotificationSetting("statusBarNotification", !isStatusBarNotifEnabled);
+                }}
+                className="flex-row items-center border border-hairline dark:border-hairline-dark rounded-none overflow-hidden self-center"
+              >
+                <View className={`px-2.5 py-1 ${!isStatusBarNotifEnabled ? "bg-ink dark:bg-bone" : "bg-transparent"}`}>
+                  <Text className={`font-mono-bold text-[10px] uppercase ${!isStatusBarNotifEnabled ? "text-paper dark:text-espresso" : "text-ink-muted dark:text-bone-muted"}`}>
+                    OFF
+                  </Text>
+                </View>
+                <View className="w-px h-full bg-hairline dark:bg-hairline-dark" />
+                <View className={`px-2.5 py-1 ${isStatusBarNotifEnabled ? "bg-ink dark:bg-bone" : "bg-transparent"}`}>
+                  <Text className={`font-mono-bold text-[10px] uppercase ${isStatusBarNotifEnabled ? "text-paper dark:text-espresso" : "text-ink-muted dark:text-bone-muted"}`}>
+                    ON
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+
+        {/* Section: Background Reliability */}
+        <View className="flex-col gap-2.5 mb-6">
+          <Text className="font-body-bold text-[11px] text-ink-muted dark:text-bone-muted uppercase tracking-[0.12em] px-1">
+            BACKGROUND RELIABILITY (DOZE EXEMPTION)
+          </Text>
+
+          <View className="border border-hairline dark:border-hairline-dark p-4 bg-paper-surface dark:bg-espresso-surface flex-col rounded-none">
+            <View className="flex-row items-center gap-2.5 mb-1.5">
+              <Battery size={18} strokeWidth={1.25} color={iconColor} />
+              <Text
+                numberOfLines={1}
+                className="font-body-bold text-sm uppercase tracking-[0.1em] text-ink dark:text-bone flex-1"
+              >
+                BATTERY OPTIMIZATION
+              </Text>
+              <Text
+                className={`font-mono-bold text-[10px] uppercase tracking-[0.1em] ${
+                  isBatteryIgnored ? "text-brass dark:text-brass" : "text-stamp-red"
+                }`}
+              >
+                {isBatteryIgnored ? "UNRESTRICTED" : "RESTRICTED"}
+              </Text>
+            </View>
+
+            <Text className="font-body text-xs text-ink-muted dark:text-bone-muted ml-7 leading-relaxed mb-3">
+              Aggressive OEM power management can kill accessibility services and delay midnight alarms during deep sleep. Exempt Blackout to ensure uninterrupted background enforcement.
+            </Text>
+
+            {!isBatteryIgnored && (
+              <View className="flex-row justify-end">
+                <TouchableOpacity
+                  activeOpacity={0.7}
+                  onPress={handleRequestBatteryExemption}
+                  className="px-3 py-1.5 border border-hairline dark:border-hairline-dark bg-paper dark:bg-espresso active:bg-ink/5 dark:active:bg-bone/5 rounded-none"
+                >
+                  <Text className="font-body-bold text-xs uppercase tracking-[0.1em] text-ink dark:text-bone">
+                    REQUEST EXEMPTION
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            )}
+          </View>
+        </View>
+
+        {/* Section: Scheduled Downtime (Night Watch) */}
+        <View className="flex-col gap-2.5 mb-6">
+          <View className="flex-row justify-between items-center px-1">
+            <Text className="font-body-bold text-[11px] text-ink-muted dark:text-bone-muted uppercase tracking-[0.12em]">
+              NIGHT WATCH // SCHEDULED DOWNTIME
+            </Text>
+            <MoonStar size={14} strokeWidth={1.25} color={iconColor} />
+          </View>
+
+          <View className="border border-hairline dark:border-hairline-dark p-4 bg-paper-surface dark:bg-espresso-surface flex-col rounded-none">
+            {/* Header + Toggle */}
+            <View className="flex-row items-center justify-between pb-3 border-b border-hairline/40 dark:border-hairline-dark/40">
+              <View className="flex-1 mr-3">
+                <Text className="font-body-bold text-sm uppercase tracking-[0.1em] text-ink dark:text-bone">
+                  DOWNTIME CURFEW
+                </Text>
+                <Text className="font-body text-xs text-ink-muted dark:text-bone-muted mt-1 leading-relaxed">
+                  Enforce a blanket lockdown on tracked apps during designated quiet/bedtime hours.
+                </Text>
+              </View>
+
+              <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={() => {
+                  HapticsService.tick();
+                  updateDowntimeSetting({ ...downtime, enabled: !downtime.enabled });
+                }}
+                className="flex-row items-center border border-hairline dark:border-hairline-dark rounded-none overflow-hidden self-center"
+              >
+                <View className={`px-2.5 py-1 ${!downtime.enabled ? "bg-ink dark:bg-bone" : "bg-transparent"}`}>
+                  <Text className={`font-mono-bold text-[10px] uppercase ${!downtime.enabled ? "text-paper dark:text-espresso" : "text-ink-muted dark:text-bone-muted"}`}>
+                    OFF
+                  </Text>
+                </View>
+                <View className="w-px h-full bg-hairline dark:bg-hairline-dark" />
+                <View className={`px-2.5 py-1 ${downtime.enabled ? "bg-ink dark:bg-bone" : "bg-transparent"}`}>
+                  <Text className={`font-mono-bold text-[10px] uppercase ${downtime.enabled ? "text-paper dark:text-espresso" : "text-ink-muted dark:text-bone-muted"}`}>
+                    ON
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            </View>
+
+            {/* Time Window Steppers (when enabled) */}
+            {downtime.enabled && (
+              <View className="pt-4 flex-col gap-4">
+                {/* Active Days Selector */}
+                <View className="flex-col gap-1.5">
+                  <Text className="text-[10px] font-body-bold text-ink-muted dark:text-bone-muted uppercase tracking-[0.12em]">
+                    ACTIVE SCHEDULE
+                  </Text>
+                  <View className="flex-row gap-1.5">
+                    {(["everyday", "weekdays", "weekends"] as const).map((days) => {
+                      const isSelected = downtime.activeDays === days;
+                      return (
+                        <TouchableOpacity
+                          key={days}
+                          activeOpacity={0.7}
+                          onPress={() => {
+                            HapticsService.tick();
+                            updateDowntimeSetting({ ...downtime, activeDays: days });
+                          }}
+                          className={`flex-1 py-1.5 border rounded-none items-center justify-center ${
+                            isSelected
+                              ? "border-ink dark:border-bone bg-ink dark:bg-bone"
+                              : "border-hairline dark:border-hairline-dark bg-transparent active:bg-ink/5 dark:active:bg-bone/5"
+                          }`}
+                        >
+                          <Text
+                            className={`font-mono text-[10px] uppercase tracking-[0.08em] ${
+                              isSelected
+                                ? "text-paper dark:text-espresso font-mono-bold"
+                                : "text-ink dark:text-bone"
+                            }`}
+                          >
+                            {days}
+                          </Text>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                </View>
+
+                {/* Start & End Times */}
+                <View className="flex-row gap-3">
+                  {/* Bedtime Start */}
+                  <View className="flex-1 border border-hairline dark:border-hairline-dark p-2.5 items-center">
+                    <Text className="text-[10px] font-body-bold text-ink-muted dark:text-bone-muted uppercase tracking-[0.12em] mb-2">
+                      CURFEW START
+                    </Text>
+                    <View className="flex-row items-center gap-1.5">
+                      <TouchableOpacity
+                        activeOpacity={0.7}
+                        onPress={() => {
+                          HapticsService.tick();
+                          const newH = (downtime.startHour + 23) % 24;
+                          updateDowntimeSetting({ ...downtime, startHour: newH });
+                        }}
+                        className="w-7 h-7 border border-hairline dark:border-hairline-dark items-center justify-center"
+                      >
+                        <Text className="font-mono-bold text-sm text-ink dark:text-bone">-</Text>
+                      </TouchableOpacity>
+                      <Text className="font-mono-bold text-base text-ink dark:text-bone">
+                        {String(downtime.startHour).padStart(2, "0")}:{String(downtime.startMinute).padStart(2, "0")}
+                      </Text>
+                      <TouchableOpacity
+                        activeOpacity={0.7}
+                        onPress={() => {
+                          HapticsService.tick();
+                          const newH = (downtime.startHour + 1) % 24;
+                          updateDowntimeSetting({ ...downtime, startHour: newH });
+                        }}
+                        className="w-7 h-7 border border-hairline dark:border-hairline-dark items-center justify-center"
+                      >
+                        <Text className="font-mono-bold text-sm text-ink dark:text-bone">+</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+
+                  {/* Curfew End */}
+                  <View className="flex-1 border border-hairline dark:border-hairline-dark p-2.5 items-center">
+                    <Text className="text-[10px] font-body-bold text-ink-muted dark:text-bone-muted uppercase tracking-[0.12em] mb-2">
+                      CURFEW END
+                    </Text>
+                    <View className="flex-row items-center gap-1.5">
+                      <TouchableOpacity
+                        activeOpacity={0.7}
+                        onPress={() => {
+                          HapticsService.tick();
+                          const newH = (downtime.endHour + 23) % 24;
+                          updateDowntimeSetting({ ...downtime, endHour: newH });
+                        }}
+                        className="w-7 h-7 border border-hairline dark:border-hairline-dark items-center justify-center"
+                      >
+                        <Text className="font-mono-bold text-sm text-ink dark:text-bone">-</Text>
+                      </TouchableOpacity>
+                      <Text className="font-mono-bold text-base text-ink dark:text-bone">
+                        {String(downtime.endHour).padStart(2, "0")}:{String(downtime.endMinute).padStart(2, "0")}
+                      </Text>
+                      <TouchableOpacity
+                        activeOpacity={0.7}
+                        onPress={() => {
+                          HapticsService.tick();
+                          const newH = (downtime.endHour + 1) % 24;
+                          updateDowntimeSetting({ ...downtime, endHour: newH });
+                        }}
+                        className="w-7 h-7 border border-hairline dark:border-hairline-dark items-center justify-center"
+                      >
+                        <Text className="font-mono-bold text-sm text-ink dark:text-bone">+</Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                </View>
+              </View>
+            )}
+          </View>
+        </View>
+
+        {/* Section: Haptics & Mechanical Feel */}
+        <View className="flex-col gap-2.5 mb-6">
+          <View className="flex-row justify-between items-center px-1">
+            <Text className="font-body-bold text-[11px] text-ink-muted dark:text-bone-muted uppercase tracking-[0.12em]">
+              AUDIO & MECHANICAL HAPTICS
+            </Text>
+            <Vibrate size={14} strokeWidth={1.25} color={iconColor} />
+          </View>
+
+          <View className="border border-hairline dark:border-hairline-dark p-4 bg-paper-surface dark:bg-espresso-surface flex-col rounded-none">
+            <View className="flex-row items-center justify-between">
+              <View className="flex-1 mr-3">
+                <Text className="font-body-bold text-sm uppercase tracking-[0.1em] text-ink dark:text-bone">
+                  TACTILE MECHANICAL FEEDBACK
+                </Text>
+                <Text className="font-body text-xs text-ink-muted dark:text-bone-muted mt-1 leading-relaxed">
+                  Simulate vintage instrument tactile clicks for steppers, switches, and heavy stamp strikes on lock enforcement.
+                </Text>
+              </View>
+
+              <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={() => {
+                  const next = !isHapticEnabled;
+                  if (next) HapticsService.stamp();
+                  updateHapticSetting(next);
+                }}
+                className="flex-row items-center border border-hairline dark:border-hairline-dark rounded-none overflow-hidden self-center"
+              >
+                <View className={`px-2.5 py-1 ${!isHapticEnabled ? "bg-ink dark:bg-bone" : "bg-transparent"}`}>
+                  <Text className={`font-mono-bold text-[10px] uppercase ${!isHapticEnabled ? "text-paper dark:text-espresso" : "text-ink-muted dark:text-bone-muted"}`}>
+                    OFF
+                  </Text>
+                </View>
+                <View className="w-px h-full bg-hairline dark:bg-hairline-dark" />
+                <View className={`px-2.5 py-1 ${isHapticEnabled ? "bg-ink dark:bg-bone" : "bg-transparent"}`}>
+                  <Text className={`font-mono-bold text-[10px] uppercase ${isHapticEnabled ? "text-paper dark:text-espresso" : "text-ink-muted dark:text-bone-muted"}`}>
+                    ON
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+
+        {/* Section: System Diagnostics */}
+        <View className="flex-col gap-2.5 mb-6">
+          <View className="flex-row justify-between items-center px-1">
+            <Text className="font-body-bold text-[11px] text-ink-muted dark:text-bone-muted uppercase tracking-[0.12em]">
+              SYSTEM DIAGNOSTICS & HEALTH
+            </Text>
+            <TouchableOpacity
+              activeOpacity={0.7}
+              onPress={handleRefreshDiagnostics}
+              className="flex-row items-center gap-1.5"
+            >
+              {isRefreshingDiag ? (
+                <ActivityIndicator size="small" color={iconColor} />
+              ) : (
+                <RefreshCw size={13} strokeWidth={1.25} color={iconColor} />
+              )}
+              <Text className="font-mono text-[10px] text-ink-muted dark:text-bone-muted uppercase">
+                REFRESH
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          <View className="border border-hairline dark:border-hairline-dark p-4 bg-paper-surface dark:bg-espresso-surface flex-col gap-3 rounded-none">
+            {[
+              {
+                label: "ACCESSIBILITY MONITOR",
+                status: diagnostics?.isAccessibilityActive ? "ONLINE" : "OFFLINE",
+                active: diagnostics?.isAccessibilityActive,
+              },
+              {
+                label: "MIDNIGHT RESET ENGINE",
+                status: diagnostics?.nextMidnightTimestamp ? "SCHEDULED (12:00 AM)" : "UNSCHEDULED",
+                active: !!diagnostics?.nextMidnightTimestamp,
+              },
+              {
+                label: "NIGHT WATCH SCHEDULE",
+                status: diagnostics?.downtimeActive
+                  ? `ACTIVE (${diagnostics?.downtimeWindow || "CURFEW"})`
+                  : settings.downtime?.enabled
+                  ? `ARMED (${String(downtime.startHour).padStart(2, "0")}:${String(downtime.startMinute).padStart(2, "0")} - ${String(downtime.endHour).padStart(2, "0")}:${String(downtime.endMinute).padStart(2, "0")})`
+                  : "DISABLED",
+                active: settings.downtime?.enabled,
+              },
+              {
+                label: "BATTERY OPTIMIZATION",
+                status: diagnostics?.isBatteryIgnored ? "EXEMPT (OPTIMAL)" : "RESTRICTED (DOZE)",
+                active: diagnostics?.isBatteryIgnored,
+              },
+              {
+                label: "NOTIFICATION CHANNEL",
+                status: diagnostics?.isNotificationGranted ? "ACTIVE" : "BLOCKED",
+                active: diagnostics?.isNotificationGranted,
+              },
+              {
+                label: "DEVICE ADMIN SHIELD",
+                status: diagnostics?.isDeviceAdminActive ? "ACTIVE" : "UNPROTECTED",
+                active: diagnostics?.isDeviceAdminActive,
+              },
+            ].map((diagRow) => (
+              <View key={diagRow.label} className="flex-row justify-between items-center py-1 border-b border-hairline/40 dark:border-hairline-dark/40 last:border-b-0">
+                <Text className="font-mono text-xs text-ink dark:text-bone uppercase">
+                  {diagRow.label}
+                </Text>
+                <View className="flex-row items-center gap-1.5">
+                  <View
+                    className={`w-2 h-2 rounded-none ${
+                      diagRow.active ? "bg-brass dark:bg-brass" : "bg-stamp-red"
+                    }`}
+                  />
+                  <Text
+                    className={`font-mono-bold text-[11px] uppercase ${
+                      diagRow.active ? "text-brass dark:text-brass" : "text-stamp-red"
+                    }`}
+                  >
+                    {diagRow.status}
+                  </Text>
+                </View>
+              </View>
+            ))}
+
+            <View className="pt-2 flex-row justify-between items-center">
+              <Text className="font-mono text-[11px] text-ink-muted dark:text-bone-muted uppercase">
+                REGISTRY STATE
+              </Text>
+              <Text className="font-mono-bold text-[11px] text-ink dark:text-bone uppercase">
+                {trackedApps.length} TRACKED • {trackedApps.filter((a) => a.isLocked).length} LOCKED
+              </Text>
+            </View>
+
+            {/* Re-Arm / Self-Test Button */}
+            <View className="pt-3 border-t border-hairline/40 dark:border-hairline-dark/40 flex-col gap-2">
+              <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={handleRearmDiagnostics}
+                className="border border-ink dark:border-bone bg-ink dark:bg-bone py-2.5 px-3 rounded-none flex-row items-center justify-center gap-2"
+              >
+                {isRefreshingDiag ? (
+                  <ActivityIndicator size="small" color={isDark ? "#12161F" : "#E6E8EC"} />
+                ) : (
+                  <RefreshCw size={13} color={isDark ? "#12161F" : "#E6E8EC"} strokeWidth={1.5} />
+                )}
+                <Text className="font-body-bold text-xs uppercase tracking-[0.1em] text-paper dark:text-espresso">
+                  RE-ARM & SELF-TEST ALL SERVICES
+                </Text>
+              </TouchableOpacity>
+
+              {rearmedNotice && (
+                <View className="p-2 bg-brass/10 border border-brass/50 items-center">
+                  <Text className="text-[10px] font-mono-bold text-brass uppercase tracking-[0.08em]">
+                    ✓ {rearmedNotice}
+                  </Text>
+                </View>
+              )}
+            </View>
+          </View>
+        </View>
+
+        {/* Section: Device Admin Uninstall Protection */}
         <View className="flex-col gap-2.5 mb-6">
           <Text className="font-body-bold text-[11px] text-ink-muted dark:text-bone-muted uppercase tracking-[0.12em] px-1">
             UNINSTALL PROTECTION (DEVICE ADMIN)

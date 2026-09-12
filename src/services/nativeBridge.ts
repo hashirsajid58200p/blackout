@@ -8,6 +8,8 @@ export interface NativePermissionsStatus {
   overlay: boolean;
   accessibility: boolean;
   deviceAdmin: boolean;
+  notifications: boolean;
+  batteryOptimization: boolean;
 }
 
 export const NativeBridge = {
@@ -214,5 +216,147 @@ export const NativeBridge = {
     }
     console.error("BlackoutModule.getInstalledApps is not available on this platform");
     return [];
+  },
+
+  async hasNotificationPermission(): Promise<boolean> {
+    if (Platform.OS === "android" && BlackoutModule?.hasNotificationPermission) {
+      try {
+        return await BlackoutModule.hasNotificationPermission();
+      } catch {
+        return false;
+      }
+    }
+    return true;
+  },
+
+  async requestNotificationPermission(): Promise<boolean> {
+    if (Platform.OS === "android" && BlackoutModule?.requestNotificationPermission) {
+      try {
+        return await BlackoutModule.requestNotificationPermission();
+      } catch {
+        return false;
+      }
+    }
+    return true;
+  },
+
+  async isBatteryOptimizationIgnored(): Promise<boolean> {
+    if (Platform.OS === "android" && BlackoutModule?.isBatteryOptimizationIgnored) {
+      try {
+        return await BlackoutModule.isBatteryOptimizationIgnored();
+      } catch {
+        return false;
+      }
+    }
+    return true;
+  },
+
+  async requestIgnoreBatteryOptimization(): Promise<boolean> {
+    if (Platform.OS === "android" && BlackoutModule?.requestIgnoreBatteryOptimization) {
+      try {
+        return await BlackoutModule.requestIgnoreBatteryOptimization();
+      } catch {
+        return false;
+      }
+    }
+    return true;
+  },
+
+  syncNotificationSettings(warningsEnabled: boolean, locksEnabled: boolean, resetEnabled: boolean): void {
+    if (Platform.OS === "android" && BlackoutModule?.syncNotificationSettings) {
+      try {
+        BlackoutModule.syncNotificationSettings(warningsEnabled, locksEnabled, resetEnabled);
+      } catch (e) {
+        console.warn("Failed to syncNotificationSettings", e);
+      }
+    }
+  },
+
+  syncDowntimeSettings(downtime?: {
+    enabled: boolean;
+    startHour: number;
+    startMinute: number;
+    endHour: number;
+    endMinute: number;
+    activeDays: string;
+  }): void {
+    if (Platform.OS === "android" && BlackoutModule?.syncDowntimeSettings) {
+      try {
+        if (!downtime) {
+          BlackoutModule.syncDowntimeSettings(false, 22, 0, 6, 0, "everyday");
+        } else {
+          BlackoutModule.syncDowntimeSettings(
+            downtime.enabled,
+            downtime.startHour,
+            downtime.startMinute,
+            downtime.endHour,
+            downtime.endMinute,
+            downtime.activeDays
+          );
+        }
+      } catch (e) {
+        console.warn("Failed to syncDowntimeSettings", e);
+      }
+    }
+  },
+
+  syncHapticSetting(enabled: boolean): void {
+    if (Platform.OS === "android" && BlackoutModule?.syncHapticSetting) {
+      try {
+        BlackoutModule.syncHapticSetting(enabled);
+      } catch (e) {
+        console.warn("Failed to syncHapticSetting", e);
+      }
+    }
+  },
+
+  triggerHaptic(type: "tick" | "stamp" | "strike" | "heavy"): void {
+    if (Platform.OS === "android" && BlackoutModule?.triggerHaptic) {
+      try {
+        BlackoutModule.triggerHaptic(type);
+      } catch (e) {
+        console.warn("Failed to triggerHaptic", e);
+      }
+    }
+  },
+
+  async rearmDiagnostics(): Promise<{
+    isAccessibilityActive: boolean;
+    isBatteryIgnored: boolean;
+    isNotificationGranted: boolean;
+    isDeviceAdminActive: boolean;
+    nextMidnightTimestamp: number;
+  }> {
+    if (Platform.OS === "android" && BlackoutModule?.rearmDiagnostics) {
+      try {
+        return await BlackoutModule.rearmDiagnostics();
+      } catch (e) {
+        console.warn("rearmDiagnostics failed", e);
+      }
+    }
+    return this.getDiagnostics();
+  },
+
+  async getDiagnostics(): Promise<{
+    isAccessibilityActive: boolean;
+    isBatteryIgnored: boolean;
+    isNotificationGranted: boolean;
+    isDeviceAdminActive: boolean;
+    nextMidnightTimestamp: number;
+  }> {
+    if (Platform.OS === "android" && BlackoutModule?.getDiagnostics) {
+      try {
+        return await BlackoutModule.getDiagnostics();
+      } catch (e) {
+        console.warn("getDiagnostics failed", e);
+      }
+    }
+    return {
+      isAccessibilityActive: true,
+      isBatteryIgnored: true,
+      isNotificationGranted: true,
+      isDeviceAdminActive: true,
+      nextMidnightTimestamp: Date.now() + 3600000,
+    };
   },
 };

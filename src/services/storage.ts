@@ -39,6 +39,13 @@ export const StorageService = {
   async saveSettings(settings: Settings): Promise<void> {
     try {
       await AsyncStorage.setItem(SETTINGS_KEY, JSON.stringify(settings));
+      NativeBridge.syncNotificationSettings(
+        settings.warningNotifications !== false,
+        settings.lockoutNotifications !== false,
+        settings.midnightResetNotifications !== false
+      );
+      NativeBridge.syncDowntimeSettings(settings.downtime);
+      NativeBridge.syncHapticSetting(settings.hapticFeedback !== false);
     } catch (e) {
       console.error("Error saving settings", e);
     }
@@ -268,6 +275,33 @@ export const StorageService = {
     NativeBridge.syncLockedPackages(lockedPkgs);
 
     return { success: true };
+  },
+
+  async updateTrackedAppAllowance(
+    packageName: string,
+    newDailyLimitMs: number
+  ): Promise<{ success: boolean; error?: string }> {
+    try {
+      const apps = await StorageService.getTrackedApps();
+      const existingIndex = apps.findIndex((a) => a.packageName === packageName);
+      if (existingIndex === -1) {
+        return { success: false, error: "App is not tracked." };
+      }
+      const app = apps[existingIndex];
+      if (app.isLocked) {
+        return { success: false, error: "Locked apps cannot be modified until midnight." };
+      }
+      apps[existingIndex] = {
+        ...app,
+        dailyLimitMs: newDailyLimitMs,
+      };
+      await StorageService.saveTrackedApps(apps);
+      NativeBridge.syncLockedAppsToNative(JSON.stringify(apps));
+      return { success: true };
+    } catch (e) {
+      console.error("Error updating allowance", e);
+      return { success: false, error: "Failed to update allowance." };
+    }
   },
 
   /**

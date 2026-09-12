@@ -1,6 +1,30 @@
 # Progress Tracker
 
 ## Completed Features
+- [x] **Blackout 5-Phase Feature Roadmap & Technical Audit Resolution (100% Implemented & Verified)**:
+  - [x] **Phase 1 (Comprehensive Notification Engine & Background Reliability)**:
+    - Added `POST_NOTIFICATIONS` runtime permission and `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS` in `AndroidManifest.xml` and `withBlackoutNativeModule.js`.
+    - Created `BlackoutNotificationManager.kt` supporting `blackout_alerts` (HIGH), `blackout_daily` (DEFAULT), and `blackout_status` (LOW).
+    - Integrated 5-minute warning alert and lockout notification in `BlackoutAccessibilityService.kt`.
+    - Integrated midnight reset summary notification in `MidnightResetReceiver.kt`.
+    - Added battery optimization exemption check & request flow in `BlackoutModule.kt`, `nativeBridge.ts`, and Settings/Permissions screens.
+  - [x] **Phase 2 (AddAppScreen & Timer Polish)**:
+    - Added category detection (`resolveAppCategory`) in `BlackoutModule.kt`.
+    - Added Category Filter Chips (`ALL`, `SOCIAL`, `GAMES`, `MEDIA`, `BROWSERS`) beneath search in `AddAppScreen.tsx`.
+    - Added 1-tap quick preset allowance chips (`15M`, `30M`, `45M`, `1H`, `2H`, `3H`) in `AddAppScreen.tsx` and `HomeScreen.tsx`.
+    - Added direct edit allowance modal for unlocked tracked apps in `HomeScreen.tsx`.
+  - [x] **Phase 3 (Scheduled Downtime / Bedtime "Night Watch")**:
+    - Built `SecurityHelper.isDowntimeActive(context)` supporting overnight windows crossing midnight and schedule types (`everyday`, `weekdays`, `weekends`).
+    - Enforced downtime window in `BlackoutAccessibilityService.kt` with custom amber/brass "NIGHT WATCH // ACTIVE" overlay placard.
+    - Added Night Watch preference panel with time steppers and schedule selectors in `SettingsScreen.tsx`.
+  - [x] **Phase 4 (Mechanical Audio & Haptic Feedback Engine)**:
+    - Added native Android `Vibrator` integration in `BlackoutModule.kt` (`tick`, `stamp`, `strike`).
+    - Created `HapticsService` helper and wired tactile feedback across steppers, presets, toggles, strikes, and lock confirmations.
+    - Added "RE-ARM & SELF-TEST" button in System Diagnostics with `rearmDiagnostics` native method.
+  - [x] **Phase 5 (Stats Screen Export & Discipline Streak)**:
+    - Built `ExportService.shareLedger()` generating structured physical-ledger formatted text with native Android Share sheet.
+    - Built `calculateFocusStreak` utility and Monolith Focus Streak badge on `HomeScreen.tsx`.
+    - Added header and bottom export buttons on `StatsScreen.tsx`.
 - [x] **Blackout UI Inconsistencies & Redesign Fixes (100% Implemented & Verified on Hardware)**:
   - [x] **Configuration & Design Tokens (`tailwind.config.js`)**: Resolved React Native Android font fallback bug by standardizing font family array definitions to single-element names (`["Font"]`). Configured exact Stitch "Ledger Instrument" palette tokens (`#0F131C` dark base, `#181C25`/`#1C2029`/`#262A34` surfaces, `#DFE2EF` bone text, `#F0BE78`/`#DDAD69`/`#A67C3D` brass).
   - [x] **StatsScreen Polish (`StatsScreen.tsx`)**: Removed sharp rectangular borders on squircle app icons to eliminate corner free space gaps (`resizeMode="contain"`). Rebalanced vertical padding in the 7-Day Activity card (`pt-4 pb-3 px-4`). Centered the divider line in the Summary Card (`self-stretch my-0.5`). Balanced bar chart height and day indicator alignment (`h-4 leading-4`, `w-1.5 h-1.5`).

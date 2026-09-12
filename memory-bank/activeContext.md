@@ -1,19 +1,41 @@
 # Active Context
 
-## Current Status: Blackout UI Inconsistencies & Redesign Fixes (100% Complete & Verified on Physical Device)
-- **Mode**: Complete presentation-layer redesign fixes and visual reconciliation applying Google Stitch `design_reference/DESIGN.md` across all screens and native overlay without modifying any enforcement, tracking, or background logic.
+## Current Status: Blackout 5-Phase Feature Roadmap & Gap Analysis (100% Complete & Verified)
+- **Mode**: Complete implementation of all 5 Roadmap Phases identified in the technical audit:
+  1. Notification Engine & Background Reliability (`POST_NOTIFICATIONS`, 3 dedicated channels, warning alerts, reset summaries, battery optimization exemption).
+  2. AddAppScreen & Timer Polish (Category filter chips: `ALL`, `SOCIAL`, `GAMES`, `MEDIA`, `BROWSERS`, 1-tap quick presets, direct edit allowance for unlocked apps).
+  3. Scheduled Downtime ("Night Watch") with native enforcement & custom overlay placard.
+  4. Mechanical Audio & Haptic Feedback Engine (`Vibrator` / `VibrationEffect` tick, stamp, strike) & Diagnostics re-arm self-test.
+  5. Stats Screen Export (`Share.share` discipline ledger) & Monolith Focus Streak tracker.
 - **Verification Status**:
   - `npx tsc --noEmit`: Clean (0 errors).
-  - Android Gradle Build & Install (`./gradlew installDebug`): Clean (`BUILD SUCCESSFUL in 52s`), deployed and verified on physical Infinix NOTE 30 (Android 14).
-  - Physical Screenshots: Verified on device across Dark and Light modes for Home, Add App, Stats, and Settings.
+  - Android Gradle Build (`./gradlew compileDebugKotlin`): Clean (`BUILD SUCCESSFUL in 32s`).
+  - Strict preservation of Google Stitch "Ledger Instrument" rectilinear aesthetic (0px/2px radius, hairline borders, no pill shapes).
 
-## Latest Fixes Completed:
-- **Tailwind Config & Font Engine**: Fixed React Native Android font fallback bug by changing array definitions with fallbacks (`["Font", "fallback"]`) to single-string font family names (`["Font"]`). Updated palette tokens to exact Stitch "Ledger Instrument" values (`#0F131C` dark base, `#181C25`/`#1C2029`/`#262A34` surfaces, `#DFE2EF` bone text, `#F0BE78`/`#DDAD69`/`#A67C3D` brass).
-- **StatsScreen Polish**: Removed sharp rectangular borders on squircle app icons to eliminate corner free space gaps (`resizeMode="contain"`). Rebalanced vertical padding in 7-Day Activity card (`pt-4 pb-3 px-4`). Centered the divider line in the Summary Card (`self-stretch my-0.5`). Balanced bar chart height and day indicator alignment (`h-4 leading-4`, `w-1.5 h-1.5`).
-- **HomeScreen Polish**: Updated circular donut chart palette (`getDynamicVintageShade`) to harmonious Stitch brass/ink/bone tones (`#F0BE78`, `#DFE2EF`, `#DDAD69`, `#C0C6DB`, `#909097`, `#A67C3D`, `#614003`). Removed sharp borders around squircle app icons. Removed `elevation: 4` from FAB and verified clean positioning above navigation bar.
-- **SettingsScreen Polish**: Removed italic styling from bottom rules note text (unadorned Public Sans). Removed sharp borders around squircle app icons in Active Today's Locks.
-- **AddAppScreen Polish**: Fixed Step 2 colon separator `:` vertical alignment to mathematically align with the center of the stepper numbers and buttons. Removed sharp borders around squircle app icons.
-- **Native Overlay Reconciliation**: Updated `BlackoutAccessibilityService.kt` background and text colors to match the new Stitch palette (`#0F131C`, `#181C25`, `#DFE2EF`, `#909097`, `#F0BE78`).
+## Latest Additions Completed:
+- **Phase 1: Notification Engine & Background Reliability**:
+  - Added `POST_NOTIFICATIONS` runtime permission and `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS` in `AndroidManifest.xml` and `withBlackoutNativeModule.js`.
+  - Built `BlackoutNotificationManager.kt` handling 3 channels: `blackout_alerts` (HIGH), `blackout_daily` (DEFAULT), `blackout_status` (LOW).
+  - Integrated 5-minute warning alert and lockout notification in `BlackoutAccessibilityService.kt`.
+  - Integrated midnight reset summary broadcast notification in `MidnightResetReceiver.kt`.
+  - Added runtime permission flow and battery exemption request in `BlackoutModule.kt`, `nativeBridge.ts`, `PermissionsScreen.tsx`, and `SettingsScreen.tsx`.
+- **Phase 2: AddAppScreen & Timer Polish**:
+  - Built `resolveAppCategory` in `BlackoutModule.kt` mapping Android application categories.
+  - Added Category Filter Chips (`ALL`, `SOCIAL`, `GAMES`, `MEDIA`, `BROWSERS`) beneath search in `AddAppScreen.tsx`.
+  - Added 1-tap quick preset chips (`15M`, `30M`, `45M`, `1H`, `2H`, `3H`) in `AddAppScreen.tsx` and `HomeScreen.tsx`.
+  - Added direct edit allowance modal for unlocked tracked apps in `HomeScreen.tsx`.
+- **Phase 3: Scheduled Downtime / Bedtime ("Night Watch")**:
+  - Built `SecurityHelper.isDowntimeActive(context)` supporting overnight windows crossing midnight and schedule types (`everyday`, `weekdays`, `weekends`).
+  - Integrated downtime curfew check into `BlackoutAccessibilityService.kt` with custom amber/brass "NIGHT WATCH // ACTIVE" overlay placard.
+  - Added Night Watch preference panel with time steppers and schedule selectors in `SettingsScreen.tsx`.
+- **Phase 4: Mechanical Audio & Haptic Feedback Engine**:
+  - Added native `triggerHaptic(type)` in `BlackoutModule.kt` (`tick`, `stamp`, `strike`).
+  - Added `HapticsService` wrapper and wired tactile feedback across steppers, presets, toggles, strikes, and lock confirmations.
+  - Added "RE-ARM & SELF-TEST" button in System Diagnostics with `rearmDiagnostics` native method.
+- **Phase 5: Stats Screen Export & Discipline Streak**:
+  - Built `ExportService.shareLedger()` generating structured physical-ledger formatted text with native Android Share sheet.
+  - Built `calculateFocusStreak` utility and Monolith Focus Streak badge on `HomeScreen.tsx`.
+  - Added header and bottom export buttons on `StatsScreen.tsx`.
 
 ## Phase Breakdown & Accomplishments:
 

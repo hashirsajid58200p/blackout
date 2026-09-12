@@ -6,6 +6,7 @@ import { Modal } from "../components/ui/Modal";
 import { NativeBridge } from "../services/nativeBridge";
 import { Search, Check } from "lucide-react-native";
 import { InstalledAppInfo } from "../types";
+import { HapticsService } from "../services/haptics";
 
 interface DialogConfig {
   visible: boolean;
@@ -21,6 +22,8 @@ interface DialogConfig {
   onCancel: () => void;
 }
 
+const CATEGORIES = ["ALL", "SOCIAL", "GAMES", "MEDIA", "BROWSERS"];
+
 export const AddAppScreen: React.FC = () => {
   const { trackedApps, addTrackedApp, setCurrentScreen, effectiveTheme } = useApp();
   const isDark = effectiveTheme === "dark";
@@ -29,6 +32,7 @@ export const AddAppScreen: React.FC = () => {
   const [appsList, setAppsList] = useState<InstalledAppInfo[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState<string>("ALL");
   const [selectedApp, setSelectedApp] = useState<InstalledAppInfo | null>(null);
   const [hours, setHours] = useState(1);
   const [minutes, setMinutes] = useState(0);
@@ -62,12 +66,50 @@ export const AddAppScreen: React.FC = () => {
     };
   }, []);
 
-  const filteredApps = appsList.filter((app) =>
-    app.appName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    app.packageName.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  const filteredApps = appsList.filter((app) => {
+    const matchesSearch =
+      app.appName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      app.packageName.toLowerCase().includes(searchQuery.toLowerCase());
+    if (!matchesSearch) return false;
+    if (selectedCategory === "ALL") return true;
+
+    const cat = (app.category || "").toUpperCase();
+    if (selectedCategory === "SOCIAL") {
+      return (
+        cat === "SOCIAL" ||
+        app.packageName.includes("whatsapp") ||
+        app.packageName.includes("instagram") ||
+        app.packageName.includes("twitter") ||
+        app.packageName.includes("facebook") ||
+        app.packageName.includes("snapchat") ||
+        app.packageName.includes("tiktok") ||
+        app.packageName.includes("telegram")
+      );
+    }
+    if (selectedCategory === "GAMES") {
+      return cat === "GAMES" || app.packageName.includes("game");
+    }
+    if (selectedCategory === "MEDIA") {
+      return (
+        cat === "MEDIA" ||
+        app.packageName.includes("youtube") ||
+        app.packageName.includes("netflix") ||
+        app.packageName.includes("spotify")
+      );
+    }
+    if (selectedCategory === "BROWSERS") {
+      return (
+        cat === "BROWSERS" ||
+        app.packageName.includes("chrome") ||
+        app.packageName.includes("firefox") ||
+        app.packageName.includes("browser")
+      );
+    }
+    return cat === selectedCategory;
+  });
 
   const handleSetTimer = () => {
+    HapticsService.tick();
     if (!selectedApp) {
       setDialogConfig({
         visible: true,
@@ -98,6 +140,7 @@ export const AddAppScreen: React.FC = () => {
 
   const confirmLock = async () => {
     if (!selectedApp) return;
+    HapticsService.stamp();
     const totalMs = (hours * 3600 + minutes * 60) * 1000;
     const res = await addTrackedApp(
       selectedApp.packageName,
@@ -135,7 +178,7 @@ export const AddAppScreen: React.FC = () => {
         className="px-margin-page pt-4 flex-1"
       >
         {/* Step 1: Search & Pick App */}
-        <View className="flex-col gap-2 mb-4">
+        <View className="flex-col gap-2 mb-3">
           <Text className="font-body-bold text-[11px] text-ink-muted dark:text-bone-muted uppercase tracking-[0.12em]">
             STEP 1 — SELECT TARGET APPLICATION
           </Text>
@@ -149,6 +192,38 @@ export const AddAppScreen: React.FC = () => {
               className="flex-1 font-mono text-xs text-ink dark:text-bone py-2 px-2"
             />
           </View>
+        </View>
+
+        {/* Category Filter Chips */}
+        <View className="flex-row flex-wrap gap-1.5 mb-4">
+          {CATEGORIES.map((cat) => {
+            const isSelected = selectedCategory === cat;
+            return (
+              <TouchableOpacity
+                key={cat}
+                activeOpacity={0.7}
+                onPress={() => {
+                  HapticsService.tick();
+                  setSelectedCategory(cat);
+                }}
+                className={`py-1 px-2.5 border rounded-none items-center justify-center ${
+                  isSelected
+                    ? "border-ink dark:border-bone bg-ink dark:bg-bone"
+                    : "border-hairline dark:border-hairline-dark bg-paper-surface dark:bg-espresso-surface active:bg-ink/5 dark:active:bg-bone/5"
+                }`}
+              >
+                <Text
+                  className={`font-mono text-[10px] uppercase tracking-[0.08em] ${
+                    isSelected
+                      ? "text-paper dark:text-espresso font-mono-bold"
+                      : "text-ink dark:text-bone"
+                  }`}
+                >
+                  {cat}
+                </Text>
+              </TouchableOpacity>
+            );
+          })}
         </View>
 
         {/* Loading Indicator */}
@@ -173,7 +248,10 @@ export const AddAppScreen: React.FC = () => {
                   <TouchableOpacity
                     activeOpacity={0.7}
                     disabled={isAlreadyTracked}
-                    onPress={() => setSelectedApp(app)}
+                    onPress={() => {
+                      HapticsService.tick();
+                      setSelectedApp(app);
+                    }}
                     className={`p-3.5 border rounded-none flex-col gap-1 ${
                       isAlreadyTracked
                         ? "border-hairline/50 dark:border-hairline-dark/50 opacity-40 bg-paper-surface/50 dark:bg-espresso-surface/50"
@@ -251,6 +329,51 @@ export const AddAppScreen: React.FC = () => {
                         STEP 2 — SET DAILY ALLOWANCE
                       </Text>
 
+                      {/* Quick Presets */}
+                      <View className="flex-col gap-1.5">
+                        <Text className="text-[10px] font-body-bold text-ink-muted dark:text-bone-muted uppercase tracking-[0.12em]">
+                          QUICK PRESETS
+                        </Text>
+                        <View className="flex-row flex-wrap gap-1.5">
+                          {[
+                            { label: "15M", h: 0, m: 15 },
+                            { label: "30M", h: 0, m: 30 },
+                            { label: "45M", h: 0, m: 45 },
+                            { label: "1H", h: 1, m: 0 },
+                            { label: "2H", h: 2, m: 0 },
+                            { label: "3H", h: 3, m: 0 },
+                          ].map((preset) => {
+                            const isCurrent = hours === preset.h && minutes === preset.m;
+                            return (
+                              <TouchableOpacity
+                                key={preset.label}
+                                activeOpacity={0.7}
+                                onPress={() => {
+                                  HapticsService.tick();
+                                  setHours(preset.h);
+                                  setMinutes(preset.m);
+                                }}
+                                className={`py-1.5 px-3 border rounded-none items-center justify-center ${
+                                  isCurrent
+                                    ? "border-ink dark:border-bone bg-ink dark:bg-bone"
+                                    : "border-hairline dark:border-hairline-dark bg-transparent active:bg-ink/5 dark:active:bg-bone/5"
+                                }`}
+                              >
+                                <Text
+                                  className={`font-mono text-xs uppercase ${
+                                    isCurrent
+                                      ? "text-paper dark:text-espresso font-mono-bold"
+                                      : "text-ink dark:text-bone"
+                                  }`}
+                                >
+                                  {preset.label}
+                                </Text>
+                              </TouchableOpacity>
+                            );
+                          })}
+                        </View>
+                      </View>
+
                       {/* Responsive Time Pickers Row */}
                       <View className="flex-row items-center justify-center gap-3 py-2">
                         {/* Hours Picker Column */}
@@ -261,7 +384,10 @@ export const AddAppScreen: React.FC = () => {
                           <View className="flex-row items-center gap-1.5">
                             <TouchableOpacity
                               activeOpacity={0.7}
-                              onPress={() => setHours(Math.max(0, hours - 1))}
+                              onPress={() => {
+                                HapticsService.tick();
+                                setHours(Math.max(0, hours - 1));
+                              }}
                               className="w-8 h-8 border border-hairline dark:border-hairline-dark rounded-none items-center justify-center bg-transparent active:bg-ink/5 dark:active:bg-bone/5"
                             >
                               <Text className="font-mono-bold text-base text-ink dark:text-bone">-</Text>
@@ -271,7 +397,10 @@ export const AddAppScreen: React.FC = () => {
                             </Text>
                             <TouchableOpacity
                               activeOpacity={0.7}
-                              onPress={() => setHours(Math.min(12, hours + 1))}
+                              onPress={() => {
+                                HapticsService.tick();
+                                setHours(Math.min(12, hours + 1));
+                              }}
                               className="w-8 h-8 border border-hairline dark:border-hairline-dark rounded-none items-center justify-center bg-transparent active:bg-ink/5 dark:active:bg-bone/5"
                             >
                               <Text className="font-mono-bold text-base text-ink dark:text-bone">+</Text>
@@ -294,7 +423,10 @@ export const AddAppScreen: React.FC = () => {
                           <View className="flex-row items-center gap-1.5">
                             <TouchableOpacity
                               activeOpacity={0.7}
-                              onPress={() => setMinutes(Math.max(0, minutes - 1))}
+                              onPress={() => {
+                                HapticsService.tick();
+                                setMinutes(Math.max(0, minutes - 1));
+                              }}
                               className="w-8 h-8 border border-hairline dark:border-hairline-dark rounded-none items-center justify-center bg-transparent active:bg-ink/5 dark:active:bg-bone/5"
                             >
                               <Text className="font-mono-bold text-base text-ink dark:text-bone">-</Text>
@@ -304,7 +436,10 @@ export const AddAppScreen: React.FC = () => {
                             </Text>
                             <TouchableOpacity
                               activeOpacity={0.7}
-                              onPress={() => setMinutes(Math.min(59, minutes + 1))}
+                              onPress={() => {
+                                HapticsService.tick();
+                                setMinutes(Math.min(59, minutes + 1));
+                              }}
                               className="w-8 h-8 border border-hairline dark:border-hairline-dark rounded-none items-center justify-center bg-transparent active:bg-ink/5 dark:active:bg-bone/5"
                             >
                               <Text className="font-mono-bold text-base text-ink dark:text-bone">+</Text>

@@ -513,4 +513,61 @@ object SecurityHelper {
             return false
         }
     }
+
+    /**
+     * Checks if Scheduled Downtime ("Night Watch") is currently in effect based on configured time window and active days.
+     */
+    fun isDowntimeActive(context: Context): Boolean {
+        try {
+            val prefs = context.getSharedPreferences("BlackoutPrefs", Context.MODE_PRIVATE)
+            val enabled = prefs.getBoolean("downtime_enabled", false)
+            if (!enabled) return false
+
+            val activeDays = prefs.getString("downtime_active_days", "everyday") ?: "everyday"
+            val cal = Calendar.getInstance()
+            val dayOfWeek = cal.get(Calendar.DAY_OF_WEEK) // 1 = Sunday, 7 = Saturday
+
+            val isDayActive = when (activeDays.lowercase()) {
+                "weekdays" -> dayOfWeek in Calendar.MONDAY..Calendar.FRIDAY
+                "weekends" -> dayOfWeek == Calendar.SATURDAY || dayOfWeek == Calendar.SUNDAY
+                else -> true // "everyday"
+            }
+            if (!isDayActive) return false
+
+            val startHour = prefs.getInt("downtime_start_hour", 22)
+            val startMin = prefs.getInt("downtime_start_min", 0)
+            val endHour = prefs.getInt("downtime_end_hour", 6)
+            val endMin = prefs.getInt("downtime_end_min", 0)
+
+            val currentMinutes = cal.get(Calendar.HOUR_OF_DAY) * 60 + cal.get(Calendar.MINUTE)
+            val startMinutes = startHour * 60 + startMin
+            val endMinutes = endHour * 60 + endMin
+
+            return if (startMinutes < endMinutes) {
+                // Same-day window (e.g. 13:00 to 17:00)
+                currentMinutes in startMinutes until endMinutes
+            } else if (startMinutes > endMinutes) {
+                // Overnight window spanning midnight (e.g. 22:00 to 06:00)
+                currentMinutes >= startMinutes || currentMinutes < endMinutes
+            } else {
+                false
+            }
+        } catch (e: Exception) {
+            Log.e(TAG, "Error checking isDowntimeActive", e)
+            return false
+        }
+    }
+
+    fun getDowntimeWindowString(context: Context): String {
+        return try {
+            val prefs = context.getSharedPreferences("BlackoutPrefs", Context.MODE_PRIVATE)
+            val startHour = prefs.getInt("downtime_start_hour", 22)
+            val startMin = prefs.getInt("downtime_start_min", 0)
+            val endHour = prefs.getInt("downtime_end_hour", 6)
+            val endMin = prefs.getInt("downtime_end_min", 0)
+            String.format("%02d:%02d - %02d:%02d", startHour, startMin, endHour, endMin)
+        } catch (e: Exception) {
+            "22:00 - 06:00"
+        }
+    }
 }
