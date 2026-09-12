@@ -19,7 +19,7 @@ export const NativeBridge = {
         return false;
       }
     }
-    return false;
+    return Platform.OS !== "android";
   },
 
   async requestDeviceAdmin(): Promise<boolean> {
@@ -30,7 +30,7 @@ export const NativeBridge = {
         return false;
       }
     }
-    return false;
+    return true;
   },
 
   async checkUsageStatsPermission(): Promise<boolean> {
@@ -41,7 +41,7 @@ export const NativeBridge = {
         return false;
       }
     }
-    return false;
+    return Platform.OS !== "android";
   },
 
   openUsageStatsSettings(): void {
@@ -62,7 +62,7 @@ export const NativeBridge = {
         return false;
       }
     }
-    return false;
+    return Platform.OS !== "android";
   },
 
   openOverlaySettings(): void {
@@ -83,7 +83,7 @@ export const NativeBridge = {
         return false;
       }
     }
-    return false;
+    return Platform.OS !== "android";
   },
 
   openAccessibilitySettings(): void {
@@ -156,6 +156,13 @@ export const NativeBridge = {
         // fallback
       }
     }
+    if (Platform.OS !== "android") {
+      return [
+        { packageName: "com.whatsapp", appName: "WhatsApp", usedMs: 3600000 },
+        { packageName: "com.instagram.android", appName: "Instagram", usedMs: 5400000 },
+        { packageName: "com.google.android.youtube", appName: "YouTube", usedMs: 7200000 },
+      ];
+    }
     return [];
   },
 
@@ -195,6 +202,15 @@ export const NativeBridge = {
         console.error("Failed to fetch installed apps from native module:", error);
         return [];
       }
+    }
+    if (Platform.OS !== "android") {
+      return [
+        { packageName: "com.whatsapp", appName: "WhatsApp", usedTodayMs: 3600000 },
+        { packageName: "com.instagram.android", appName: "Instagram", usedTodayMs: 5400000 },
+        { packageName: "com.google.android.youtube", appName: "YouTube", usedTodayMs: 7200000 },
+        { packageName: "com.twitter.android", appName: "X", usedTodayMs: 1800000 },
+        { packageName: "com.android.chrome", appName: "Chrome", usedTodayMs: 2400000 },
+      ];
     }
     console.error("BlackoutModule.getInstalledApps is not available on this platform");
     return [];
