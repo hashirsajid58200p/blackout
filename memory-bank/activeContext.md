@@ -9,7 +9,8 @@
   5. Stats Screen Export (`Share.share` discipline ledger) & Monolith Focus Streak tracker.
 - **Verification Status**:
   - `npx tsc --noEmit`: Clean (0 errors).
-  - Android Gradle Build (`./gradlew compileDebugKotlin`): Clean (`BUILD SUCCESSFUL in 32s`).
+  - Android Gradle Build (`./gradlew assembleRelease`): Clean (`BUILD SUCCESSFUL in 57s`).
+  - Standalone release APK (`app-release.apk`, 64MB) installed and verified on connected physical device (`10275333B5001336`).
   - Strict preservation of Google Stitch "Ledger Instrument" rectilinear aesthetic (0px/2px radius, hairline borders, no pill shapes).
 
 ## Latest Additions Completed:

@@ -330,10 +330,10 @@ export const SettingsScreen: React.FC = () => {
           )}
 
           {/* Toggle 1: 5-Minute Warning */}
-          <View className="border border-hairline dark:border-hairline-dark p-4 bg-paper-surface dark:bg-espresso-surface flex-col rounded-none">
-            <View className="flex-row items-center justify-between">
-              <View className="flex-1 mr-3">
-                <Text className="font-body-bold text-sm uppercase tracking-[0.1em] text-ink dark:text-bone">
+          <View className="border border-hairline dark:border-hairline-dark p-3.5 sm:p-4 bg-paper-surface dark:bg-espresso-surface flex-col rounded-none">
+            <View className="flex-row items-center justify-between gap-2.5">
+              <View className="flex-1 min-w-0 pr-1">
+                <Text numberOfLines={1} className="font-body-bold text-xs sm:text-sm uppercase tracking-[0.06em] sm:tracking-[0.1em] text-ink dark:text-bone">
                   5-MINUTE WARNING ALERTS
                 </Text>
                 <Text className="font-body text-xs text-ink-muted dark:text-bone-muted mt-1 leading-relaxed">
@@ -347,7 +347,7 @@ export const SettingsScreen: React.FC = () => {
                   HapticsService.tick();
                   updateNotificationSetting("warningNotifications", !isWarningNotifEnabled);
                 }}
-                className="flex-row items-center border border-hairline dark:border-hairline-dark rounded-none overflow-hidden self-center"
+                className="flex-row items-center border border-hairline dark:border-hairline-dark rounded-none overflow-hidden self-center shrink-0"
               >
                 <View className={`px-2.5 py-1 ${!isWarningNotifEnabled ? "bg-ink dark:bg-bone" : "bg-transparent"}`}>
                   <Text className={`font-mono-bold text-[10px] uppercase ${!isWarningNotifEnabled ? "text-paper dark:text-espresso" : "text-ink-muted dark:text-bone-muted"}`}>
@@ -365,10 +365,10 @@ export const SettingsScreen: React.FC = () => {
           </View>
 
           {/* Toggle 2: Lockout Confirmations */}
-          <View className="border border-hairline dark:border-hairline-dark p-4 bg-paper-surface dark:bg-espresso-surface flex-col rounded-none">
-            <View className="flex-row items-center justify-between">
-              <View className="flex-1 mr-3">
-                <Text className="font-body-bold text-sm uppercase tracking-[0.1em] text-ink dark:text-bone">
+          <View className="border border-hairline dark:border-hairline-dark p-3.5 sm:p-4 bg-paper-surface dark:bg-espresso-surface flex-col rounded-none">
+            <View className="flex-row items-center justify-between gap-2.5">
+              <View className="flex-1 min-w-0 pr-1">
+                <Text numberOfLines={1} className="font-body-bold text-xs sm:text-sm uppercase tracking-[0.06em] sm:tracking-[0.1em] text-ink dark:text-bone">
                   LOCKOUT CONFIRMATIONS
                 </Text>
                 <Text className="font-body text-xs text-ink-muted dark:text-bone-muted mt-1 leading-relaxed">
@@ -382,7 +382,7 @@ export const SettingsScreen: React.FC = () => {
                   HapticsService.tick();
                   updateNotificationSetting("lockoutNotifications", !isLockoutNotifEnabled);
                 }}
-                className="flex-row items-center border border-hairline dark:border-hairline-dark rounded-none overflow-hidden self-center"
+                className="flex-row items-center border border-hairline dark:border-hairline-dark rounded-none overflow-hidden self-center shrink-0"
               >
                 <View className={`px-2.5 py-1 ${!isLockoutNotifEnabled ? "bg-ink dark:bg-bone" : "bg-transparent"}`}>
                   <Text className={`font-mono-bold text-[10px] uppercase ${!isLockoutNotifEnabled ? "text-paper dark:text-espresso" : "text-ink-muted dark:text-bone-muted"}`}>
@@ -400,10 +400,10 @@ export const SettingsScreen: React.FC = () => {
           </View>
 
           {/* Toggle 3: Midnight Reset Brief */}
-          <View className="border border-hairline dark:border-hairline-dark p-4 bg-paper-surface dark:bg-espresso-surface flex-col rounded-none">
-            <View className="flex-row items-center justify-between">
-              <View className="flex-1 mr-3">
-                <Text className="font-body-bold text-sm uppercase tracking-[0.1em] text-ink dark:text-bone">
+          <View className="border border-hairline dark:border-hairline-dark p-3.5 sm:p-4 bg-paper-surface dark:bg-espresso-surface flex-col rounded-none">
+            <View className="flex-row items-center justify-between gap-2.5">
+              <View className="flex-1 min-w-0 pr-1">
+                <Text numberOfLines={1} className="font-body-bold text-xs sm:text-sm uppercase tracking-[0.06em] sm:tracking-[0.1em] text-ink dark:text-bone">
                   DAILY MIDNIGHT RESET REPORT
                 </Text>
                 <Text className="font-body text-xs text-ink-muted dark:text-bone-muted mt-1 leading-relaxed">
@@ -417,7 +417,7 @@ export const SettingsScreen: React.FC = () => {
                   HapticsService.tick();
                   updateNotificationSetting("midnightResetNotifications", !isMidnightNotifEnabled);
                 }}
-                className="flex-row items-center border border-hairline dark:border-hairline-dark rounded-none overflow-hidden self-center"
+                className="flex-row items-center border border-hairline dark:border-hairline-dark rounded-none overflow-hidden self-center shrink-0"
               >
                 <View className={`px-2.5 py-1 ${!isMidnightNotifEnabled ? "bg-ink dark:bg-bone" : "bg-transparent"}`}>
                   <Text className={`font-mono-bold text-[10px] uppercase ${!isMidnightNotifEnabled ? "text-paper dark:text-espresso" : "text-ink-muted dark:text-bone-muted"}`}>
@@ -435,10 +435,10 @@ export const SettingsScreen: React.FC = () => {
           </View>
 
           {/* Toggle 4: Ongoing Status Bar Indicator */}
-          <View className="border border-hairline dark:border-hairline-dark p-4 bg-paper-surface dark:bg-espresso-surface flex-col rounded-none">
-            <View className="flex-row items-center justify-between">
-              <View className="flex-1 mr-3">
-                <Text className="font-body-bold text-sm uppercase tracking-[0.1em] text-ink dark:text-bone">
+          <View className="border border-hairline dark:border-hairline-dark p-3.5 sm:p-4 bg-paper-surface dark:bg-espresso-surface flex-col rounded-none">
+            <View className="flex-row items-center justify-between gap-2.5">
+              <View className="flex-1 min-w-0 pr-1">
+                <Text numberOfLines={1} className="font-body-bold text-xs sm:text-sm uppercase tracking-[0.06em] sm:tracking-[0.1em] text-ink dark:text-bone">
                   ONGOING STATUS BAR INDICATOR
                 </Text>
                 <Text className="font-body text-xs text-ink-muted dark:text-bone-muted mt-1 leading-relaxed">
@@ -452,7 +452,7 @@ export const SettingsScreen: React.FC = () => {
                   HapticsService.tick();
                   updateNotificationSetting("statusBarNotification", !isStatusBarNotifEnabled);
                 }}
-                className="flex-row items-center border border-hairline dark:border-hairline-dark rounded-none overflow-hidden self-center"
+                className="flex-row items-center border border-hairline dark:border-hairline-dark rounded-none overflow-hidden self-center shrink-0"
               >
                 <View className={`px-2.5 py-1 ${!isStatusBarNotifEnabled ? "bg-ink dark:bg-bone" : "bg-transparent"}`}>
                   <Text className={`font-mono-bold text-[10px] uppercase ${!isStatusBarNotifEnabled ? "text-paper dark:text-espresso" : "text-ink-muted dark:text-bone-muted"}`}>
@@ -523,11 +523,11 @@ export const SettingsScreen: React.FC = () => {
             <MoonStar size={14} strokeWidth={1.25} color={iconColor} />
           </View>
 
-          <View className="border border-hairline dark:border-hairline-dark p-4 bg-paper-surface dark:bg-espresso-surface flex-col rounded-none">
+          <View className="border border-hairline dark:border-hairline-dark p-3.5 sm:p-4 bg-paper-surface dark:bg-espresso-surface flex-col rounded-none">
             {/* Header + Toggle */}
-            <View className="flex-row items-center justify-between pb-3 border-b border-hairline/40 dark:border-hairline-dark/40">
-              <View className="flex-1 mr-3">
-                <Text className="font-body-bold text-sm uppercase tracking-[0.1em] text-ink dark:text-bone">
+            <View className="flex-row items-center justify-between pb-3 border-b border-hairline/40 dark:border-hairline-dark/40 gap-2.5">
+              <View className="flex-1 min-w-0 pr-1">
+                <Text numberOfLines={1} className="font-body-bold text-xs sm:text-sm uppercase tracking-[0.06em] sm:tracking-[0.1em] text-ink dark:text-bone">
                   DOWNTIME CURFEW
                 </Text>
                 <Text className="font-body text-xs text-ink-muted dark:text-bone-muted mt-1 leading-relaxed">
@@ -541,7 +541,7 @@ export const SettingsScreen: React.FC = () => {
                   HapticsService.tick();
                   updateDowntimeSetting({ ...downtime, enabled: !downtime.enabled });
                 }}
-                className="flex-row items-center border border-hairline dark:border-hairline-dark rounded-none overflow-hidden self-center"
+                className="flex-row items-center border border-hairline dark:border-hairline-dark rounded-none overflow-hidden self-center shrink-0"
               >
                 <View className={`px-2.5 py-1 ${!downtime.enabled ? "bg-ink dark:bg-bone" : "bg-transparent"}`}>
                   <Text className={`font-mono-bold text-[10px] uppercase ${!downtime.enabled ? "text-paper dark:text-espresso" : "text-ink-muted dark:text-bone-muted"}`}>
@@ -565,7 +565,7 @@ export const SettingsScreen: React.FC = () => {
                   <Text className="text-[10px] font-body-bold text-ink-muted dark:text-bone-muted uppercase tracking-[0.12em]">
                     ACTIVE SCHEDULE
                   </Text>
-                  <View className="flex-row gap-1.5">
+                  <View className="flex-row gap-1 sm:gap-1.5">
                     {(["everyday", "weekdays", "weekends"] as const).map((days) => {
                       const isSelected = downtime.activeDays === days;
                       return (
@@ -576,14 +576,15 @@ export const SettingsScreen: React.FC = () => {
                             HapticsService.tick();
                             updateDowntimeSetting({ ...downtime, activeDays: days });
                           }}
-                          className={`flex-1 py-1.5 border rounded-none items-center justify-center ${
+                          className={`flex-1 py-1.5 px-1 border rounded-none items-center justify-center ${
                             isSelected
                               ? "border-ink dark:border-bone bg-ink dark:bg-bone"
                               : "border-hairline dark:border-hairline-dark bg-transparent active:bg-ink/5 dark:active:bg-bone/5"
                           }`}
                         >
                           <Text
-                            className={`font-mono text-[10px] uppercase tracking-[0.08em] ${
+                            numberOfLines={1}
+                            className={`font-mono text-[9px] sm:text-[10px] uppercase tracking-[0.04em] sm:tracking-[0.08em] ${
                               isSelected
                                 ? "text-paper dark:text-espresso font-mono-bold"
                                 : "text-ink dark:text-bone"
@@ -598,13 +599,13 @@ export const SettingsScreen: React.FC = () => {
                 </View>
 
                 {/* Start & End Times */}
-                <View className="flex-row gap-3">
+                <View className="flex-row gap-2 sm:gap-3">
                   {/* Bedtime Start */}
-                  <View className="flex-1 border border-hairline dark:border-hairline-dark p-2.5 items-center">
-                    <Text className="text-[10px] font-body-bold text-ink-muted dark:text-bone-muted uppercase tracking-[0.12em] mb-2">
+                  <View className="flex-1 min-w-0 border border-hairline dark:border-hairline-dark p-2 sm:p-2.5 items-center">
+                    <Text numberOfLines={1} className="text-[9px] sm:text-[10px] font-body-bold text-ink-muted dark:text-bone-muted uppercase tracking-[0.08em] sm:tracking-[0.12em] mb-1.5">
                       CURFEW START
                     </Text>
-                    <View className="flex-row items-center gap-1.5">
+                    <View className="flex-row items-center justify-center gap-1 sm:gap-1.5 w-full">
                       <TouchableOpacity
                         activeOpacity={0.7}
                         onPress={() => {
@@ -612,11 +613,11 @@ export const SettingsScreen: React.FC = () => {
                           const newH = (downtime.startHour + 23) % 24;
                           updateDowntimeSetting({ ...downtime, startHour: newH });
                         }}
-                        className="w-7 h-7 border border-hairline dark:border-hairline-dark items-center justify-center"
+                        className="w-6 h-6 sm:w-7 sm:h-7 border border-hairline dark:border-hairline-dark items-center justify-center shrink-0"
                       >
-                        <Text className="font-mono-bold text-sm text-ink dark:text-bone">-</Text>
+                        <Text className="font-mono-bold text-xs sm:text-sm text-ink dark:text-bone">-</Text>
                       </TouchableOpacity>
-                      <Text className="font-mono-bold text-base text-ink dark:text-bone">
+                      <Text className="font-mono-bold text-sm sm:text-base text-ink dark:text-bone min-w-[42px] text-center">
                         {String(downtime.startHour).padStart(2, "0")}:{String(downtime.startMinute).padStart(2, "0")}
                       </Text>
                       <TouchableOpacity
@@ -626,19 +627,19 @@ export const SettingsScreen: React.FC = () => {
                           const newH = (downtime.startHour + 1) % 24;
                           updateDowntimeSetting({ ...downtime, startHour: newH });
                         }}
-                        className="w-7 h-7 border border-hairline dark:border-hairline-dark items-center justify-center"
+                        className="w-6 h-6 sm:w-7 sm:h-7 border border-hairline dark:border-hairline-dark items-center justify-center shrink-0"
                       >
-                        <Text className="font-mono-bold text-sm text-ink dark:text-bone">+</Text>
+                        <Text className="font-mono-bold text-xs sm:text-sm text-ink dark:text-bone">+</Text>
                       </TouchableOpacity>
                     </View>
                   </View>
 
                   {/* Curfew End */}
-                  <View className="flex-1 border border-hairline dark:border-hairline-dark p-2.5 items-center">
-                    <Text className="text-[10px] font-body-bold text-ink-muted dark:text-bone-muted uppercase tracking-[0.12em] mb-2">
+                  <View className="flex-1 min-w-0 border border-hairline dark:border-hairline-dark p-2 sm:p-2.5 items-center">
+                    <Text numberOfLines={1} className="text-[9px] sm:text-[10px] font-body-bold text-ink-muted dark:text-bone-muted uppercase tracking-[0.08em] sm:tracking-[0.12em] mb-1.5">
                       CURFEW END
                     </Text>
-                    <View className="flex-row items-center gap-1.5">
+                    <View className="flex-row items-center justify-center gap-1 sm:gap-1.5 w-full">
                       <TouchableOpacity
                         activeOpacity={0.7}
                         onPress={() => {
@@ -646,11 +647,11 @@ export const SettingsScreen: React.FC = () => {
                           const newH = (downtime.endHour + 23) % 24;
                           updateDowntimeSetting({ ...downtime, endHour: newH });
                         }}
-                        className="w-7 h-7 border border-hairline dark:border-hairline-dark items-center justify-center"
+                        className="w-6 h-6 sm:w-7 sm:h-7 border border-hairline dark:border-hairline-dark items-center justify-center shrink-0"
                       >
-                        <Text className="font-mono-bold text-sm text-ink dark:text-bone">-</Text>
+                        <Text className="font-mono-bold text-xs sm:text-sm text-ink dark:text-bone">-</Text>
                       </TouchableOpacity>
-                      <Text className="font-mono-bold text-base text-ink dark:text-bone">
+                      <Text className="font-mono-bold text-sm sm:text-base text-ink dark:text-bone min-w-[42px] text-center">
                         {String(downtime.endHour).padStart(2, "0")}:{String(downtime.endMinute).padStart(2, "0")}
                       </Text>
                       <TouchableOpacity
@@ -660,9 +661,9 @@ export const SettingsScreen: React.FC = () => {
                           const newH = (downtime.endHour + 1) % 24;
                           updateDowntimeSetting({ ...downtime, endHour: newH });
                         }}
-                        className="w-7 h-7 border border-hairline dark:border-hairline-dark items-center justify-center"
+                        className="w-6 h-6 sm:w-7 sm:h-7 border border-hairline dark:border-hairline-dark items-center justify-center shrink-0"
                       >
-                        <Text className="font-mono-bold text-sm text-ink dark:text-bone">+</Text>
+                        <Text className="font-mono-bold text-xs sm:text-sm text-ink dark:text-bone">+</Text>
                       </TouchableOpacity>
                     </View>
                   </View>
@@ -681,10 +682,10 @@ export const SettingsScreen: React.FC = () => {
             <Vibrate size={14} strokeWidth={1.25} color={iconColor} />
           </View>
 
-          <View className="border border-hairline dark:border-hairline-dark p-4 bg-paper-surface dark:bg-espresso-surface flex-col rounded-none">
-            <View className="flex-row items-center justify-between">
-              <View className="flex-1 mr-3">
-                <Text className="font-body-bold text-sm uppercase tracking-[0.1em] text-ink dark:text-bone">
+          <View className="border border-hairline dark:border-hairline-dark p-3.5 sm:p-4 bg-paper-surface dark:bg-espresso-surface flex-col rounded-none">
+            <View className="flex-row items-center justify-between gap-2.5">
+              <View className="flex-1 min-w-0 pr-1">
+                <Text numberOfLines={1} className="font-body-bold text-xs sm:text-sm uppercase tracking-[0.06em] sm:tracking-[0.1em] text-ink dark:text-bone">
                   TACTILE MECHANICAL FEEDBACK
                 </Text>
                 <Text className="font-body text-xs text-ink-muted dark:text-bone-muted mt-1 leading-relaxed">
@@ -699,7 +700,7 @@ export const SettingsScreen: React.FC = () => {
                   if (next) HapticsService.stamp();
                   updateHapticSetting(next);
                 }}
-                className="flex-row items-center border border-hairline dark:border-hairline-dark rounded-none overflow-hidden self-center"
+                className="flex-row items-center border border-hairline dark:border-hairline-dark rounded-none overflow-hidden self-center shrink-0"
               >
                 <View className={`px-2.5 py-1 ${!isHapticEnabled ? "bg-ink dark:bg-bone" : "bg-transparent"}`}>
                   <Text className={`font-mono-bold text-[10px] uppercase ${!isHapticEnabled ? "text-paper dark:text-espresso" : "text-ink-muted dark:text-bone-muted"}`}>
@@ -739,7 +740,7 @@ export const SettingsScreen: React.FC = () => {
             </TouchableOpacity>
           </View>
 
-          <View className="border border-hairline dark:border-hairline-dark p-4 bg-paper-surface dark:bg-espresso-surface flex-col gap-3 rounded-none">
+          <View className="border border-hairline dark:border-hairline-dark p-3.5 sm:p-4 bg-paper-surface dark:bg-espresso-surface flex-col gap-3 rounded-none">
             {[
               {
                 label: "ACCESSIBILITY MONITOR",
@@ -776,18 +777,19 @@ export const SettingsScreen: React.FC = () => {
                 active: diagnostics?.isDeviceAdminActive,
               },
             ].map((diagRow) => (
-              <View key={diagRow.label} className="flex-row justify-between items-center py-1 border-b border-hairline/40 dark:border-hairline-dark/40 last:border-b-0">
-                <Text className="font-mono text-xs text-ink dark:text-bone uppercase">
+              <View key={diagRow.label} className="flex-row justify-between items-center py-1.5 border-b border-hairline/40 dark:border-hairline-dark/40 last:border-b-0 gap-2">
+                <Text numberOfLines={1} className="font-mono text-[10px] sm:text-xs text-ink dark:text-bone uppercase flex-1 min-w-0">
                   {diagRow.label}
                 </Text>
-                <View className="flex-row items-center gap-1.5">
+                <View className="flex-row items-center gap-1.5 shrink-0">
                   <View
-                    className={`w-2 h-2 rounded-none ${
+                    className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-none ${
                       diagRow.active ? "bg-brass dark:bg-brass" : "bg-stamp-red"
                     }`}
                   />
                   <Text
-                    className={`font-mono-bold text-[11px] uppercase ${
+                    numberOfLines={1}
+                    className={`font-mono-bold text-[10px] sm:text-[11px] uppercase ${
                       diagRow.active ? "text-brass dark:text-brass" : "text-stamp-red"
                     }`}
                   >
@@ -797,11 +799,11 @@ export const SettingsScreen: React.FC = () => {
               </View>
             ))}
 
-            <View className="pt-2 flex-row justify-between items-center">
-              <Text className="font-mono text-[11px] text-ink-muted dark:text-bone-muted uppercase">
+            <View className="pt-2 flex-row justify-between items-center gap-2">
+              <Text numberOfLines={1} className="font-mono text-[10px] sm:text-[11px] text-ink-muted dark:text-bone-muted uppercase flex-1 min-w-0">
                 REGISTRY STATE
               </Text>
-              <Text className="font-mono-bold text-[11px] text-ink dark:text-bone uppercase">
+              <Text numberOfLines={1} className="font-mono-bold text-[10px] sm:text-[11px] text-ink dark:text-bone uppercase shrink-0">
                 {trackedApps.length} TRACKED • {trackedApps.filter((a) => a.isLocked).length} LOCKED
               </Text>
             </View>
@@ -811,14 +813,14 @@ export const SettingsScreen: React.FC = () => {
               <TouchableOpacity
                 activeOpacity={0.8}
                 onPress={handleRearmDiagnostics}
-                className="border border-ink dark:border-bone bg-ink dark:bg-bone py-2.5 px-3 rounded-none flex-row items-center justify-center gap-2"
+                className="border border-ink dark:border-bone bg-ink dark:bg-bone py-2.5 px-2 sm:px-3 rounded-none flex-row items-center justify-center gap-2"
               >
                 {isRefreshingDiag ? (
                   <ActivityIndicator size="small" color={isDark ? "#12161F" : "#E6E8EC"} />
                 ) : (
                   <RefreshCw size={13} color={isDark ? "#12161F" : "#E6E8EC"} strokeWidth={1.5} />
                 )}
-                <Text className="font-body-bold text-xs uppercase tracking-[0.1em] text-paper dark:text-espresso">
+                <Text numberOfLines={1} className="font-body-bold text-[11px] sm:text-xs uppercase tracking-[0.06em] sm:tracking-[0.1em] text-paper dark:text-espresso">
                   RE-ARM & SELF-TEST ALL SERVICES
                 </Text>
               </TouchableOpacity>
@@ -885,16 +887,16 @@ export const SettingsScreen: React.FC = () => {
             MAINTENANCE
           </Text>
 
-          <View className="border border-hairline dark:border-hairline-dark p-4 bg-paper-surface dark:bg-espresso-surface flex-col rounded-none">
-            <View className="flex-row items-center justify-between">
-              <View className="flex-1 mr-3">
-                <View className="flex-row items-center gap-2.5 mb-1.5">
-                  <Trash2 size={18} strokeWidth={1.25} color={iconColor} />
-                  <Text className="font-body-bold text-sm uppercase tracking-[0.1em] text-ink dark:text-bone">
+          <View className="border border-hairline dark:border-hairline-dark p-3.5 sm:p-4 bg-paper-surface dark:bg-espresso-surface flex-col rounded-none">
+            <View className="flex-row items-center justify-between gap-2.5">
+              <View className="flex-1 min-w-0 pr-1">
+                <View className="flex-row items-center gap-2 mb-1.5">
+                  <Trash2 size={16} strokeWidth={1.25} color={iconColor} className="shrink-0" />
+                  <Text numberOfLines={1} className="font-body-bold text-xs sm:text-sm uppercase tracking-[0.06em] sm:tracking-[0.1em] text-ink dark:text-bone flex-1 min-w-0">
                     AUTO-CLEAN UNINSTALLED APPS
                   </Text>
                 </View>
-                <Text className="font-body text-xs text-ink-muted dark:text-bone-muted ml-7 leading-relaxed">
+                <Text className="font-body text-xs text-ink-muted dark:text-bone-muted pl-6 leading-relaxed">
                   Automatically purge tracked configurations when an application is uninstalled from Android.
                 </Text>
               </View>
@@ -903,7 +905,7 @@ export const SettingsScreen: React.FC = () => {
               <TouchableOpacity
                 activeOpacity={0.8}
                 onPress={() => updateAutoCleanSetting(!isAutoCleanEnabled)}
-                className="flex-row items-center border border-hairline dark:border-hairline-dark rounded-none overflow-hidden self-center"
+                className="flex-row items-center border border-hairline dark:border-hairline-dark rounded-none overflow-hidden self-center shrink-0"
               >
                 <View className={`px-2.5 py-1 ${!isAutoCleanEnabled ? "bg-ink dark:bg-bone" : "bg-transparent"}`}>
                   <Text className={`font-mono-bold text-[10px] uppercase ${!isAutoCleanEnabled ? "text-paper dark:text-espresso" : "text-ink-muted dark:text-bone-muted"}`}>

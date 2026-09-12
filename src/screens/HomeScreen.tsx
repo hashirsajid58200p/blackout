@@ -382,22 +382,22 @@ export const HomeScreen: React.FC = () => {
         </View>
 
         {/* Monolith Focus Streak Indicator */}
-        <View className="mb-6 border border-hairline dark:border-hairline-dark bg-paper-surface dark:bg-espresso-surface p-3.5 flex-row items-center justify-between rounded-none">
-          <View className="flex-row items-center gap-3">
-            <View className="w-8 h-8 bg-brass/10 border border-brass/50 items-center justify-center rounded-none">
-              <Text className="text-brass dark:text-brass text-sm font-mono-bold">★</Text>
+        <View className="mb-6 border border-hairline dark:border-hairline-dark bg-paper-surface dark:bg-espresso-surface p-3 sm:p-3.5 flex-row items-center justify-between gap-2.5 rounded-none">
+          <View className="flex-row items-center gap-2.5 sm:gap-3 flex-1 min-w-0">
+            <View className="w-7 h-7 sm:w-8 sm:h-8 bg-brass/10 border border-brass/50 items-center justify-center rounded-none shrink-0">
+              <Text className="text-brass dark:text-brass text-xs sm:text-sm font-mono-bold">★</Text>
             </View>
-            <View>
-              <Text className="font-mono-bold text-xs text-ink dark:text-bone uppercase tracking-[0.12em]">
+            <View className="flex-1 min-w-0">
+              <Text numberOfLines={1} className="font-mono-bold text-[11px] sm:text-xs text-ink dark:text-bone uppercase tracking-[0.08em] sm:tracking-[0.12em]">
                 {focusStreak} DAY{focusStreak === 1 ? "" : "S"} UNBROKEN
               </Text>
-              <Text className="font-mono text-[10px] text-ink-muted dark:text-bone-muted uppercase tracking-[0.08em] mt-0.5">
+              <Text numberOfLines={1} className="font-mono text-[9px] sm:text-[10px] text-ink-muted dark:text-bone-muted uppercase tracking-[0.06em] sm:tracking-[0.08em] mt-0.5">
                 DISCIPLINE LEDGER // FOCUS STREAK
               </Text>
             </View>
           </View>
-          <View className="border border-brass/50 bg-brass/10 px-2 py-0.5 rounded-none">
-            <Text className="text-[10px] font-mono-bold text-brass uppercase tracking-[0.1em]">
+          <View className="border border-brass/50 bg-brass/10 px-2 py-0.5 rounded-none shrink-0">
+            <Text className="text-[9px] sm:text-[10px] font-mono-bold text-brass uppercase tracking-[0.08em] sm:tracking-[0.1em]">
               {focusStreak > 0 ? "DISCIPLINED" : "INITIATING"}
             </Text>
           </View>
@@ -603,7 +603,7 @@ export const HomeScreen: React.FC = () => {
                       </Text>
                     </View>
 
-                    <View className="flex-row items-center gap-2">
+                    <View className="flex-row items-center gap-1.5 sm:gap-2 shrink-0">
                       {!app.isLocked && (
                         <>
                           <TouchableOpacity
@@ -657,12 +657,12 @@ export const HomeScreen: React.FC = () => {
                       <TouchableOpacity
                         activeOpacity={0.7}
                         onPress={() => openEditAllowance(app)}
-                        className="mt-1.5 py-1.5 px-3 border border-brass/50 bg-brass/10 rounded-none flex-row items-center justify-between gap-1.5"
+                        className="mt-1.5 py-1.5 px-2.5 sm:px-3 border border-brass/50 bg-brass/10 rounded-none flex-row items-center justify-between gap-1.5"
                       >
-                        <Text className="font-mono-bold text-[10px] text-brass dark:text-brass uppercase tracking-[0.1em]">
+                        <Text numberOfLines={1} className="font-mono-bold text-[9px] sm:text-[10px] text-brass dark:text-brass uppercase tracking-[0.06em] sm:tracking-[0.1em] flex-1 min-w-0 pr-1">
                           ALLOWANCE ACTIVE • {formatMs(Math.max(0, app.dailyLimitMs - app.usedTodayMs))} REMAINING
                         </Text>
-                        <Text className="font-mono text-[9px] text-brass/80 uppercase">
+                        <Text className="font-mono text-[9px] text-brass/80 uppercase shrink-0">
                           [ ADJUST ]
                         </Text>
                       </TouchableOpacity>
@@ -677,14 +677,14 @@ export const HomeScreen: React.FC = () => {
 
       {/* Edit Allowance Modal */}
       {editingApp && (
-        <View className="absolute inset-0 bg-black/60 items-center justify-center p-5 z-50">
-          <View className="w-full max-w-sm border border-hairline dark:border-hairline-dark bg-paper dark:bg-espresso p-5 flex-col gap-4 rounded-none">
+        <View className="absolute inset-0 bg-black/60 items-center justify-center p-4 sm:p-5 z-50">
+          <View className="w-full max-w-sm border border-hairline dark:border-hairline-dark bg-paper dark:bg-espresso p-4 sm:p-5 flex-col gap-4 rounded-none">
             <View className="flex-row justify-between items-start">
               <View className="flex-1 pr-2">
                 <Text className="font-body-bold text-[11px] text-ink-muted dark:text-bone-muted uppercase tracking-[0.12em]">
                   ADJUST DAILY ALLOWANCE
                 </Text>
-                <Text numberOfLines={1} className="font-display text-xl text-ink dark:text-bone mt-0.5">
+                <Text numberOfLines={1} className="font-display text-lg sm:text-xl text-ink dark:text-bone mt-0.5">
                   {editingApp.appName}
                 </Text>
               </View>
@@ -694,18 +694,18 @@ export const HomeScreen: React.FC = () => {
                   HapticsService.tick();
                   setEditingApp(null);
                 }}
-                className="w-7 h-7 border border-hairline dark:border-hairline-dark items-center justify-center"
+                className="w-7 h-7 border border-hairline dark:border-hairline-dark items-center justify-center shrink-0"
               >
                 <Text className="font-mono text-xs text-ink dark:text-bone">✕</Text>
               </TouchableOpacity>
             </View>
 
-            {/* Quick Presets */}
+            {/* Quick Presets: Responsive 3-column grid */}
             <View className="flex-col gap-1.5">
               <Text className="text-[10px] font-body-bold text-ink-muted dark:text-bone-muted uppercase tracking-[0.12em]">
                 QUICK PRESETS
               </Text>
-              <View className="flex-row flex-wrap gap-1.5">
+              <View className="flex-row flex-wrap gap-1.5 justify-between">
                 {[
                   { label: "15M", h: 0, m: 15 },
                   { label: "30M", h: 0, m: 30 },
@@ -724,7 +724,7 @@ export const HomeScreen: React.FC = () => {
                         setEditHours(preset.h);
                         setEditMinutes(preset.m);
                       }}
-                      className={`py-1.5 px-3 border rounded-none items-center justify-center ${
+                      className={`w-[31%] py-2 border rounded-none items-center justify-center ${
                         isCurrent
                           ? "border-ink dark:border-bone bg-ink dark:bg-bone"
                           : "border-hairline dark:border-hairline-dark bg-transparent active:bg-ink/5 dark:active:bg-bone/5"
@@ -746,24 +746,24 @@ export const HomeScreen: React.FC = () => {
             </View>
 
             {/* Steppers */}
-            <View className="flex-row items-center justify-center gap-3 py-2 border border-hairline dark:border-hairline-dark bg-paper-surface dark:bg-espresso-surface">
+            <View className="flex-row items-center justify-center gap-2 sm:gap-3 py-2 px-2 border border-hairline dark:border-hairline-dark bg-paper-surface dark:bg-espresso-surface">
               {/* Hours */}
-              <View className="flex-col items-center flex-1">
+              <View className="flex-col items-center flex-1 min-w-0">
                 <Text className="text-[10px] font-body-bold text-ink-muted dark:text-bone-muted uppercase mb-1.5 tracking-[0.12em]">
                   HOURS
                 </Text>
-                <View className="flex-row items-center gap-1.5">
+                <View className="flex-row items-center justify-center gap-1 sm:gap-1.5 w-full">
                   <TouchableOpacity
                     activeOpacity={0.7}
                     onPress={() => {
                       HapticsService.tick();
                       setEditHours(Math.max(0, editHours - 1));
                     }}
-                    className="w-8 h-8 border border-hairline dark:border-hairline-dark rounded-none items-center justify-center"
+                    className="w-7 h-7 sm:w-8 sm:h-8 border border-hairline dark:border-hairline-dark rounded-none items-center justify-center shrink-0"
                   >
                     <Text className="font-mono-bold text-base text-ink dark:text-bone">-</Text>
                   </TouchableOpacity>
-                  <Text className="font-mono-bold text-2xl text-ink dark:text-bone min-w-[36px] text-center">
+                  <Text className="font-mono-bold text-xl sm:text-2xl text-ink dark:text-bone min-w-[32px] text-center">
                     {editHours}
                   </Text>
                   <TouchableOpacity
@@ -772,32 +772,32 @@ export const HomeScreen: React.FC = () => {
                       HapticsService.tick();
                       setEditHours(Math.min(12, editHours + 1));
                     }}
-                    className="w-8 h-8 border border-hairline dark:border-hairline-dark rounded-none items-center justify-center"
+                    className="w-7 h-7 sm:w-8 sm:h-8 border border-hairline dark:border-hairline-dark rounded-none items-center justify-center shrink-0"
                   >
                     <Text className="font-mono-bold text-base text-ink dark:text-bone">+</Text>
                   </TouchableOpacity>
                 </View>
               </View>
 
-              <Text className="font-mono-bold text-2xl text-ink dark:text-bone">:</Text>
+              <Text className="font-mono-bold text-xl sm:text-2xl text-ink dark:text-bone self-center shrink-0">:</Text>
 
               {/* Minutes */}
-              <View className="flex-col items-center flex-1">
+              <View className="flex-col items-center flex-1 min-w-0">
                 <Text className="text-[10px] font-body-bold text-ink-muted dark:text-bone-muted uppercase mb-1.5 tracking-[0.12em]">
                   MINUTES
                 </Text>
-                <View className="flex-row items-center gap-1.5">
+                <View className="flex-row items-center justify-center gap-1 sm:gap-1.5 w-full">
                   <TouchableOpacity
                     activeOpacity={0.7}
                     onPress={() => {
                       HapticsService.tick();
                       setEditMinutes(Math.max(0, editMinutes - 1));
                     }}
-                    className="w-8 h-8 border border-hairline dark:border-hairline-dark rounded-none items-center justify-center"
+                    className="w-7 h-7 sm:w-8 sm:h-8 border border-hairline dark:border-hairline-dark rounded-none items-center justify-center shrink-0"
                   >
                     <Text className="font-mono-bold text-base text-ink dark:text-bone">-</Text>
                   </TouchableOpacity>
-                  <Text className="font-mono-bold text-2xl text-ink dark:text-bone min-w-[36px] text-center">
+                  <Text className="font-mono-bold text-xl sm:text-2xl text-ink dark:text-bone min-w-[32px] text-center">
                     {String(editMinutes).padStart(2, "0")}
                   </Text>
                   <TouchableOpacity
@@ -806,7 +806,7 @@ export const HomeScreen: React.FC = () => {
                       HapticsService.tick();
                       setEditMinutes(Math.min(59, editMinutes + 1));
                     }}
-                    className="w-8 h-8 border border-hairline dark:border-hairline-dark rounded-none items-center justify-center"
+                    className="w-7 h-7 sm:w-8 sm:h-8 border border-hairline dark:border-hairline-dark rounded-none items-center justify-center shrink-0"
                   >
                     <Text className="font-mono-bold text-base text-ink dark:text-bone">+</Text>
                   </TouchableOpacity>
@@ -822,7 +822,7 @@ export const HomeScreen: React.FC = () => {
                   HapticsService.tick();
                   setEditingApp(null);
                 }}
-                className="flex-1 py-3 border border-hairline dark:border-hairline-dark items-center justify-center"
+                className="flex-1 py-2.5 sm:py-3 border border-hairline dark:border-hairline-dark items-center justify-center"
               >
                 <Text className="font-body-bold text-xs text-ink dark:text-bone uppercase tracking-[0.1em]">
                   CANCEL
@@ -831,7 +831,7 @@ export const HomeScreen: React.FC = () => {
               <TouchableOpacity
                 activeOpacity={0.8}
                 onPress={handleSaveAllowance}
-                className="flex-1 py-3 bg-ink dark:bg-bone border border-ink dark:border-bone items-center justify-center"
+                className="flex-1 py-2.5 sm:py-3 bg-ink dark:bg-bone border border-ink dark:border-bone items-center justify-center"
               >
                 <Text className="font-body-bold text-xs text-paper dark:text-espresso uppercase tracking-[0.1em]">
                   SAVE LIMIT

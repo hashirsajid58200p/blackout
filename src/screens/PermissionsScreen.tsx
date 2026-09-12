@@ -159,10 +159,10 @@ export const PermissionsScreen: React.FC = () => {
                         strokeWidth={1.25}
                       />
                     </View>
-                    <View className="flex-1">
+                    <View className="flex-1 min-w-0 pr-1">
                       <Text
                         numberOfLines={1}
-                        className="font-body-bold text-xs uppercase tracking-[0.12em] text-ink dark:text-bone leading-5"
+                        className="font-body-bold text-xs uppercase tracking-[0.08em] sm:tracking-[0.12em] text-ink dark:text-bone leading-5"
                       >
                         {item.title}
                       </Text>

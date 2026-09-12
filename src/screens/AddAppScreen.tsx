@@ -206,14 +206,14 @@ export const AddAppScreen: React.FC = () => {
                   HapticsService.tick();
                   setSelectedCategory(cat);
                 }}
-                className={`py-1 px-2.5 border rounded-none items-center justify-center ${
+                className={`py-1.5 px-2.5 sm:px-3 border rounded-none items-center justify-center ${
                   isSelected
                     ? "border-ink dark:border-bone bg-ink dark:bg-bone"
                     : "border-hairline dark:border-hairline-dark bg-paper-surface dark:bg-espresso-surface active:bg-ink/5 dark:active:bg-bone/5"
                 }`}
               >
                 <Text
-                  className={`font-mono text-[10px] uppercase tracking-[0.08em] ${
+                  className={`font-mono text-[9px] sm:text-[10px] uppercase tracking-[0.06em] sm:tracking-[0.08em] ${
                     isSelected
                       ? "text-paper dark:text-espresso font-mono-bold"
                       : "text-ink dark:text-bone"
@@ -329,12 +329,12 @@ export const AddAppScreen: React.FC = () => {
                         STEP 2 — SET DAILY ALLOWANCE
                       </Text>
 
-                      {/* Quick Presets */}
+                      {/* Quick Presets: Responsive 3-column grid */}
                       <View className="flex-col gap-1.5">
                         <Text className="text-[10px] font-body-bold text-ink-muted dark:text-bone-muted uppercase tracking-[0.12em]">
                           QUICK PRESETS
                         </Text>
-                        <View className="flex-row flex-wrap gap-1.5">
+                        <View className="flex-row flex-wrap gap-1.5 justify-between">
                           {[
                             { label: "15M", h: 0, m: 15 },
                             { label: "30M", h: 0, m: 30 },
@@ -353,7 +353,7 @@ export const AddAppScreen: React.FC = () => {
                                   setHours(preset.h);
                                   setMinutes(preset.m);
                                 }}
-                                className={`py-1.5 px-3 border rounded-none items-center justify-center ${
+                                className={`w-[31%] py-2 border rounded-none items-center justify-center ${
                                   isCurrent
                                     ? "border-ink dark:border-bone bg-ink dark:bg-bone"
                                     : "border-hairline dark:border-hairline-dark bg-transparent active:bg-ink/5 dark:active:bg-bone/5"
@@ -375,24 +375,24 @@ export const AddAppScreen: React.FC = () => {
                       </View>
 
                       {/* Responsive Time Pickers Row */}
-                      <View className="flex-row items-center justify-center gap-3 py-2">
+                      <View className="flex-row items-center justify-center gap-2 sm:gap-3 py-2 px-2 border border-hairline dark:border-hairline-dark bg-paper dark:bg-espresso">
                         {/* Hours Picker Column */}
-                        <View className="flex-col items-center flex-1">
-                          <Text className="text-[10px] font-body-bold text-ink-muted dark:text-bone-muted uppercase mb-2 tracking-[0.12em]">
+                        <View className="flex-col items-center flex-1 min-w-0">
+                          <Text className="text-[10px] font-body-bold text-ink-muted dark:text-bone-muted uppercase mb-1.5 tracking-[0.12em]">
                             HOURS
                           </Text>
-                          <View className="flex-row items-center gap-1.5">
+                          <View className="flex-row items-center justify-center gap-1 sm:gap-1.5 w-full">
                             <TouchableOpacity
                               activeOpacity={0.7}
                               onPress={() => {
                                 HapticsService.tick();
                                 setHours(Math.max(0, hours - 1));
                               }}
-                              className="w-8 h-8 border border-hairline dark:border-hairline-dark rounded-none items-center justify-center bg-transparent active:bg-ink/5 dark:active:bg-bone/5"
+                              className="w-7 h-7 sm:w-8 sm:h-8 border border-hairline dark:border-hairline-dark rounded-none items-center justify-center shrink-0 bg-transparent active:bg-ink/5 dark:active:bg-bone/5"
                             >
                               <Text className="font-mono-bold text-base text-ink dark:text-bone">-</Text>
                             </TouchableOpacity>
-                            <Text className="font-mono-bold text-2xl text-ink dark:text-bone min-w-[36px] text-center">
+                            <Text className="font-mono-bold text-xl sm:text-2xl text-ink dark:text-bone min-w-[32px] text-center">
                               {hours}
                             </Text>
                             <TouchableOpacity
@@ -401,37 +401,32 @@ export const AddAppScreen: React.FC = () => {
                                 HapticsService.tick();
                                 setHours(Math.min(12, hours + 1));
                               }}
-                              className="w-8 h-8 border border-hairline dark:border-hairline-dark rounded-none items-center justify-center bg-transparent active:bg-ink/5 dark:active:bg-bone/5"
+                              className="w-7 h-7 sm:w-8 sm:h-8 border border-hairline dark:border-hairline-dark rounded-none items-center justify-center shrink-0 bg-transparent active:bg-ink/5 dark:active:bg-bone/5"
                             >
                               <Text className="font-mono-bold text-base text-ink dark:text-bone">+</Text>
                             </TouchableOpacity>
                           </View>
                         </View>
 
-                        <View className="flex-col items-center justify-center">
-                          <Text className="text-[10px] font-body-bold opacity-0 mb-2"> </Text>
-                          <View className="h-8 items-center justify-center">
-                            <Text className="font-mono-bold text-2xl text-ink dark:text-bone self-center leading-none">:</Text>
-                          </View>
-                        </View>
+                        <Text className="font-mono-bold text-xl sm:text-2xl text-ink dark:text-bone self-center shrink-0">:</Text>
 
                         {/* Minutes Picker Column with +/- 1 Stepper */}
-                        <View className="flex-col items-center flex-1">
-                          <Text className="text-[10px] font-body-bold text-ink-muted dark:text-bone-muted uppercase mb-2 tracking-[0.12em]">
+                        <View className="flex-col items-center flex-1 min-w-0">
+                          <Text className="text-[10px] font-body-bold text-ink-muted dark:text-bone-muted uppercase mb-1.5 tracking-[0.12em]">
                             MINUTES
                           </Text>
-                          <View className="flex-row items-center gap-1.5">
+                          <View className="flex-row items-center justify-center gap-1 sm:gap-1.5 w-full">
                             <TouchableOpacity
                               activeOpacity={0.7}
                               onPress={() => {
                                 HapticsService.tick();
                                 setMinutes(Math.max(0, minutes - 1));
                               }}
-                              className="w-8 h-8 border border-hairline dark:border-hairline-dark rounded-none items-center justify-center bg-transparent active:bg-ink/5 dark:active:bg-bone/5"
+                              className="w-7 h-7 sm:w-8 sm:h-8 border border-hairline dark:border-hairline-dark rounded-none items-center justify-center shrink-0 bg-transparent active:bg-ink/5 dark:active:bg-bone/5"
                             >
                               <Text className="font-mono-bold text-base text-ink dark:text-bone">-</Text>
                             </TouchableOpacity>
-                            <Text className="font-mono-bold text-2xl text-ink dark:text-bone min-w-[36px] text-center">
+                            <Text className="font-mono-bold text-xl sm:text-2xl text-ink dark:text-bone min-w-[32px] text-center">
                               {String(minutes).padStart(2, "0")}
                             </Text>
                             <TouchableOpacity
@@ -440,7 +435,7 @@ export const AddAppScreen: React.FC = () => {
                                 HapticsService.tick();
                                 setMinutes(Math.min(59, minutes + 1));
                               }}
-                              className="w-8 h-8 border border-hairline dark:border-hairline-dark rounded-none items-center justify-center bg-transparent active:bg-ink/5 dark:active:bg-bone/5"
+                              className="w-7 h-7 sm:w-8 sm:h-8 border border-hairline dark:border-hairline-dark rounded-none items-center justify-center shrink-0 bg-transparent active:bg-ink/5 dark:active:bg-bone/5"
                             >
                               <Text className="font-mono-bold text-base text-ink dark:text-bone">+</Text>
                             </TouchableOpacity>
@@ -452,9 +447,9 @@ export const AddAppScreen: React.FC = () => {
                       <TouchableOpacity
                         activeOpacity={0.8}
                         onPress={handleSetTimer}
-                        className="bg-ink dark:bg-bone border border-ink dark:border-bone py-3 px-4 rounded-none items-center justify-center mt-2 active:opacity-90"
+                        className="bg-ink dark:bg-bone border border-ink dark:border-bone py-3 px-3 sm:px-4 rounded-none items-center justify-center mt-2 active:opacity-90"
                       >
-                        <Text numberOfLines={1} className="font-body-bold text-xs text-paper dark:text-espresso uppercase tracking-[0.1em]">
+                        <Text numberOfLines={1} className="font-body-bold text-[11px] sm:text-xs text-paper dark:text-espresso uppercase tracking-[0.06em] sm:tracking-[0.1em]">
                           LOCK IT IN — {app.appName.toUpperCase()}
                         </Text>
                       </TouchableOpacity>

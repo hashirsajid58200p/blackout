@@ -1,6 +1,8 @@
 # Progress Tracker
 
-## Completed Features
+- [x] **Release Build & Hardware Deployment**:
+  - Built standalone production release APK (`android/app/build/outputs/apk/release/app-release.apk`) via Hermes bytecode bundling and release optimizations.
+  - Successfully installed release version directly onto connected physical phone (`10275333B5001336`) via ADB with standalone offline execution verified.
 - [x] **Blackout 5-Phase Feature Roadmap & Technical Audit Resolution (100% Implemented & Verified)**:
   - [x] **Phase 1 (Comprehensive Notification Engine & Background Reliability)**:
     - Added `POST_NOTIFICATIONS` runtime permission and `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS` in `AndroidManifest.xml` and `withBlackoutNativeModule.js`.

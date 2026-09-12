@@ -148,24 +148,24 @@ export const StatsScreen: React.FC = () => {
 
       <ScrollView contentContainerStyle={{ paddingBottom: 100 }} className="px-margin-page pt-4 flex-1">
         {/* Title: Serif Display + Export Ledger Button */}
-        <View className="flex-row items-center justify-between mb-3">
-          <Text numberOfLines={1} className="font-display text-3xl text-ink dark:text-bone tracking-tight">
+        <View className="flex-row items-center justify-between mb-3 gap-2">
+          <Text numberOfLines={1} className="font-display text-2xl sm:text-3xl text-ink dark:text-bone tracking-tight flex-1 min-w-0">
             Screen Time
           </Text>
           <TouchableOpacity
             activeOpacity={0.7}
             onPress={handleExport}
-            className="flex-row items-center gap-1.5 border border-hairline dark:border-hairline-dark px-2.5 py-1.5 bg-paper-surface dark:bg-espresso-surface active:bg-ink/5 dark:active:bg-bone/5 rounded-none"
+            className="flex-row items-center gap-1.5 border border-hairline dark:border-hairline-dark px-2 sm:px-2.5 py-1.5 bg-paper-surface dark:bg-espresso-surface active:bg-ink/5 dark:active:bg-bone/5 rounded-none shrink-0"
           >
             <Share2 size={13} color={iconColor} strokeWidth={1.25} />
-            <Text className="font-mono-bold text-[10px] uppercase text-ink dark:text-bone tracking-[0.1em]">
+            <Text className="font-mono-bold text-[9px] sm:text-[10px] uppercase text-ink dark:text-bone tracking-[0.08em] sm:tracking-[0.1em]">
               EXPORT
             </Text>
           </TouchableOpacity>
         </View>
 
         {/* Date Selector Carousel */}
-        <View className="flex-row items-center justify-between border border-hairline dark:border-hairline-dark p-2 bg-paper-surface dark:bg-espresso-surface rounded-none mb-5">
+        <View className="flex-row items-center justify-between border border-hairline dark:border-hairline-dark p-2 bg-paper-surface dark:bg-espresso-surface rounded-none mb-5 gap-2">
           <TouchableOpacity
             activeOpacity={0.7}
             disabled={selectedDayOffset <= -6}
@@ -173,19 +173,19 @@ export const StatsScreen: React.FC = () => {
               HapticsService.tick();
               setSelectedDayOffset((prev) => Math.max(-6, prev - 1));
             }}
-            className={`w-9 h-9 border border-hairline dark:border-hairline-dark rounded-none items-center justify-center ${
-              selectedDayOffset <= -6 ? "opacity-25" : "active:bg-ink/5 dark:active:bg-bone/5"
+            className={`w-7 h-7 sm:w-8 sm:h-8 border border-hairline dark:border-hairline-dark items-center justify-center shrink-0 ${
+              selectedDayOffset <= -6 ? "opacity-30" : "active:bg-ink/5 dark:active:bg-bone/5"
             }`}
           >
-            <ChevronLeft size={16} strokeWidth={1.25} color={iconColor} />
+            <ChevronLeft size={16} color={iconColor} strokeWidth={1.25} />
           </TouchableOpacity>
 
-          <View className="flex-col items-center">
-            <Text className="font-body-bold text-xs uppercase text-ink dark:text-bone tracking-[0.12em]">
+          <View className="flex-col items-center flex-1 min-w-0">
+            <Text numberOfLines={1} className="font-mono-bold text-xs sm:text-sm text-ink dark:text-bone uppercase tracking-[0.08em] sm:tracking-[0.12em]">
               {getSelectedDayLabel()}
             </Text>
-            <Text className="text-[10px] font-mono text-ink-muted dark:text-bone-muted uppercase tracking-[0.1em] mt-0.5">
-              {selectedDayOffset === 0 ? "CURRENT RECORD" : "ARCHIVED LOG"}
+            <Text numberOfLines={1} className="font-mono text-[9px] sm:text-[10px] text-ink-muted dark:text-bone-muted uppercase tracking-[0.06em] sm:tracking-[0.08em] mt-0.5">
+              {selectedDayOffset === 0 ? "CURRENT RECORD" : "HISTORICAL LEDGER"}
             </Text>
           </View>
 
@@ -196,11 +196,11 @@ export const StatsScreen: React.FC = () => {
               HapticsService.tick();
               setSelectedDayOffset((prev) => Math.min(0, prev + 1));
             }}
-            className={`w-9 h-9 border border-hairline dark:border-hairline-dark rounded-none items-center justify-center ${
-              selectedDayOffset >= 0 ? "opacity-25" : "active:bg-ink/5 dark:active:bg-bone/5"
+            className={`w-7 h-7 sm:w-8 sm:h-8 border border-hairline dark:border-hairline-dark items-center justify-center shrink-0 ${
+              selectedDayOffset >= 0 ? "opacity-30" : "active:bg-ink/5 dark:active:bg-bone/5"
             }`}
           >
-            <ChevronRight size={16} strokeWidth={1.25} color={iconColor} />
+            <ChevronRight size={16} color={iconColor} strokeWidth={1.25} />
           </TouchableOpacity>
         </View>
 
@@ -374,10 +374,10 @@ export const StatsScreen: React.FC = () => {
         <TouchableOpacity
           activeOpacity={0.8}
           onPress={handleExport}
-          className="mt-6 border border-ink dark:border-bone bg-ink dark:bg-bone py-3.5 px-4 rounded-none flex-row items-center justify-center gap-2"
+          className="mt-6 border border-ink dark:border-bone bg-ink dark:bg-bone py-3 sm:py-3.5 px-3 sm:px-4 rounded-none flex-row items-center justify-center gap-2"
         >
-          <Share2 size={15} color={isDark ? "#12161F" : "#E6E8EC"} strokeWidth={1.5} />
-          <Text className="font-body-bold text-xs uppercase tracking-[0.1em] text-paper dark:text-espresso">
+          <Share2 size={14} color={isDark ? "#12161F" : "#E6E8EC"} strokeWidth={1.5} />
+          <Text numberOfLines={1} className="font-body-bold text-[11px] sm:text-xs uppercase tracking-[0.06em] sm:tracking-[0.1em] text-paper dark:text-espresso">
             EXPORT 7-DAY DISCIPLINE LEDGER
           </Text>
         </TouchableOpacity>
