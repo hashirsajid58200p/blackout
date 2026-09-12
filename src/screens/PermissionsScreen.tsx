@@ -99,8 +99,8 @@ export const PermissionsScreen: React.FC = () => {
       <ScrollView contentContainerStyle={{ flexGrow: 1, paddingBottom: 30 }} className="flex-1 px-margin-page pt-6">
         <View className="items-center justify-center my-auto py-2">
           {/* Top Logo */}
-          <View className="mb-4 border border-hairline dark:border-hairline-dark rounded w-14 h-14 bg-paper-surface dark:bg-espresso-surface justify-center items-center">
-            <Shield size={28} color={iconColor} strokeWidth={1.25} />
+          <View className="mb-4 border border-hairline dark:border-hairline-dark rounded-none w-14 h-14 bg-paper-surface dark:bg-espresso-surface justify-center items-center">
+            <Shield size={26} color={iconColor} strokeWidth={1.25} />
           </View>
 
           {/* Heading */}
@@ -117,24 +117,25 @@ export const PermissionsScreen: React.FC = () => {
           <View className="w-full flex-col gap-2.5 mb-5">
             {permissionItems.map((item) => {
               const IconComponent = item.icon;
+              const brassColor = isDark ? "#A67C3D" : "#8A642B";
               return (
                 <View
                   key={item.id}
-                  className="border border-hairline dark:border-hairline-dark p-3.5 rounded flex-col bg-paper-surface dark:bg-espresso-surface"
+                  className="border border-hairline dark:border-hairline-dark p-3.5 rounded-none flex-col bg-paper-surface dark:bg-espresso-surface"
                 >
                   {/* Content Row: Icon aligned with Title + Description column */}
                   <View className="flex-row items-start gap-2.5 mb-2">
                     <View className="w-5 h-5 items-center justify-center mt-0.5 shrink-0">
                       <IconComponent
                         size={18}
-                        color={item.isGranted ? "#4F7566" : iconColor}
+                        color={item.isGranted ? brassColor : iconColor}
                         strokeWidth={1.25}
                       />
                     </View>
                     <View className="flex-1">
                       <Text
                         numberOfLines={1}
-                        className="font-body-semibold text-xs uppercase tracking-widest text-ink dark:text-bone leading-5"
+                        className="font-body-bold text-xs uppercase tracking-[0.12em] text-ink dark:text-bone leading-5"
                       >
                         {item.title}
                       </Text>
@@ -147,9 +148,9 @@ export const PermissionsScreen: React.FC = () => {
                   {/* 3. Action Button: Aligned on the Right Side */}
                   <View className="flex-row justify-end">
                     {item.isGranted ? (
-                      <View className="bg-stamp-olive/10 border border-stamp-olive px-2.5 py-1 rounded-sm flex-row items-center justify-center gap-1.5 min-w-[76px]">
-                        <CheckCircle2 size={11} color="#4F7566" strokeWidth={1.25} />
-                        <Text className="text-[10px] font-mono-bold text-stamp-olive uppercase tracking-wider">
+                      <View className="bg-brass/10 border border-brass/50 dark:border-brass/50 px-2.5 py-1 rounded-none flex-row items-center justify-center gap-1.5 min-w-[76px]">
+                        <CheckCircle2 size={11} color={brassColor} strokeWidth={1.25} />
+                        <Text className="text-[10px] font-mono-bold text-brass dark:text-brass uppercase tracking-[0.1em]">
                           GRANTED
                         </Text>
                       </View>
@@ -157,9 +158,9 @@ export const PermissionsScreen: React.FC = () => {
                       <TouchableOpacity
                         activeOpacity={0.7}
                         onPress={item.onGrant}
-                        className="bg-transparent border border-hairline dark:border-hairline-dark px-2.5 py-1 rounded items-center justify-center min-w-[76px] active:bg-ink/5 dark:active:bg-bone/5"
+                        className="bg-transparent border border-hairline dark:border-hairline-dark px-2.5 py-1 rounded-none items-center justify-center min-w-[76px] active:bg-ink/5 dark:active:bg-bone/5"
                       >
-                        <Text className="text-[10px] font-body-semibold text-ink dark:text-bone uppercase tracking-widest">
+                        <Text className="text-[10px] font-body-bold text-ink dark:text-bone uppercase tracking-[0.1em]">
                           GRANT
                         </Text>
                       </TouchableOpacity>

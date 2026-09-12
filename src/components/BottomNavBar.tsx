@@ -38,12 +38,12 @@ export const BottomNavBar: React.FC = () => {
             onPress={() => setCurrentScreen(item.id as any)}
             className="flex-1 items-center justify-center py-1"
           >
-            <IconComponent size={20} color={iconColor} strokeWidth={isActive ? 1.75 : 1.25} />
+            <IconComponent size={19} color={iconColor} strokeWidth={1.25} />
             <View className="mt-1">
               <Text
-                className={`text-[10px] uppercase tracking-widest ${
+                className={`text-[10px] uppercase tracking-[0.12em] ${
                   isActive
-                    ? "font-body-semibold text-ink dark:text-bone"
+                    ? "font-body-bold text-ink dark:text-bone"
                     : "font-body text-ink-muted dark:text-bone-muted"
                 }`}
               >

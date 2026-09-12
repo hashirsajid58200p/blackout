@@ -1,6 +1,16 @@
 # Progress Tracker
 
 ## Completed Features
+- [x] **DESIGN.md Redesign — "Vintage Minimalist / Ledger Instrument" (100% Implemented & Verified)**:
+  - [x] **Phase 0 (Design Tokens & Typography Engine)**: Configured `@expo-google-fonts/*` for Libre Caslon Text (display/headlines), Public Sans (body/controls), and IBM Plex Mono (chronometer/numerics). Added color tokens (`paper`, `paper-surface`, `ink`, `ink-muted`, `hairline`, `espresso`, `espresso-surface`, `bone`, `bone-muted`, `hairline-dark`, `stamp-red`, `brass`) in `tailwind.config.js`. Enforced 1px hairline borders, strict angular rigidity (2px max / 0px), and zero elevation shadows.
+  - [x] **Phase 1 (Shared Components)**: Restyled `Card.tsx`, `BottomNavBar.tsx`, `NavigationHeader.tsx`, `Button.tsx`, `Modal.tsx`, `ProgressBar.tsx`, and `StatusPill.tsx` with rectilinear geometries, hairline dividers, tracked typography, and maritime brass/stamp-red accents.
+  - [x] **Phase 2 (Onboarding & Permissions)**: Restyled `OnboardingScreen.tsx` with rectilinear step indicator tabs and `PermissionsScreen.tsx` with rectilinear cards and brass granted badges. Preserved all native permission checks.
+  - [x] **Phase 3 (Home / Dashboard)**: Restyled `HomeScreen.tsx` with Libre Caslon display title, IBM Plex Mono date/numerals, calibrated circular usage chart segments, rectilinear breakdown legend, rectilinear tracked app cards with square countdown badges, and flat hairline FAB.
+  - [x] **Phase 4 (Add App)**: Restyled `AddAppScreen.tsx` with hairline search field, monospace inputs, rectilinear allowance steppers, and brass status indicators.
+  - [x] **Phase 5 (Stats)**: Restyled `StatsScreen.tsx` with Libre Caslon title, rectilinear date carousel, 2-column summary card, 7-day flat hairline bar chart with brass active day bar, and rectilinear application list.
+  - [x] **Phase 6 (Settings)**: Restyled `SettingsScreen.tsx` with rectilinear theme segments, segmented mechanical bracket `[ OFF | ON ]` for `updateAutoCleanSetting`, and read-only active locks manifest.
+  - [x] **Phase 7 (Native Lock Overlay Reconciliation)**: Reconciled native Android lock overlay in `BlackoutAccessibilityService.kt`: replaced oval stamp with rectilinear stamp placard (`shape = RECTANGLE`, `cornerRadius = 0f`, 1px stroke `#B23A2E`, "LOCKED // 24H") and rectilinear countdown notification.
+  - [x] **Phase 8 (Consistency & Regression Verification)**: Zero TypeScript errors (`npx tsc --noEmit`), clean offline Expo bundle (2,354 modules), and clean Android assembleDebug (`BUILD SUCCESSFUL in 52s`).
 - [x] **Audit Round 5 — Comprehensive Issue Resolution & Hardware Verification (100% Fixed & Verified on Hardware)**:
   - [x] **Themed Dialog System**: Replaced all 18 un-themed native `Alert.alert()` dialogs across `HomeScreen.tsx`, `SettingsScreen.tsx`, and `AddAppScreen.tsx` with a bespoke Navy Vintage `Modal.tsx`. Supports `default`, `danger`, `warning`, `info`, and `success` variants, contextual callout banners, and single/dual action modes.
   - [x] **Native Screen Time Engine Overhaul**:

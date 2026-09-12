@@ -5,17 +5,15 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 import * as SplashScreen from "expo-splash-screen";
 import { useFonts } from "expo-font";
 import {
-  Fraunces_400Regular,
-  Fraunces_500Medium,
-  Fraunces_600SemiBold,
-  Fraunces_700Bold,
-} from "@expo-google-fonts/fraunces";
+  LibreCaslonText_400Regular,
+  LibreCaslonText_700Bold,
+} from "@expo-google-fonts/libre-caslon-text";
 import {
-  Inter_400Regular,
-  Inter_500Medium,
-  Inter_600SemiBold,
-  Inter_700Bold,
-} from "@expo-google-fonts/inter";
+  PublicSans_400Regular,
+  PublicSans_500Medium,
+  PublicSans_600SemiBold,
+  PublicSans_700Bold,
+} from "@expo-google-fonts/public-sans";
 import {
   IBMPlexMono_400Regular,
   IBMPlexMono_500Medium,
@@ -83,14 +81,12 @@ const MainContent: React.FC = () => {
 
 export default function App() {
   const [fontsLoaded, fontError] = useFonts({
-    Fraunces_400Regular,
-    Fraunces_500Medium,
-    Fraunces_600SemiBold,
-    Fraunces_700Bold,
-    Inter_400Regular,
-    Inter_500Medium,
-    Inter_600SemiBold,
-    Inter_700Bold,
+    LibreCaslonText_400Regular,
+    LibreCaslonText_700Bold,
+    PublicSans_400Regular,
+    PublicSans_500Medium,
+    PublicSans_600SemiBold,
+    PublicSans_700Bold,
     IBMPlexMono_400Regular,
     IBMPlexMono_500Medium,
     IBMPlexMono_600SemiBold,

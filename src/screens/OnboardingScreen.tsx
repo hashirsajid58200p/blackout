@@ -78,12 +78,12 @@ export const OnboardingScreen: React.FC = () => {
       </View>
 
       <View className="flex-col gap-6 my-auto">
-        <View className="w-14 h-14 bg-paper-surface dark:bg-espresso-surface justify-center items-center rounded border border-hairline dark:border-hairline-dark">
-          <IconComponent size={26} color={iconColor} strokeWidth={1.25} />
+        <View className="w-14 h-14 bg-paper-surface dark:bg-espresso-surface justify-center items-center rounded-none border border-hairline dark:border-hairline-dark">
+          <IconComponent size={24} color={iconColor} strokeWidth={1.25} />
         </View>
 
         <View className="flex-col gap-2">
-          <Text className="text-[11px] font-body-semibold text-ink-muted dark:text-bone-muted uppercase tracking-widest">
+          <Text className="text-[11px] font-body-bold text-ink-muted dark:text-bone-muted uppercase tracking-[0.12em]">
             {slides[slideIndex].subtitle}
           </Text>
           <Text className="text-3xl font-display text-ink dark:text-bone tracking-tight">
@@ -96,12 +96,12 @@ export const OnboardingScreen: React.FC = () => {
       </View>
 
       <View className="flex-col gap-5 pb-4">
-        {/* Step Indicator Dashes (Not continuous progress bar) */}
+        {/* Step Indicator Rectilinear Tabs */}
         <View className="flex-row gap-2 justify-center items-center">
           {slides.map((_, idx) => (
             <View
               key={idx}
-              className={`h-1 rounded-full ${
+              className={`h-1 rounded-none ${
                 idx === slideIndex
                   ? "w-8 bg-ink dark:bg-bone"
                   : "w-4 bg-hairline dark:bg-hairline-dark"

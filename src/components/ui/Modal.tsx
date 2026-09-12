@@ -48,7 +48,7 @@ export const Modal: React.FC<ModalProps> = ({
       case "warning":
         return <AlertTriangle size={22} color="#B23A2E" strokeWidth={1.5} />;
       case "success":
-        return <CheckCircle2 size={22} color="#4F7566" strokeWidth={1.5} />;
+        return <CheckCircle2 size={22} color="#A67C3D" strokeWidth={1.5} />;
       case "info":
       default:
         return <Info size={22} color={iconColor} strokeWidth={1.5} />;
@@ -65,8 +65,8 @@ export const Modal: React.FC<ModalProps> = ({
       animationType="fade"
       onRequestClose={onCancel}
     >
-      <View className="flex-1 bg-black/70 justify-center items-center px-margin-page">
-        <View className="w-full max-w-[360px] bg-paper-surface dark:bg-espresso-surface border border-hairline dark:border-hairline-dark p-6 rounded flex-col gap-4 shadow-xl">
+      <View className="flex-1 bg-black/75 justify-center items-center px-margin-page">
+        <View className="w-full max-w-[360px] bg-paper-surface dark:bg-espresso-surface border border-hairline dark:border-hairline-dark p-6 rounded-none flex-col gap-4">
           <View className="flex-row items-center gap-3">
             {renderIcon()}
             <Text
@@ -83,14 +83,14 @@ export const Modal: React.FC<ModalProps> = ({
 
           {calloutText ? (
             <View
-              className={`p-3 border rounded-sm ${
+              className={`p-3 border rounded-none ${
                 calloutVariant === "info"
                   ? "bg-ink/5 dark:bg-bone/5 border-hairline dark:border-hairline-dark"
-                  : "bg-stamp-red/10 border-stamp-red/30"
+                  : "bg-stamp-red/10 border-stamp-red/40"
               }`}
             >
               <Text
-                className={`text-xs font-mono-medium uppercase text-center tracking-wider ${
+                className={`text-xs font-mono-medium uppercase text-center tracking-[0.1em] ${
                   calloutVariant === "info"
                     ? "text-ink-muted dark:text-bone-muted"
                     : "text-stamp-red"

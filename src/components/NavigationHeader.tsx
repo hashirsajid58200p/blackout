@@ -34,7 +34,7 @@ export const NavigationHeader: React.FC<NavigationHeaderProps> = ({
           <TouchableOpacity
             activeOpacity={0.7}
             onPress={() => setCurrentScreen("home")}
-            className="w-8 h-8 items-center justify-center border border-hairline dark:border-hairline-dark rounded active:bg-ink/5 dark:active:bg-bone/5"
+            className="w-8 h-8 items-center justify-center border border-hairline dark:border-hairline-dark rounded-none active:bg-ink/5 dark:active:bg-bone/5"
           >
             <ChevronLeft size={18} color={iconColor} strokeWidth={1.25} />
           </TouchableOpacity>
@@ -42,7 +42,7 @@ export const NavigationHeader: React.FC<NavigationHeaderProps> = ({
           <View className="w-8 h-8" />
         )}
 
-        <Text className="font-display text-xl text-ink dark:text-bone tracking-tight">
+        <Text className="font-display text-lg text-ink dark:text-bone tracking-[0.06em] uppercase">
           {title}
         </Text>
 

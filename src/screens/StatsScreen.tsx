@@ -134,17 +134,17 @@ export const StatsScreen: React.FC = () => {
 
       <ScrollView contentContainerStyle={{ paddingBottom: 100 }} className="px-margin-page pt-4 flex-1">
         {/* Title: Serif Display */}
-        <Text numberOfLines={1} className="font-display font-semibold text-3xl text-ink dark:text-bone tracking-tight mb-3">
+        <Text numberOfLines={1} className="font-display text-3xl text-ink dark:text-bone tracking-tight mb-3">
           Screen Time
         </Text>
 
         {/* Date Selector Carousel */}
-        <View className="flex-row items-center justify-between border border-hairline dark:border-hairline-dark p-2 bg-paper-surface dark:bg-espresso-surface rounded mb-5">
+        <View className="flex-row items-center justify-between border border-hairline dark:border-hairline-dark p-2 bg-paper-surface dark:bg-espresso-surface rounded-none mb-5">
           <TouchableOpacity
             activeOpacity={0.7}
             disabled={selectedDayOffset <= -6}
             onPress={() => setSelectedDayOffset((prev) => Math.max(-6, prev - 1))}
-            className={`w-9 h-9 border border-hairline dark:border-hairline-dark rounded items-center justify-center ${
+            className={`w-9 h-9 border border-hairline dark:border-hairline-dark rounded-none items-center justify-center ${
               selectedDayOffset <= -6 ? "opacity-25" : "active:bg-ink/5 dark:active:bg-bone/5"
             }`}
           >
@@ -152,10 +152,10 @@ export const StatsScreen: React.FC = () => {
           </TouchableOpacity>
 
           <View className="flex-col items-center">
-            <Text className="font-body-semibold text-xs uppercase text-ink dark:text-bone tracking-widest">
+            <Text className="font-body-bold text-xs uppercase text-ink dark:text-bone tracking-[0.12em]">
               {getSelectedDayLabel()}
             </Text>
-            <Text className="text-[10px] font-mono text-ink-muted dark:text-bone-muted uppercase tracking-wider mt-0.5">
+            <Text className="text-[10px] font-mono text-ink-muted dark:text-bone-muted uppercase tracking-[0.1em] mt-0.5">
               {selectedDayOffset === 0 ? "CURRENT RECORD" : "ARCHIVED LOG"}
             </Text>
           </View>
@@ -164,7 +164,7 @@ export const StatsScreen: React.FC = () => {
             activeOpacity={0.7}
             disabled={selectedDayOffset >= 0}
             onPress={() => setSelectedDayOffset((prev) => Math.min(0, prev + 1))}
-            className={`w-9 h-9 border border-hairline dark:border-hairline-dark rounded items-center justify-center ${
+            className={`w-9 h-9 border border-hairline dark:border-hairline-dark rounded-none items-center justify-center ${
               selectedDayOffset >= 0 ? "opacity-25" : "active:bg-ink/5 dark:active:bg-bone/5"
             }`}
           >
@@ -173,12 +173,12 @@ export const StatsScreen: React.FC = () => {
         </View>
 
         {/* Selected Day Summary Card */}
-        <Card className="flex-row justify-around items-center py-4 px-2 mb-5 rounded border border-hairline dark:border-hairline-dark bg-paper-surface dark:bg-espresso-surface">
+        <Card className="flex-row justify-around items-center py-4 px-2 mb-5 rounded-none border border-hairline dark:border-hairline-dark bg-paper-surface dark:bg-espresso-surface">
           <View className="flex-1 items-center px-1">
             <Text
               numberOfLines={1}
               adjustsFontSizeToFit
-              className="font-body-semibold text-[10px] text-ink-muted dark:text-bone-muted uppercase tracking-widest text-center"
+              className="font-body-bold text-[10px] text-ink-muted dark:text-bone-muted uppercase tracking-[0.12em] text-center"
             >
               {getSelectedDayLabel()} TOTAL
             </Text>
@@ -193,7 +193,7 @@ export const StatsScreen: React.FC = () => {
             <Text
               numberOfLines={1}
               adjustsFontSizeToFit
-              className="font-body-semibold text-[10px] text-ink-muted dark:text-bone-muted uppercase tracking-widest text-center"
+              className="font-body-bold text-[10px] text-ink-muted dark:text-bone-muted uppercase tracking-[0.12em] text-center"
             >
               7-DAY AVERAGE
             </Text>
@@ -204,11 +204,11 @@ export const StatsScreen: React.FC = () => {
         </Card>
 
         {/* 7-Day Flat Hairline Bar Chart */}
-        <Card className="p-4 mb-5 rounded border border-hairline dark:border-hairline-dark bg-paper-surface dark:bg-espresso-surface flex-col">
+        <Card className="p-4 mb-5 rounded-none border border-hairline dark:border-hairline-dark bg-paper-surface dark:bg-espresso-surface flex-col">
           <View className="flex-row items-center justify-between mb-4 pb-2 px-1 border-b border-hairline dark:border-hairline-dark">
             <View className="flex-row items-center gap-2 flex-1 pr-2">
               <BarChart2 size={16} strokeWidth={1.25} color={iconColor} />
-              <Text numberOfLines={1} className="font-body-semibold text-xs text-ink dark:text-bone uppercase tracking-wider">
+              <Text numberOfLines={1} className="font-body-bold text-xs text-ink dark:text-bone uppercase tracking-[0.12em]">
                 7-Day Activity
               </Text>
             </View>
@@ -232,8 +232,8 @@ export const StatsScreen: React.FC = () => {
                   barBg = "bg-stamp-red";
                   barBorder = "border-stamp-red";
                 } else {
-                  barBg = "bg-stamp-olive";
-                  barBorder = "border-stamp-olive";
+                  barBg = "bg-brass";
+                  barBorder = "border-brass";
                 }
               }
 
@@ -257,7 +257,7 @@ export const StatsScreen: React.FC = () => {
                   <View className="w-full h-28 justify-end items-center px-1">
                     <View
                       style={{ height: `${heightPercent}%` }}
-                      className={`w-full rounded-sm border ${barBg} ${barBorder}`}
+                      className={`w-full rounded-none border ${barBg} ${barBorder}`}
                     />
                   </View>
 
@@ -265,13 +265,13 @@ export const StatsScreen: React.FC = () => {
                   <View className="items-center">
                     <Text
                       className={`text-xs ${
-                        isSelected ? "font-body-semibold text-ink dark:text-bone" : "font-body text-ink-muted dark:text-bone-muted"
+                        isSelected ? "font-body-bold text-ink dark:text-bone" : "font-body text-ink-muted dark:text-bone-muted"
                       }`}
                     >
                       {item.day}
                     </Text>
                     {isSelected && (
-                      <View className="w-1 h-1 rounded-full bg-ink dark:bg-bone mt-0.5" />
+                      <View className="w-1.5 h-1.5 rounded-none bg-ink dark:bg-bone mt-0.5" />
                     )}
                   </View>
                 </TouchableOpacity>
@@ -282,12 +282,12 @@ export const StatsScreen: React.FC = () => {
 
         {/* Sorted App Usage Breakdown */}
         <View className="flex-col gap-2.5">
-          <Text className="font-body-semibold text-[11px] text-ink-muted dark:text-bone-muted uppercase tracking-widest px-1">
+          <Text className="font-body-bold text-[11px] text-ink-muted dark:text-bone-muted uppercase tracking-[0.12em] px-1">
             {getSelectedDayLabel()} APPLICATION BREAKDOWN
           </Text>
 
           {dayApps.length === 0 ? (
-            <Card className="py-6 items-center border border-hairline dark:border-hairline-dark bg-paper-surface dark:bg-espresso-surface rounded">
+            <Card className="py-6 items-center border border-hairline dark:border-hairline-dark bg-paper-surface dark:bg-espresso-surface rounded-none">
               <Text className="font-body text-xs text-ink-muted dark:text-bone-muted uppercase">
                 No app usage recorded for this date
               </Text>
@@ -297,29 +297,29 @@ export const StatsScreen: React.FC = () => {
               return (
                 <View
                   key={app.packageName}
-                  className="flex-row justify-between items-center py-3 px-3.5 border border-hairline dark:border-hairline-dark bg-paper-surface dark:bg-espresso-surface rounded"
+                  className="flex-row justify-between items-center py-3 px-3.5 border border-hairline dark:border-hairline-dark bg-paper-surface dark:bg-espresso-surface rounded-none"
                 >
                   <View className="flex-row items-center gap-2.5 flex-1 pr-2">
                     {app.iconUri ? (
                       <Image
                         source={{ uri: app.iconUri }}
-                        className="w-8 h-8 rounded border border-hairline dark:border-hairline-dark"
+                        className="w-8 h-8 rounded-none border border-hairline dark:border-hairline-dark"
                         resizeMode="cover"
                       />
                     ) : app.iconBase64 ? (
                       <Image
                         source={{ uri: `data:image/png;base64,${app.iconBase64}` }}
-                        className="w-8 h-8 rounded border border-hairline dark:border-hairline-dark"
+                        className="w-8 h-8 rounded-none border border-hairline dark:border-hairline-dark"
                         resizeMode="cover"
                       />
                     ) : (
-                      <View className="w-8 h-8 rounded border border-hairline dark:border-hairline-dark bg-paper dark:bg-espresso items-center justify-center">
-                        <Text className="font-body-semibold text-xs text-ink-muted dark:text-bone-muted">
+                      <View className="w-8 h-8 rounded-none border border-hairline dark:border-hairline-dark bg-paper dark:bg-espresso items-center justify-center">
+                        <Text className="font-display text-xs text-ink dark:text-bone font-bold">
                           {app.appName.charAt(0).toUpperCase()}
                         </Text>
                       </View>
                     )}
-                    <Text numberOfLines={1} className="font-body-semibold text-sm text-ink dark:text-bone uppercase tracking-wide flex-1">
+                    <Text numberOfLines={1} className="font-body-bold text-sm text-ink dark:text-bone uppercase tracking-wide flex-1">
                       {app.appName}
                     </Text>
                   </View>

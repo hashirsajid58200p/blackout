@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, ScrollView, TouchableOpacity, Image, Switch } from "react-native";
+import { View, Text, ScrollView, TouchableOpacity, Image } from "react-native";
 import { useApp } from "../context/AppContext";
 import { NavigationHeader } from "../components/NavigationHeader";
 import { BottomNavBar } from "../components/BottomNavBar";
@@ -158,13 +158,13 @@ export const SettingsScreen: React.FC = () => {
 
       <ScrollView contentContainerStyle={{ paddingBottom: 100 }} className="px-margin-page pt-4 flex-1">
         {/* Title: Serif Display */}
-        <Text numberOfLines={1} className="font-display font-semibold text-3xl text-ink dark:text-bone tracking-tight mb-4">
+        <Text numberOfLines={1} className="font-display text-3xl text-ink dark:text-bone tracking-tight mb-4">
           Preferences
         </Text>
 
         {/* Section 1: Appearance / Theme */}
         <View className="flex-col gap-2.5 mb-6">
-          <Text className="font-body-semibold text-[11px] text-ink-muted dark:text-bone-muted uppercase tracking-widest px-1">
+          <Text className="font-body-bold text-[11px] text-ink-muted dark:text-bone-muted uppercase tracking-[0.12em] px-1">
             THEME MODE
           </Text>
 
@@ -185,7 +185,7 @@ export const SettingsScreen: React.FC = () => {
                   key={item.mode}
                   activeOpacity={0.7}
                   onPress={() => updateThemeMode(item.mode)}
-                  className={`flex-1 py-3.5 px-2 border rounded flex-col items-center gap-2 ${
+                  className={`flex-1 py-3.5 px-2 border rounded-none flex-col items-center gap-2 ${
                     isSelected
                       ? "border-ink bg-ink dark:border-bone dark:bg-bone"
                       : "border-hairline dark:border-hairline-dark bg-paper-surface dark:bg-espresso-surface active:bg-ink/5 dark:active:bg-bone/5"
@@ -193,7 +193,7 @@ export const SettingsScreen: React.FC = () => {
                 >
                   <IconComp size={18} strokeWidth={1.25} color={buttonIconColor} />
                   <Text
-                    className={`font-body-semibold text-xs uppercase tracking-wider ${
+                    className={`font-body-bold text-xs uppercase tracking-[0.12em] ${
                       isSelected
                         ? "text-paper dark:text-espresso"
                         : "text-ink dark:text-bone"
@@ -209,16 +209,16 @@ export const SettingsScreen: React.FC = () => {
 
         {/* Section 2: Device Admin Uninstall Protection */}
         <View className="flex-col gap-2.5 mb-6">
-          <Text className="font-body-semibold text-[11px] text-ink-muted dark:text-bone-muted uppercase tracking-widest px-1">
+          <Text className="font-body-bold text-[11px] text-ink-muted dark:text-bone-muted uppercase tracking-[0.12em] px-1">
             UNINSTALL PROTECTION (DEVICE ADMIN)
           </Text>
 
-          <View className="border border-hairline dark:border-hairline-dark p-4 bg-paper-surface dark:bg-espresso-surface flex-col rounded">
+          <View className="border border-hairline dark:border-hairline-dark p-4 bg-paper-surface dark:bg-espresso-surface flex-col rounded-none">
             <View className="flex-row items-center gap-2.5 mb-1.5">
               <ShieldCheck size={18} strokeWidth={1.25} color={iconColor} />
               <Text
                 numberOfLines={1}
-                className="font-body-semibold text-sm uppercase tracking-wider text-ink dark:text-bone flex-1"
+                className="font-body-bold text-sm uppercase tracking-[0.1em] text-ink dark:text-bone flex-1"
               >
                 PREVENT UNINSTALLING
               </Text>
@@ -232,16 +232,16 @@ export const SettingsScreen: React.FC = () => {
               <TouchableOpacity
                 activeOpacity={0.7}
                 onPress={handleRequestDeviceAdmin}
-                className={`px-3 py-1.5 border rounded ${
+                className={`px-3 py-1.5 border rounded-none ${
                   isAdminActive
-                    ? "bg-stamp-olive border-stamp-olive"
+                    ? "bg-brass/15 border-brass/50 dark:border-brass/50"
                     : "border-hairline dark:border-hairline-dark bg-paper dark:bg-espresso active:bg-ink/5 dark:active:bg-bone/5"
                 }`}
               >
                 <Text
-                  className={`font-body-semibold text-xs uppercase tracking-wider ${
+                  className={`font-body-bold text-xs uppercase tracking-[0.1em] ${
                     isAdminActive
-                      ? "text-bone"
+                      ? "text-brass dark:text-brass"
                       : "text-ink dark:text-bone"
                   }`}
                 >
@@ -254,16 +254,16 @@ export const SettingsScreen: React.FC = () => {
 
         {/* Section: Auto-Clean Maintenance */}
         <View className="flex-col gap-2.5 mb-6">
-          <Text className="font-body-semibold text-[11px] text-ink-muted dark:text-bone-muted uppercase tracking-widest px-1">
+          <Text className="font-body-bold text-[11px] text-ink-muted dark:text-bone-muted uppercase tracking-[0.12em] px-1">
             MAINTENANCE
           </Text>
 
-          <View className="border border-hairline dark:border-hairline-dark p-4 bg-paper-surface dark:bg-espresso-surface flex-col rounded">
+          <View className="border border-hairline dark:border-hairline-dark p-4 bg-paper-surface dark:bg-espresso-surface flex-col rounded-none">
             <View className="flex-row items-center justify-between">
               <View className="flex-1 mr-3">
                 <View className="flex-row items-center gap-2.5 mb-1.5">
                   <Trash2 size={18} strokeWidth={1.25} color={iconColor} />
-                  <Text className="font-body-semibold text-sm uppercase tracking-wider text-ink dark:text-bone">
+                  <Text className="font-body-bold text-sm uppercase tracking-[0.1em] text-ink dark:text-bone">
                     AUTO-CLEAN UNINSTALLED APPS
                   </Text>
                 </View>
@@ -272,15 +272,24 @@ export const SettingsScreen: React.FC = () => {
                 </Text>
               </View>
 
-              <Switch
-                value={isAutoCleanEnabled}
-                onValueChange={(val) => updateAutoCleanSetting(val)}
-                trackColor={{
-                  false: isDark ? "#2A3145" : "#C9CDD6",
-                  true: isDark ? "#E6E8EC" : "#1A2030",
-                }}
-                thumbColor={isAutoCleanEnabled ? (isDark ? "#12161F" : "#E6E8EC") : (isDark ? "#8C93A6" : "#EFF1F4")}
-              />
+              {/* Mechanical Bracket Switch [ OFF | ON ] per DESIGN.md */}
+              <TouchableOpacity
+                activeOpacity={0.8}
+                onPress={() => updateAutoCleanSetting(!isAutoCleanEnabled)}
+                className="flex-row items-center border border-hairline dark:border-hairline-dark rounded-none overflow-hidden self-center"
+              >
+                <View className={`px-2.5 py-1 ${!isAutoCleanEnabled ? "bg-ink dark:bg-bone" : "bg-transparent"}`}>
+                  <Text className={`font-mono-bold text-[10px] uppercase ${!isAutoCleanEnabled ? "text-paper dark:text-espresso" : "text-ink-muted dark:text-bone-muted"}`}>
+                    OFF
+                  </Text>
+                </View>
+                <View className="w-px h-full bg-hairline dark:bg-hairline-dark" />
+                <View className={`px-2.5 py-1 ${isAutoCleanEnabled ? "bg-ink dark:bg-bone" : "bg-transparent"}`}>
+                  <Text className={`font-mono-bold text-[10px] uppercase ${isAutoCleanEnabled ? "text-paper dark:text-espresso" : "text-ink-muted dark:text-bone-muted"}`}>
+                    ON
+                  </Text>
+                </View>
+              </TouchableOpacity>
             </View>
           </View>
         </View>
@@ -288,14 +297,14 @@ export const SettingsScreen: React.FC = () => {
         {/* Section 3: Active Today's Locks (View Only) */}
         <View className="flex-col gap-2.5 mb-6">
           <View className="flex-row justify-between items-center px-1">
-            <Text className="font-body-semibold text-[11px] text-ink-muted dark:text-bone-muted uppercase tracking-widest">
+            <Text className="font-body-bold text-[11px] text-ink-muted dark:text-bone-muted uppercase tracking-[0.12em]">
               ACTIVE TODAY'S LOCKS
             </Text>
             <Lock size={14} strokeWidth={1.25} color={iconColor} />
           </View>
 
           {trackedApps.length === 0 ? (
-            <Card className="py-4 items-center border border-hairline dark:border-hairline-dark bg-paper-surface dark:bg-espresso-surface rounded">
+            <Card className="py-4 items-center border border-hairline dark:border-hairline-dark bg-paper-surface dark:bg-espresso-surface rounded-none">
               <Text className="font-body text-xs text-ink-muted dark:text-bone-muted uppercase">
                 No active locks configured
               </Text>
@@ -306,34 +315,34 @@ export const SettingsScreen: React.FC = () => {
                 key={app.packageName}
                 activeOpacity={0.7}
                 onPress={() => handleUnlockPress(app)}
-                className="flex-row justify-between items-center py-3 px-3.5 border border-hairline dark:border-hairline-dark bg-paper-surface dark:bg-espresso-surface rounded active:bg-ink/5 dark:active:bg-bone/5"
+                className="flex-row justify-between items-center py-3 px-3.5 border border-hairline dark:border-hairline-dark bg-paper-surface dark:bg-espresso-surface rounded-none active:bg-ink/5 dark:active:bg-bone/5"
               >
                 <View className="flex-row items-center gap-2.5 flex-1 pr-2">
                   {app.iconUri ? (
                     <Image
                       source={{ uri: app.iconUri }}
-                      className="w-7 h-7 rounded border border-hairline dark:border-hairline-dark"
+                      className="w-7 h-7 rounded-none border border-hairline dark:border-hairline-dark"
                       resizeMode="cover"
                     />
                   ) : app.iconBase64 ? (
                     <Image
                       source={{ uri: `data:image/png;base64,${app.iconBase64}` }}
-                      className="w-7 h-7 rounded border border-hairline dark:border-hairline-dark"
+                      className="w-7 h-7 rounded-none border border-hairline dark:border-hairline-dark"
                       resizeMode="cover"
                     />
                   ) : (
-                    <View className="w-7 h-7 bg-paper dark:bg-espresso border border-hairline dark:border-hairline-dark rounded items-center justify-center">
-                      <Text className="font-body-semibold text-xs text-ink-muted dark:text-bone-muted">
+                    <View className="w-7 h-7 bg-paper dark:bg-espresso border border-hairline dark:border-hairline-dark rounded-none items-center justify-center">
+                      <Text className="font-display text-xs text-ink dark:text-bone font-bold">
                         {app.appName.charAt(0).toUpperCase()}
                       </Text>
                     </View>
                   )}
-                  <Text numberOfLines={1} className="font-body-semibold text-sm text-ink dark:text-bone uppercase tracking-wider flex-1">
+                  <Text numberOfLines={1} className="font-body-bold text-sm text-ink dark:text-bone uppercase tracking-wider flex-1">
                     {app.appName}
                   </Text>
                 </View>
                 <View className="flex-row items-center gap-2">
-                  <Text className={`font-mono-bold text-[10px] uppercase ${app.isLocked ? "text-stamp-red" : "text-stamp-olive"}`}>
+                  <Text className={`font-mono-bold text-[10px] uppercase tracking-[0.1em] ${app.isLocked ? "text-stamp-red" : "text-brass dark:text-brass"}`}>
                     {app.isLocked ? "LOCKED" : "RUNNING"}
                   </Text>
                   <Text className="font-mono text-xs text-ink-muted dark:text-bone-muted uppercase">
@@ -351,14 +360,14 @@ export const SettingsScreen: React.FC = () => {
 
         {/* Section 4: Permissions Status */}
         <View className="flex-col gap-2.5 mb-6">
-          <Text className="font-body-semibold text-[11px] text-ink-muted dark:text-bone-muted uppercase tracking-widest px-1">
+          <Text className="font-body-bold text-[11px] text-ink-muted dark:text-bone-muted uppercase tracking-[0.12em] px-1">
             PERMISSIONS STATUS
           </Text>
 
           <TouchableOpacity
             activeOpacity={0.7}
             onPress={() => setCurrentScreen("permissions")}
-            className="border border-hairline dark:border-hairline-dark bg-paper-surface dark:bg-espresso-surface p-4 flex-col rounded active:bg-ink/5 dark:active:bg-bone/5"
+            className="border border-hairline dark:border-hairline-dark bg-paper-surface dark:bg-espresso-surface p-4 flex-col rounded-none active:bg-ink/5 dark:active:bg-bone/5"
           >
             <View className="flex-row items-center justify-between">
               <View className="flex-row items-center gap-2.5 flex-1">
@@ -366,7 +375,7 @@ export const SettingsScreen: React.FC = () => {
                 <View className="flex-1">
                   <Text
                     numberOfLines={1}
-                    className="font-body-semibold text-sm uppercase tracking-wider text-ink dark:text-bone"
+                    className="font-body-bold text-sm uppercase tracking-[0.1em] text-ink dark:text-bone"
                   >
                     SYSTEM PERMISSIONS
                   </Text>
@@ -384,15 +393,15 @@ export const SettingsScreen: React.FC = () => {
 
         {/* Section 5: About Blackout */}
         <View className="flex-col gap-2.5 mb-6">
-          <Text className="font-body-semibold text-[11px] text-ink-muted dark:text-bone-muted uppercase tracking-widest px-1">
+          <Text className="font-body-bold text-[11px] text-ink-muted dark:text-bone-muted uppercase tracking-[0.12em] px-1">
             ABOUT BLACKOUT
           </Text>
 
-          <Card className="flex-col p-4 rounded border border-hairline dark:border-hairline-dark bg-paper-surface dark:bg-espresso-surface">
+          <Card className="flex-col p-4 rounded-none border border-hairline dark:border-hairline-dark bg-paper-surface dark:bg-espresso-surface">
             <View className="flex-row items-center justify-between mb-1.5">
               <View className="flex-row items-center gap-2.5">
                 <Info size={18} strokeWidth={1.25} color={iconColor} />
-                <Text className="font-body-semibold text-sm text-ink dark:text-bone uppercase tracking-wider">
+                <Text className="font-body-bold text-sm text-ink dark:text-bone uppercase tracking-[0.1em]">
                   BLACKOUT
                 </Text>
               </View>

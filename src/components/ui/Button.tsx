@@ -18,18 +18,18 @@ export const Button: React.FC<ButtonProps> = ({
   icon,
   fullWidth = true,
 }) => {
-  let containerStyles = "h-touch-target flex-row items-center justify-center px-6 rounded ";
-  let textStyles = "font-body-semibold text-xs uppercase tracking-widest ";
+  let containerStyles = "h-touch-target flex-row items-center justify-center px-6 rounded-none border ";
+  let textStyles = "font-body-bold text-xs uppercase tracking-[0.1em] ";
 
   if (variant === "primary") {
-    containerStyles += "bg-ink dark:bg-bone border border-ink dark:border-bone";
+    containerStyles += "bg-ink dark:bg-bone border-ink dark:border-bone";
     textStyles += "text-paper dark:text-espresso";
   } else if (variant === "secondary") {
-    containerStyles += "bg-transparent border border-hairline dark:border-hairline-dark";
-    textStyles += "text-ink dark:text-bone";
+    containerStyles += "bg-transparent border-hairline dark:border-hairline-dark";
+    textStyles += "text-ink dark:text-bone font-body-semibold";
   } else if (variant === "danger") {
-    containerStyles += "bg-stamp-red border border-stamp-red";
-    textStyles += "text-white";
+    containerStyles += "bg-transparent dark:bg-espresso-surface border-stamp-red";
+    textStyles += "text-stamp-red";
   }
 
   if (disabled) {

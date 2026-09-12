@@ -394,24 +394,25 @@ class BlackoutAccessibilityService : AccessibilityService() {
             visibility = View.GONE
         }
 
-        // Vintage Minimalist Rubber Stamp / Lock Badge
+        // Rectilinear Stamp Placard
         val iconBox = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER
             val drawable = android.graphics.drawable.GradientDrawable().apply {
-                shape = android.graphics.drawable.GradientDrawable.OVAL
+                shape = android.graphics.drawable.GradientDrawable.RECTANGLE
+                cornerRadius = 0f
                 setColor(Color.parseColor("#1B2030")) // espresso-surface / navy lifted
-                setStroke((1.5f * resources.displayMetrics.density).toInt(), Color.parseColor("#B23A2E")) // stamp-red
+                setStroke((1f * resources.displayMetrics.density).toInt(), Color.parseColor("#B23A2E")) // stamp-red
             }
             background = drawable
-            val sizePx = (80 * resources.displayMetrics.density).toInt()
-            layoutParams = LinearLayout.LayoutParams(sizePx, sizePx).apply {
+            val widthPx = (140 * resources.displayMetrics.density).toInt()
+            val heightPx = (44 * resources.displayMetrics.density).toInt()
+            layoutParams = LinearLayout.LayoutParams(widthPx, heightPx).apply {
                 bottomMargin = (32 * resources.displayMetrics.density).toInt()
             }
-            rotation = -3f
         }
         val stampText = TextView(this).apply {
-            text = "LOCKED"
+            text = "LOCKED // 24H"
             setTextColor(Color.parseColor("#B23A2E"))
             setTextSize(TypedValue.COMPLEX_UNIT_SP, 12f)
             typeface = android.graphics.Typeface.MONOSPACE
@@ -461,7 +462,7 @@ class BlackoutAccessibilityService : AccessibilityService() {
             setTextColor(Color.parseColor("#12161F")) // dark navy
             val btnDrawable = android.graphics.drawable.GradientDrawable().apply {
                 shape = android.graphics.drawable.GradientDrawable.RECTANGLE
-                cornerRadius = 4f * resources.displayMetrics.density
+                cornerRadius = 0f
                 setColor(Color.parseColor("#E6E8EC")) // slate-white
                 setStroke((1f * resources.displayMetrics.density).toInt(), Color.parseColor("#E6E8EC"))
             }
@@ -691,7 +692,13 @@ class BlackoutAccessibilityService : AccessibilityService() {
                 val layout = LinearLayout(this).apply {
                     orientation = LinearLayout.VERTICAL
                     gravity = Gravity.CENTER
-                    setBackgroundColor(Color.parseColor("#EE12161F"))
+                    val bgDrawable = android.graphics.drawable.GradientDrawable().apply {
+                        shape = android.graphics.drawable.GradientDrawable.RECTANGLE
+                        cornerRadius = 0f
+                        setColor(Color.parseColor("#EE12161F"))
+                        setStroke((1f * resources.displayMetrics.density).toInt(), Color.parseColor("#2A3145"))
+                    }
+                    background = bgDrawable
                     val padH = (24 * resources.displayMetrics.density).toInt()
                     val padV = (16 * resources.displayMetrics.density).toInt()
                     setPadding(padH, padV, padH, padV)

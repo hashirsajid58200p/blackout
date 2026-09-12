@@ -14,10 +14,10 @@ export const Card: React.FC<CardProps> = ({
   ...props
 }) => {
   const baseStyle =
-    "border border-hairline dark:border-hairline-dark p-4 rounded bg-paper-surface dark:bg-espresso-surface ";
+    "border border-hairline dark:border-hairline-dark p-4 rounded-none bg-paper-surface dark:bg-espresso-surface ";
   const lockedStyle =
     variant === "locked"
-      ? "border-stamp-red/40 dark:border-stamp-red/40 "
+      ? "border-stamp-red/60 dark:border-stamp-red/60 "
       : "";
 
   return (

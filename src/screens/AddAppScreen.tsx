@@ -2,10 +2,9 @@ import React, { useState, useEffect } from "react";
 import { View, Text, ScrollView, TextInput, TouchableOpacity, ActivityIndicator, Image } from "react-native";
 import { useApp } from "../context/AppContext";
 import { NavigationHeader } from "../components/NavigationHeader";
-import { Button } from "../components/ui/Button";
 import { Modal } from "../components/ui/Modal";
 import { NativeBridge } from "../services/nativeBridge";
-import { Search, Check, Plus } from "lucide-react-native";
+import { Search, Check } from "lucide-react-native";
 import { InstalledAppInfo } from "../types";
 
 interface DialogConfig {
@@ -137,17 +136,17 @@ export const AddAppScreen: React.FC = () => {
       >
         {/* Step 1: Search & Pick App */}
         <View className="flex-col gap-2 mb-4">
-          <Text className="font-body-semibold text-[11px] text-ink-muted dark:text-bone-muted uppercase tracking-widest">
+          <Text className="font-body-bold text-[11px] text-ink-muted dark:text-bone-muted uppercase tracking-[0.12em]">
             STEP 1 — SELECT TARGET APPLICATION
           </Text>
-          <View className="flex-row items-center border border-hairline dark:border-hairline-dark bg-paper-surface dark:bg-espresso-surface rounded px-3 h-11">
-            <Search size={18} color={iconColor} strokeWidth={1.25} />
+          <View className="flex-row items-center border border-hairline dark:border-hairline-dark bg-paper-surface dark:bg-espresso-surface rounded-none px-3 h-11">
+            <Search size={16} color={iconColor} strokeWidth={1.25} />
             <TextInput
               value={searchQuery}
               onChangeText={setSearchQuery}
               placeholder="SEARCH INSTALLED APPS..."
               placeholderTextColor={isDark ? "#8C93A6" : "#5C6478"}
-              className="flex-1 font-body text-sm text-ink dark:text-bone py-2 px-1"
+              className="flex-1 font-mono text-xs text-ink dark:text-bone py-2 px-2"
             />
           </View>
         </View>
@@ -156,7 +155,7 @@ export const AddAppScreen: React.FC = () => {
         {loading ? (
           <View className="py-12 items-center justify-center flex-col gap-3">
             <ActivityIndicator size="large" color={isDark ? "#E6E8EC" : "#1A2030"} />
-            <Text className="font-body-semibold text-xs text-ink-muted dark:text-bone-muted uppercase tracking-wider">
+            <Text className="font-body-bold text-xs text-ink-muted dark:text-bone-muted uppercase tracking-[0.12em]">
               SCANNING INSTALLED APPS...
             </Text>
           </View>
@@ -175,7 +174,7 @@ export const AddAppScreen: React.FC = () => {
                     activeOpacity={0.7}
                     disabled={isAlreadyTracked}
                     onPress={() => setSelectedApp(app)}
-                    className={`p-3.5 border rounded flex-col gap-1 ${
+                    className={`p-3.5 border rounded-none flex-col gap-1 ${
                       isAlreadyTracked
                         ? "border-hairline/50 dark:border-hairline-dark/50 opacity-40 bg-paper-surface/50 dark:bg-espresso-surface/50"
                         : isSelected
@@ -190,17 +189,17 @@ export const AddAppScreen: React.FC = () => {
                           {app.iconUri ? (
                             <Image
                               source={{ uri: app.iconUri }}
-                              className="w-9 h-9 rounded border border-hairline dark:border-hairline-dark"
+                              className="w-9 h-9 rounded-none border border-hairline dark:border-hairline-dark"
                               resizeMode="cover"
                             />
                           ) : app.iconBase64 ? (
                             <Image
                               source={{ uri: `data:image/png;base64,${app.iconBase64}` }}
-                              className="w-9 h-9 rounded border border-hairline dark:border-hairline-dark"
+                              className="w-9 h-9 rounded-none border border-hairline dark:border-hairline-dark"
                               resizeMode="cover"
                             />
                           ) : (
-                            <View className="w-9 h-9 rounded bg-paper dark:bg-espresso border border-hairline dark:border-hairline-dark items-center justify-center">
+                            <View className="w-9 h-9 rounded-none bg-paper dark:bg-espresso border border-hairline dark:border-hairline-dark items-center justify-center">
                               <Text className="font-display text-sm font-bold text-ink dark:text-bone">
                                 {app.appName.charAt(0).toUpperCase()}
                               </Text>
@@ -210,7 +209,7 @@ export const AddAppScreen: React.FC = () => {
                         <View className="flex-1">
                           <Text
                             numberOfLines={1}
-                            className="font-body-semibold text-sm text-ink dark:text-bone leading-5"
+                            className="font-body-bold text-sm text-ink dark:text-bone leading-5"
                           >
                             {app.appName}
                           </Text>
@@ -231,15 +230,15 @@ export const AddAppScreen: React.FC = () => {
 
                       {isAlreadyTracked && trackedApp ? (
                         <Text
-                          className={`text-[10px] font-mono-bold uppercase tracking-wider ${
-                            trackedApp.isLocked ? "text-stamp-red" : "text-stamp-olive"
+                          className={`text-[10px] font-mono-bold uppercase tracking-[0.1em] ${
+                            trackedApp.isLocked ? "text-stamp-red" : "text-brass dark:text-brass"
                           }`}
                         >
                           {trackedApp.isLocked ? "LOCKED TODAY" : "TRACKED TODAY"}
                         </Text>
                       ) : isSelected ? (
-                        <View className="w-5 h-5 rounded-full bg-ink dark:bg-bone items-center justify-center">
-                          <Check size={11} color={isDark ? "#12161F" : "#E6E8EC"} strokeWidth={2} />
+                        <View className="w-5 h-5 rounded-none bg-ink dark:bg-bone items-center justify-center">
+                          <Check size={11} color={isDark ? "#12161F" : "#E6E8EC"} strokeWidth={1.5} />
                         </View>
                       ) : null}
                     </View>
@@ -247,8 +246,8 @@ export const AddAppScreen: React.FC = () => {
 
                   {/* Step 2: Time Selector directly beneath the selected app */}
                   {isSelected && (
-                    <View className="flex-col gap-4 mt-2 mb-2 border border-hairline dark:border-hairline-dark p-4 bg-paper-surface dark:bg-espresso-surface rounded">
-                      <Text className="font-body-semibold text-[11px] text-ink-muted dark:text-bone-muted uppercase tracking-widest">
+                    <View className="flex-col gap-4 mt-2 mb-2 border border-hairline dark:border-hairline-dark p-4 bg-paper-surface dark:bg-espresso-surface rounded-none">
+                      <Text className="font-body-bold text-[11px] text-ink-muted dark:text-bone-muted uppercase tracking-[0.12em]">
                         STEP 2 — SET DAILY ALLOWANCE
                       </Text>
 
@@ -256,14 +255,14 @@ export const AddAppScreen: React.FC = () => {
                       <View className="flex-row items-center justify-center gap-3 py-2">
                         {/* Hours Picker Column */}
                         <View className="flex-col items-center flex-1">
-                          <Text className="text-[10px] font-body-semibold text-ink-muted dark:text-bone-muted uppercase mb-2 tracking-widest">
+                          <Text className="text-[10px] font-body-bold text-ink-muted dark:text-bone-muted uppercase mb-2 tracking-[0.12em]">
                             HOURS
                           </Text>
                           <View className="flex-row items-center gap-1.5">
                             <TouchableOpacity
                               activeOpacity={0.7}
                               onPress={() => setHours(Math.max(0, hours - 1))}
-                              className="w-8 h-8 border border-hairline dark:border-hairline-dark rounded items-center justify-center bg-transparent active:bg-ink/5 dark:active:bg-bone/5"
+                              className="w-8 h-8 border border-hairline dark:border-hairline-dark rounded-none items-center justify-center bg-transparent active:bg-ink/5 dark:active:bg-bone/5"
                             >
                               <Text className="font-mono-bold text-base text-ink dark:text-bone">-</Text>
                             </TouchableOpacity>
@@ -273,7 +272,7 @@ export const AddAppScreen: React.FC = () => {
                             <TouchableOpacity
                               activeOpacity={0.7}
                               onPress={() => setHours(Math.min(12, hours + 1))}
-                              className="w-8 h-8 border border-hairline dark:border-hairline-dark rounded items-center justify-center bg-transparent active:bg-ink/5 dark:active:bg-bone/5"
+                              className="w-8 h-8 border border-hairline dark:border-hairline-dark rounded-none items-center justify-center bg-transparent active:bg-ink/5 dark:active:bg-bone/5"
                             >
                               <Text className="font-mono-bold text-base text-ink dark:text-bone">+</Text>
                             </TouchableOpacity>
@@ -284,14 +283,14 @@ export const AddAppScreen: React.FC = () => {
 
                         {/* Minutes Picker Column with +/- 1 Stepper */}
                         <View className="flex-col items-center flex-1">
-                          <Text className="text-[10px] font-body-semibold text-ink-muted dark:text-bone-muted uppercase mb-2 tracking-widest">
+                          <Text className="text-[10px] font-body-bold text-ink-muted dark:text-bone-muted uppercase mb-2 tracking-[0.12em]">
                             MINUTES
                           </Text>
                           <View className="flex-row items-center gap-1.5">
                             <TouchableOpacity
                               activeOpacity={0.7}
                               onPress={() => setMinutes(Math.max(0, minutes - 1))}
-                              className="w-8 h-8 border border-hairline dark:border-hairline-dark rounded items-center justify-center bg-transparent active:bg-ink/5 dark:active:bg-bone/5"
+                              className="w-8 h-8 border border-hairline dark:border-hairline-dark rounded-none items-center justify-center bg-transparent active:bg-ink/5 dark:active:bg-bone/5"
                             >
                               <Text className="font-mono-bold text-base text-ink dark:text-bone">-</Text>
                             </TouchableOpacity>
@@ -301,7 +300,7 @@ export const AddAppScreen: React.FC = () => {
                             <TouchableOpacity
                               activeOpacity={0.7}
                               onPress={() => setMinutes(Math.min(59, minutes + 1))}
-                              className="w-8 h-8 border border-hairline dark:border-hairline-dark rounded items-center justify-center bg-transparent active:bg-ink/5 dark:active:bg-bone/5"
+                              className="w-8 h-8 border border-hairline dark:border-hairline-dark rounded-none items-center justify-center bg-transparent active:bg-ink/5 dark:active:bg-bone/5"
                             >
                               <Text className="font-mono-bold text-base text-ink dark:text-bone">+</Text>
                             </TouchableOpacity>
@@ -313,9 +312,9 @@ export const AddAppScreen: React.FC = () => {
                       <TouchableOpacity
                         activeOpacity={0.8}
                         onPress={handleSetTimer}
-                        className="bg-ink dark:bg-bone border border-ink dark:border-bone py-3 px-4 rounded items-center justify-center mt-2 active:opacity-90"
+                        className="bg-ink dark:bg-bone border border-ink dark:border-bone py-3 px-4 rounded-none items-center justify-center mt-2 active:opacity-90"
                       >
-                        <Text numberOfLines={1} className="font-body-semibold text-xs text-paper dark:text-espresso uppercase tracking-widest">
+                        <Text numberOfLines={1} className="font-body-bold text-xs text-paper dark:text-espresso uppercase tracking-[0.1em]">
                           LOCK IT IN — {app.appName.toUpperCase()}
                         </Text>
                       </TouchableOpacity>
@@ -327,8 +326,8 @@ export const AddAppScreen: React.FC = () => {
 
             {/* Empty search fallback */}
             {filteredApps.length === 0 && searchQuery.trim().length > 0 && (
-              <View className="p-6 border border-hairline dark:border-hairline-dark rounded bg-paper-surface dark:bg-espresso-surface items-center justify-center mt-4">
-                <Text className="font-body-medium text-xs text-ink-muted dark:text-bone-muted text-center uppercase tracking-wider">
+              <View className="p-6 border border-hairline dark:border-hairline-dark rounded-none bg-paper-surface dark:bg-espresso-surface items-center justify-center mt-4">
+                <Text className="font-body text-xs text-ink-muted dark:text-bone-muted text-center uppercase tracking-[0.06em]">
                   No installed application matches "{searchQuery.trim()}"
                 </Text>
               </View>
